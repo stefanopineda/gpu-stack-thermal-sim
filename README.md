@@ -25,7 +25,7 @@ Resolved with Stefano (SPEC rev 3):
 - The rear exhaust shroud covers the bracket plane and is pulled by **two NF-A14 industrialPPC-3000 PWM** fans. A passive duct (same shroud, fans off) is still runnable. It is not a sweep factor.
 - GPUs are 4× RTX PRO 6000 Blackwell Max-Q, 300 W, dual-slot blowers. The saved build places three horizontal cards in slots 1, 4 and 7 (one empty slot between them) and the fourth in vertical slot `v2`. That placement is an assumption; anchor A is this layout with the shroud off.
 - A rear 140 mm redux exhaust is installed. The case has the mount; only the front trio was stated explicitly.
-- Anchor A (gaps, no shroud, stock curve) is the bench point at about 86 °C. Anchor B (four cards, no gaps, stock curve) throttles at a 90 °C cutoff.
+- Anchor A (gaps, no shroud, stock curve) is the bench point at 86.5 °C. Anchor B (four horizontal cards, no gaps, stock curve) throttles at a 90 °C cutoff, with the middle cards hottest (unthrottled peak 108.9 °C).
 - Radiator thickness is the published 38 mm. FPI is not published; 18 FPI is assumed. Blower P–Q, fin geometry and TIM are not published; they are the global fit in `gpusim/calib.py`. The NF-A14 iPPC datasheet says 10.52 mmH₂O and the current web page says 6.58; the curve used is the datasheet, and Monte Carlo spans both.
 
 `stock` in the sweep table is the factorial baseline (stacked, standard pressure, shroud off, leaky). It is the same configuration as one of the 16 cells and is repeated as its own row.
@@ -44,6 +44,12 @@ blower duty is a function of die temperature (stock caps near 70%; aggressive
 hits 100% at 70 °C) and is iterated with the flow. At or above the throttle
 threshold (default 88 °C) the card is flagged; above the 90 °C cutoff, power is
 reduced to the throttled equilibrium. Both temperatures are reported.
+
+The blower fan face points down, toward the floor. A card preset sets
+`inlet_faces` (`floor`, `cpu`, or `both`) and `inlet_split` (fraction of the
+eye on the fan face). The Max-Q uses `both` and 0.75, an assumption: the rest
+is a smaller backplate-side / end opening. Each face takes its gap from the
+slot map (card below, PSU-shroud clearance, CPU-area clearance, or card above).
 
 Clock offsets, undervolt and memory offset change the heat load with a rough
 split (dynamic power ∝ f·V², a static share, a memory share). They clamp to the
@@ -88,7 +94,7 @@ uv pip install -e ".[dev]"
 ## Usage
 
 ```bash
-uv run gpusim sweep --build meshify2xl-stefano --mc 200 --out results --plots plots
+uv run gpusim sweep --build meshify2xl-stefano --mc 200 --out results
 uv run gpusim run --build meshify2xl-stefano --spacing gap1 --pressure standard --shroud on --leakage leaky
 uv run gpusim run --spacing stacked --rear-duct passive
 uv run gpusim optimize --cards 4 --case meshify2xl
@@ -97,12 +103,19 @@ uv run gpusim calibrate --log examples/nvidia_smi.csv
 uv run gpusim ui
 ```
 
-`gpusim ui` serves a local 3D side view (three.js) with the solver behind it.
-Quick start loads Stefano's Meshify or the 9000D illustrative mock and shows a
-die temperature immediately. Click a mount to add or flip a fan; the fan list
-is filtered by 120 / 140 / 170 mm. Drag a fan onto another mount or a card onto
-another slot. Compare, Demo (arrow keys), and Presentation hide the controls
-for an OBS window. The footer repeats the accuracy line and the water-block limit.
+`gpusim ui` prints `gpusim ui at http://127.0.0.1:8000` and serves a local 3D
+side view. three.js r160 is vendored under `gpusim/ui/static/vendor` (the ES
+module, so the page does not fetch unpkg and does not load `three.min.js`).
+If port 8000 is busy the server says so and binds the next free port.
+Quick start loads Stefano's Meshify or the plain Corsair 9000D sample
+(`corsair-9000d-sample`). The Mike Bradley 9000D button is a separate
+illustrative mock, labelled as such. Click a mount to add or flip a fan; the
+fan list is filtered by 120 / 140 / 170 mm. Drag a fan onto another mount or a
+card onto another slot. Compare, Demo (arrow keys), and Presentation hide the
+controls for an OBS window. The 3D view frames the whole case, including the
+top radiator, rear shroud and PSU shroud, and draws the case outline plus an
+intake / exhaust / blanked legend. The footer repeats the accuracy line and
+the water-block limit.
 
 Demo script: [DEMO.md](DEMO.md). What to measure next: [HYPOTHESIS.md](HYPOTHESIS.md).
 Fit notes: [docs/CALIBRATION.md](docs/CALIBRATION.md).
@@ -111,31 +124,49 @@ Fit notes: [docs/CALIBRATION.md](docs/CALIBRATION.md).
 
 16 cells (spacing × pressure × shroud × leakage) plus the stock row. Ranked by
 throttled hottest die, then unthrottled hottest die, then mean die. Lower is
-better. `sh` is the shroud, `l` is leakage, `p` is pressure.
+better. `sh` is the shroud, `l` is leakage, `p` is pressure. Per-card columns
+are unthrottled dies, top to bottom. On gapped and stacked rows the fourth card
+is the vertical one. Stock matches the stacked / standard / shroud-off / leaky cell.
 
-| Rank | Config | Hottest °C | Unthrottled °C | Mean °C | Case Pa | Throttle |
-|---|---|---:|---:|---:|---:|---|
-| 1 | gap1, standard, shroud on, leaky | 84.3 | 84.3 | 83.7 | −8.0 | no |
-| 2 | gap1, standard, shroud on, sealed | 84.4 | 84.4 | 83.8 | −14.0 | no |
-| 3 | gap1, high, shroud on, leaky | 84.9 | 84.9 | 84.2 | +11.0 | no |
-| 4 | gap1, high, shroud on, sealed | 85.8 | 85.8 | 85.1 | +17.8 | no |
-| 5 | gap1, standard, shroud off, sealed | 86.5 | 86.5 | 85.8 | −12.5 | no |
-| 6 | gap1, standard, shroud off, leaky (anchor A) | 86.5 | 86.5 | 85.9 | −5.0 | no |
-| 7 | gap1, high, shroud off, leaky | 86.7 | 86.7 | 86.1 | +10.4 | no |
-| 8 | gap1, high, shroud off, sealed | 88.6 | 88.6 | 87.9 | +18.6 | yes |
-| 9–17 | every stacked cell, including stock | 90.1–90.2 | 134–142 | | | yes |
+| Rank | Config | Hottest | Unthrottled | gpu1 | gpu2 | gpu3 | gpu4 | Case Pa | Throttle |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| 1 | gap1, standard, shroud on, leaky | 84.3 | 84.3 | 84.3 | 84.3 | 84.2 | 84.2 | −7.8 | no |
+| 2 | gap1, standard, shroud on, sealed | 84.3 | 84.3 | 84.3 | 84.3 | 84.2 | 84.3 | −13.8 | no |
+| 3 | gap1, high, shroud on, leaky | 84.8 | 84.8 | 84.8 | 84.8 | 84.7 | 84.7 | +11.2 | no |
+| 4 | gap1, high, shroud on, sealed | 85.7 | 85.7 | 85.7 | 85.7 | 85.6 | 85.7 | +18.0 | no |
+| 5 | gap1, standard, shroud off, sealed | 86.4 | 86.4 | 86.4 | 86.4 | 86.3 | 86.3 | −12.3 | no |
+| 6 | gap1, standard, shroud off, leaky (anchor A) | 86.5 | 86.5 | 86.5 | 86.5 | 86.4 | 86.4 | −4.9 | no |
+| 7 | gap1, high, shroud off, leaky | 86.7 | 86.7 | 86.7 | 86.7 | 86.6 | 86.6 | +10.5 | no |
+| 8 | gap1, high, shroud off, sealed | 88.6 | 88.6 | 88.6 | 88.6 | 88.5 | 88.5 | +18.8 | yes |
+| 9 | stacked, standard, shroud on, leaky | 90.0 | 104.2 | 96.8 | 104.2 | 84.4 | 83.8 | −6.6 | yes |
+| 10 | stacked, standard, shroud on, sealed | 90.0 | 104.3 | 96.8 | 104.3 | 84.4 | 83.8 | −12.0 | yes |
+| 11 | stacked, standard, shroud off, sealed | 90.1 | 108.7 | 100.6 | 108.7 | 86.9 | 86.2 | −10.5 | yes |
+| 12 | stacked, high, shroud on, leaky | 90.1 | 104.6 | 97.2 | 104.6 | 84.9 | 84.3 | +12.3 | yes |
+| 13 | stacked, standard, shroud off, leaky | 90.1 | 108.8 | 100.8 | 108.8 | 87.1 | 86.4 | −4.0 | yes |
+| 14 | stock (same as 13) | 90.1 | 108.8 | 100.8 | 108.8 | 87.1 | 86.4 | −4.0 | yes |
+| 15 | stacked, high, shroud off, leaky | 90.1 | 108.6 | 100.7 | 108.6 | 87.2 | 86.6 | +11.6 | yes |
+| 16 | stacked, high, shroud on, sealed | 90.1 | 105.9 | 98.6 | 105.9 | 86.3 | 85.7 | +19.0 | yes |
+| 17 | stacked, high, shroud off, sealed | 90.2 | 111.3 | 103.4 | 111.3 | 89.9 | 89.2 | +19.6 | yes |
 
 Open air, one card, stock curve: **82.8 °C**. The same card on the aggressive
 curve: **73.4 °C**.
 
-Winner, per card (top horizontal, middle, lower, vertical): 84.1, 84.3, 82.2, 84.1 °C,
-about 26 CFM each. Stock (stacked, shroud off): the middle horizontal card is
-the one that runs away, about 140 °C unthrottled and 8 CFM, while the cards
-with an open inlet stay in the mid-80s and the throttled equilibrium is 90 °C.
+Anchor B (four horizontal cards, no vertical, not a factorial row): unthrottled
+100.7, 108.9, 108.7, 87.1 °C. The middle two are hottest. Throttle flags on the
+three cards that cross 90 °C.
 
-Full table, per-card columns and Monte Carlo bands: `results/meshify2xl-stefano/`.
-Plots: `plots/meshify2xl-stefano/` (die temperature with 5th–95th bars, flow,
-case pressure, schematic, stock tornado). Bounds check: all nominal anchors pass.
+Winner of the factorial, per card: 84.3, 84.3, 84.2, 84.2 °C, about 26.5 CFM.
+Stock unthrottled flow on the hot middle card is about 14.5 CFM. Its fan faces
+the next card across 3.6 mm. The lowest horizontal card sees the 40 mm
+PSU-shroud clearance and stays near 87 °C. Monte Carlo bands (5th–95th hottest
+die): stock 94–129 °C, best gapped cell 74–101 °C. The tails overlap.
+
+Full table and the generated hypothesis: `results/meshify2xl-stefano/`
+(`hypothesis_auto.md`; the root `HYPOTHESIS.md` is hand-written). With the
+default `--out results`, plots stay in `plots/meshify2xl-stefano/`. Any other
+`--out` puts plots under `<out>/plots`. Charts: die temperature with 5th–95th
+bars, flow, case pressure, schematic, stock tornado. Bounds check: all nominal
+anchors pass.
 
 The best air-cooled search result (`gpusim optimize --cards 4 --case meshify2xl`)
 is gaps plus a vertical card, shroud on, standard case-fan direction, leaky,
@@ -149,8 +180,9 @@ radiator thickness and FPI, rear bracket open area, altitude (air density),
 per-card power limit, side panel (glass, mesh, or removed), a small buoyancy
 term (off by default), and an optional room re-ingestion offset for a case
 against a wall. Seal level is a five-step open-area fraction on every interface.
-Slot gap state is derived from the slot map: open slot, blocked slot (cover or
-cables), or no slot (card against the next backplate).
+Slot gap state is derived from the slot map for each inlet face: open slot,
+blocked slot (cover or cables), or no slot (fan face against the next card,
+about 3.6 mm).
 
 ## How to extend
 
