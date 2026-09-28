@@ -1,0 +1,13 @@
+_approximate: true
+_assumption: Typical 360 × 120 × 30 mm, ~16 FPI radiator. Not a specific product.
+id: generic-360
+name: Generic 360 mm radiator
+size_mm: 360
+thickness_mm: 30
+length_mm: 395
+width_mm: 120
+fan_count: 3
+fan_size_mm: 120
+fpi: 16
+default_fan: generic-120
+notes: Approximate stand-in when the builder has not picked an AIO.

@@ -1,0 +1,157 @@
+_source: SPEC.md revision 3 sections 1.2 and 14
+id: meshify2xl-stefano
+name: Stefano Meshify 2 XL — 4× RTX PRO 6000 Blackwell Max-Q
+case: meshify2xl
+ambient_c:
+  value: 25
+  approximate: false
+  source: SPEC.md revision 3 section 14
+altitude_m:
+  value: 0
+  approximate: true
+  assumption: Sea-level default. Station altitude was not specified.
+gpus:
+- id: gpu1
+  slot: '1'
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+- id: gpu2
+  slot: '4'
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+- id: gpu3
+  slot: '7'
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+- id: gpu4
+  slot: v2
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+mounts:
+- id: front-1
+  panel: front
+  size_mm: 140
+  fan: noctua-140-redux-1700
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-2
+  panel: front
+  size_mm: 140
+  fan: noctua-140-redux-1700
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-3
+  panel: front
+  size_mm: 140
+  fan: noctua-140-redux-1700
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: rear-1
+  panel: rear
+  size_mm: 140
+  fan: noctua-140-redux-1700
+  state: fan
+  direction: exhaust
+  duty: 1.0
+- id: top-1
+  panel: top
+  size_mm: 140
+  state: radiator
+  direction: exhaust
+  duty: 1.0
+- id: top-2
+  panel: top
+  size_mm: 140
+  state: radiator
+  direction: exhaust
+  duty: 1.0
+- id: top-3
+  panel: top
+  size_mm: 140
+  state: radiator
+  direction: exhaust
+  duty: 1.0
+- id: bottom-1
+  panel: bottom
+  size_mm: 140
+  state: blanked
+  direction: intake
+  duty: 1.0
+- id: bottom-2
+  panel: bottom
+  size_mm: 140
+  state: blanked
+  direction: intake
+  duty: 1.0
+radiator:
+  model: arctic-360
+  panel: top
+  direction: exhaust
+  arrangement: push
+  cpu_power_w:
+    value: 150
+    approximate: true
+    assumption: CPU package power while the GPUs are loaded. Not a measured nvidia-smi
+      / package trace.
+  fan: arctic-p12-pwm-pst
+  fan_count: 3
+  fan_duty: 1.0
+shroud:
+  mode: 'on'
+  fan: noctua-nf-a14-ippc-3000
+  count: 2
+  duty: 1.0
+seals:
+  front: 4
+  top: 4
+  bottom: 3
+  side: 2
+  seams: 3
+  rear_slots: 4
+filters:
+  front: fine
+  top: fine
+  bottom: fine
+obstruction: low
+cables: clean
+psu_location: bottom_shroud
+psu_fan: down
+drive_cage: removed
+side_panel: tempered_glass
+brackets_removed: true
+room_reingestion_c:
+  value: 0
+  approximate: true
+  assumption: Case is not hard against a wall. Optional ambient offset is 0.
+buoyancy: false
+open_air: false
+illustrative_mock: false
+notes: 'Assumption recorded with the build: the three horizontal cards sit in slots
+  1, 4 and 7 (one empty slot between pairs, gap1) and the fourth card is in vertical
+  slot v2. Anchor A is this layout with the shroud off. The factorial stock cell is
+  stacked (no empty slot), shroud off, standard pressure, leaky — it is not this saved
+  build. Front 3× Noctua 140 mm redux-1700 intake, rear 1× redux-1700 exhaust, Arctic
+  360 on top as exhaust with its three P12 fans. Bottom mounts are blanked. All PCIe
+  slot brackets removed. Rear shroud with 2× NF-A14 industrialPPC-3000 is fitted (shroud
+  mode on). GPU fan curve is stock. Rear exhaust fan is an assumption: the case has
+  the mount and ''other case mounts'' were described as redux-1700s; only the front
+  trio was explicit.'

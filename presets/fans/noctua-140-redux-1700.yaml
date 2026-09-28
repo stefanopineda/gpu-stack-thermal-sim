@@ -1,0 +1,31 @@
+_approximate: true
+_assumption: 'Noctua does not publish a 1700 RPM 140 mm redux. This entry affinity-scales
+  the NF-P14s redux-1500 PWM curve (133.7 m³/h, 1.91 mmH2O at 1500 RPM) to 1700 RPM:
+  Q *= 1700/1500, P *= (1700/1500)^2, giving about 151.5 m³/h and 2.45 mmH2O. Duty
+  in the solver is a fraction of this 1700 RPM rating, not a PWM percentage.'
+_source: https://www.noctua.at/en/products/nf-p14s-redux-1500-pwm/specifications
+id: noctua-140-redux-1700
+name: Noctua 140mm redux-1700 (NF-P14s redux scaled)
+size_mm: 140
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 1700
+airflow_m3h: 151.53
+airflow_cfm: 89.19
+static_pressure_mmh2o: 2.453
+noise_dba: 28.5
+power_w: 3.1
+approximate: true
+notes: Stefano's case fans. Noise and power are rough affinity scalings (fan law,
+  not measured).
+pq_points_m3h_mmh2o:
+- - 0.0
+  - 2.4533
+- - 37.9667
+  - 1.9652
+- - 76.2733
+  - 1.2074
+- - 111.2933
+  - 0.5395
+- - 151.5267
+  - 0.0

@@ -1,0 +1,40 @@
+_source: https://www.hardwareluxx.de/index.php/artikel/hardware/kuehlung/44519-corsair-ll120-rgb-und-ll140-rgb-im-test-luefter-mit-doppeltem-rgb-lichtring.html
+id: corsair-ll140
+name: Corsair LL140 RGB
+size_mm: 140
+thickness_mm: 25
+rpm_min: 600
+rpm_max: 1300
+airflow_m3h: 87.5
+airflow_cfm: 51.5
+static_pressure_mmh2o: 1.52
+noise_dba: 25.0
+approximate: false
+notes: Hardwareluxx lists 51.5 CFM (87.5 m³/h), 1.52 mmH2O, 600–1300 RPM, 25 dBA.
+  TechPowerUp's news item (https://www.techpowerup.com/237792/corsair-ll120-and-ll140-rgb-led-fans)
+  lists the same RPM, airflow and noise and omits static pressure. Curve shape is
+  approximate.
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 1.52
+  - - 10.9375
+    - 1.4963
+  - - 21.875
+    - 1.425
+  - - 32.8125
+    - 1.3062
+  - - 43.75
+    - 1.14
+  - - 54.6875
+    - 0.9263
+  - - 65.625
+    - 0.665
+  - - 76.5625
+    - 0.3563
+  - - 87.5
+    - 0.0
+  _approximate: true
+  _assumption: Only the free-air and dead-head intercepts are published. Intermediate
+    points use P = Pmax * (1 - (Q/Qmax)^2).
+  source: https://www.hardwareluxx.de/index.php/artikel/hardware/kuehlung/44519-corsair-ll120-rgb-und-ll140-rgb-im-test-luefter-mit-doppeltem-rgb-lichtring.html

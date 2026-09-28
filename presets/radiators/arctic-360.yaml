@@ -1,0 +1,35 @@
+_source: https://www.arctic.de/en/Liquid-Freezer-III-360/ACFRE00136A
+id: arctic-360
+name: Arctic Liquid Freezer III 360
+size_mm: 360
+thickness_mm:
+  value: 38
+  approximate: false
+  source: https://www.arctic.de/en/Liquid-Freezer-III-360/ACFRE00136A
+length_mm:
+  value: 398
+  approximate: false
+  source: https://www.arctic.de/en/Liquid-Freezer-III-360/ACFRE00136A
+width_mm:
+  value: 120
+  approximate: false
+  source: https://www.arctic.de/en/Liquid-Freezer-III-360/ACFRE00136A
+fan_count:
+  value: 3
+  approximate: false
+  source: https://www.arctic.de/en/Liquid-Freezer-III-360/ACFRE00136A
+fan_size_mm:
+  value: 120
+  approximate: false
+  source: https://www.arctic.de/en/Liquid-Freezer-III-360/ACFRE00136A
+fpi:
+  value: 18
+  approximate: true
+  assumption: Arctic publishes a 38 mm thickness and says the Liquid Freezer III fin
+    stack area is 23% larger than their previous radiator, but does not publish FPI.
+    18 FPI is a stand-in for a dense 38 mm AIO core.
+default_fan: arctic-p12-pwm-pst
+notes: Ships with three P12 PWM fans (56.3 CFM, 2.2 mmH2O). Default placement in this
+  project is top, exhaust, push — a SPEC rev 3 assumption, flippable. Air-side resistance
+  is scaled from a 50 Pa at 0.025 m³/s reference per fan section (gpusim/network.py),
+  which is an assumption, then multiplied by thickness/38 and FPI/18.

@@ -1,0 +1,28 @@
+_source: https://www.noctua.at/en/products/nf-p14s-redux-1500-pwm/specifications
+id: noctua-nf-p14s-redux-1500
+name: Noctua NF-P14s redux-1500 PWM
+size_mm: 140
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 1500
+airflow_m3h: 133.7
+airflow_cfm: 78.69
+static_pressure_mmh2o: 1.91
+noise_dba: 25.8
+power_w: 2.4
+approximate: false
+notes: Square-frame NF-P14. PWM stops at 0% duty. P–Q points are from the Noctua specification
+  PDF.
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 1.91
+  - - 33.5
+    - 1.53
+  - - 67.3
+    - 0.94
+  - - 98.2
+    - 0.42
+  - - 133.7
+    - 0.0
+  _source: https://cdn.noctua.at/media/2a6c1496/Noctua%20NF-P14s%20redux-1500%20PWM%20Specification.pdf

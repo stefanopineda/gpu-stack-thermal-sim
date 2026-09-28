@@ -1,0 +1,99 @@
+_source: SPEC.md revision 3 section 11
+_approximate: true
+_assumption: Demo script and timings, not measurements. Layouts match anchors A and
+  B in SPEC section 10.
+id: stefano-demo
+title: Stefano's Meshify 2 XL
+illustrative_mock: false
+base_build: meshify2xl-stefano
+disclaimer: ''
+steps:
+- id: anchor-b
+  title: Close-packed, no shroud (anchor B)
+  layout: close4
+  pressure: standard
+  shroud: 'off'
+  leakage: leaky
+  fan_curve: stock
+  advance_s: 22
+  talking_points:
+  - Four dual-slot blowers in adjacent slots. Each inlet faces the previous card's
+    backplate with only a few millimetres of gap.
+  - The stock blower curve is already at its ~70% duty cap, so the cards cannot spin
+    harder as they heat up.
+  - Middle cards are starved and preheated. The unthrottled die prediction crosses
+    the 90 °C cutoff and the throttle flag comes on.
+- id: anchor-a
+  title: Gaps plus a vertical card, shroud off (anchor A)
+  layout: gap1_vertical
+  pressure: standard
+  shroud: 'off'
+  leakage: leaky
+  fan_curve: stock
+  advance_s: 22
+  talking_points:
+  - One empty slot between horizontal cards, brackets removed, so each blower sees
+    an open slot instead of a backplate.
+  - The fourth card moves to a vertical slot off to the side and stops sharing the
+    stack's inlet gap.
+  - Front intake on the Meshify is aimed straight at the GPUs. Hottest die settles
+    near the measured 86 °C, and nothing is throttling.
+- id: shroud-on
+  title: Rear shroud with 2× NF-A14 iPPC-3000
+  layout: gap1_vertical
+  pressure: standard
+  shroud: 'on'
+  leakage: leaky
+  fan_curve: stock
+  advance_s: 20
+  talking_points:
+  - The shroud is a shared plenum over every bracket. Two industrial 140s pull on
+    that plenum, in series with the blowers.
+  - Outlet pressure at each card drops, so blower flow rises. Exhaust is ducted out
+    instead of drifting back in the rear slots.
+  - Empty slot mouths still bypass some air into the plenum. That parallel path is
+    why the shroud helps, but does not multiply flow by the fan's free-air CFM.
+- id: high-pressure
+  title: Positive pressure, interfaces sealed
+  layout: gap1_vertical
+  pressure: high
+  shroud: 'on'
+  leakage: sealed
+  fan_curve: stock
+  advance_s: 20
+  talking_points:
+  - Every case fan, including the radiator, is flipped to intake. Panel seals go to
+    tape-and-foam levels.
+  - The only real exhaust path left is the blowers plus the shroud. Case pressure
+    goes positive, which cuts recirculation.
+  - The radiator now preheats the intake with CPU heat. That is the trade against
+    the gain in blower flow.
+- id: aggressive-curve
+  title: maxq_aggressive blower curve
+  layout: gap1_vertical
+  pressure: standard
+  shroud: 'on'
+  leakage: leaky
+  fan_curve: maxq_aggressive
+  advance_s: 18
+  talking_points:
+  - The GPU fans are allowed to reach 100% duty by 70 °C instead of capping near 70%
+    duty.
+  - 'Affinity laws: flow scales with RPM, pressure with RPM squared, so the fin channel
+    gets both more mass and more ability to push it.'
+  - On a single card in open air this is what keeps the die under about 75 °C. In
+    the case it still helps, on top of spacing and the shroud.
+- id: optimal
+  title: Optimal air-cooled search
+  layout: optimal
+  pressure: standard
+  shroud: 'on'
+  leakage: leaky
+  fan_curve: maxq_aggressive
+  advance_s: 24
+  talking_points:
+  - The optimizer searches fan direction, shroud, spacing and the GPU fan curve on
+    the same solver.
+  - It ranks by hottest die, then mean die. Water blocks are not in the search.
+  - Treat the winner as the next thing to try on the real machine, not as a guaranteed
+    temperature.

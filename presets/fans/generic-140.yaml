@@ -1,0 +1,35 @@
+_approximate: true
+_assumption: Generic 140 mm case fan. Default 'add fan' choice for a 140 mm mount.
+  Intercepts are typical catalogue values, not a specific SKU. Curve shape is the
+  generic quadratic P = Pmax (1-(Q/Qmax)^2).
+id: generic-140
+name: Generic 140 mm
+size_mm: 140
+thickness_mm: 25
+rpm_min: 400
+rpm_max: 1200
+airflow_m3h: 119.0
+airflow_cfm: 70.0
+static_pressure_mmh2o: 1.1
+noise_dba: 29
+approximate: true
+notes: Generic 140 mm case fan. Default 'add fan' choice for a 140 mm mount.
+pq_points_m3h_mmh2o:
+- - 0.0
+  - 1.1
+- - 14.875
+  - 1.0828
+- - 29.75
+  - 1.0312
+- - 44.625
+  - 0.9453
+- - 59.5
+  - 0.825
+- - 74.375
+  - 0.6703
+- - 89.25
+  - 0.4813
+- - 104.125
+  - 0.2578
+- - 119.0
+  - 0.0

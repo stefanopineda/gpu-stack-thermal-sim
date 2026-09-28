@@ -1,0 +1,80 @@
+_approximate: true
+_assumption: Sample population so the case preset has a solvable saved build. Not
+  someone's measured PC.
+id: generic-atx-sample
+name: generic-atx sample
+case: generic-atx
+ambient_c: 25
+altitude_m: 0
+gpus:
+- id: gpu1
+  slot: '1'
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+- id: gpu2
+  slot: '3'
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+mounts:
+- id: front-1
+  panel: front
+  size_mm: 140
+  fan: generic-140
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-2
+  panel: front
+  size_mm: 140
+  fan: generic-140
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: rear-1
+  panel: rear
+  size_mm: 120
+  fan: generic-120
+  state: fan
+  direction: exhaust
+  duty: 1.0
+radiator:
+  model: generic-360
+  panel: top
+  direction: exhaust
+  arrangement: push
+  cpu_power_w: 120
+  fan: generic-120
+  fan_count: 3
+  fan_duty: 1.0
+shroud:
+  mode: 'off'
+  fan: noctua-nf-a14-ippc-3000
+  count: 2
+  duty: 1
+seals:
+  front: 4
+  top: 4
+  bottom: 3
+  side: 2
+  seams: 3
+  rear_slots: 4
+filters:
+  front: fine
+obstruction: medium
+cables: clean
+psu_location: bottom_shroud
+psu_fan: down
+drive_cage: removed
+side_panel: tempered_glass
+brackets_removed: true
+room_reingestion_c: 0
+illustrative_mock: false
+notes: Sample build for schema and convergence coverage.

@@ -1,0 +1,49 @@
+_approximate: true
+_assumption: Illustrative mock — not a measurement or claim about anyone's real build.
+  Demo steps only.
+_source: SPEC.md revision 3 section 11
+id: mike-bradley-demo
+title: Mike Bradley powerhouse (illustrative mock)
+illustrative_mock: true
+base_build: mike-bradley-powerhouse
+disclaimer: Illustrative mock — not a measurement or claim about anyone's real build.
+steps:
+- id: as-mocked
+  title: 9000D mock, shroud on, aggressive curve
+  layout: keep
+  fan_curve: maxq_aggressive
+  shroud: 'on'
+  pressure: standard
+  leakage: leaky
+  advance_s: 18
+  talking_points:
+  - Illustrative mock — not a measurement or claim about anyone's real build.
+  - 'A 9000D-style layout: three gapped horizontal Max-Q cards, one vertical, Corsair
+    intake fans, top radiator exhaust, industrial shroud.'
+  - Same physics as Stefano's case. Only the geometry and the fans changed.
+- id: shroud-off
+  title: Same mock, shroud removed
+  layout: keep
+  fan_curve: maxq_aggressive
+  shroud: 'off'
+  pressure: standard
+  leakage: leaky
+  advance_s: 16
+  talking_points:
+  - Pull the shroud off and the bracket outlets see the room again, plus a path back
+    into the case.
+  - Per-card blower flow should drop relative to the shroud-on step. Compare the CFM
+    column, not just the colour.
+- id: packed
+  title: Mock cards close-packed
+  layout: close4
+  fan_curve: maxq_aggressive
+  shroud: 'on'
+  pressure: standard
+  leakage: leaky
+  advance_s: 16
+  talking_points:
+  - A 9000D has 8 horizontal slots, so four dual-slot cards fill it with no empty
+    slot left.
+  - Even a strong shroud and a 100% blower curve cannot invent an inlet gap that is
+    not there. Watch the middle cards.

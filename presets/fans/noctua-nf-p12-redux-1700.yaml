@@ -1,0 +1,28 @@
+_source: https://www.noctua.at/en/products/nf-p12-redux-1700-pwm/specifications
+id: noctua-nf-p12-redux-1700
+name: Noctua NF-P12 redux-1700 PWM
+size_mm: 120
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 1700
+airflow_m3h: 120.2
+airflow_cfm: 70.75
+static_pressure_mmh2o: 2.83
+noise_dba: 25.1
+power_w: 1.08
+approximate: false
+notes: Published 120 mm redux. Included so the library has the real 1700 RPM redux,
+  distinct from the scaled 140.
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 2.83
+  - - 31.1
+    - 2.05
+  - - 60.7
+    - 1.29
+  - - 91.3
+    - 0.76
+  - - 120.2
+    - 0.0
+  _source: https://cdn.noctua.at/media/55101b81/Noctua%20NF-P12%20redux-1700%20PWM%20Specification.pdf

@@ -1,0 +1,40 @@
+_source: https://asset.conrad.com/media10/add/160267/c1/-/gl/815136458DS00/datenblatt-2841621-arctic-p12-pwm-pst-gehaeuseluefter-120-mm.pdf
+id: arctic-p12-pwm-pst
+name: Arctic P12 PWM PST
+size_mm: 120
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 1800
+airflow_m3h: 95.65
+airflow_cfm: 56.3
+static_pressure_mmh2o: 2.2
+power_w: 0.96
+approximate: false
+notes: 'Conrad/Arctic datasheet: 56.3 CFM, 95.65 m³/h, 2.2 mmH2O, 200–1800 RPM, 0.08
+  A, 0.3 sone (sone is not converted to dBA here). TechPowerUp (https://www.techpowerup.com/review/arctic-p12-pwm-pst-120-mm-fan/)
+  lists the same airflow and static pressure and 1.2 W peak. 0 RPM below about 5%
+  PWM. These are the three fans on the default Arctic 360.'
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 2.2
+  - - 11.9563
+    - 2.1656
+  - - 23.9125
+    - 2.0625
+  - - 35.8688
+    - 1.8906
+  - - 47.825
+    - 1.65
+  - - 59.7812
+    - 1.3406
+  - - 71.7375
+    - 0.9625
+  - - 83.6938
+    - 0.5156
+  - - 95.65
+    - 0.0
+  _approximate: true
+  _assumption: Only the free-air and dead-head intercepts are published. Intermediate
+    points use P = Pmax * (1 - (Q/Qmax)^2).
+  source: https://asset.conrad.com/media10/add/160267/c1/-/gl/815136458DS00/datenblatt-2841621-arctic-p12-pwm-pst-gehaeuseluefter-120-mm.pdf

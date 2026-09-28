@@ -1,0 +1,38 @@
+_source: https://www.corsair.com/us/en/explorer/diy-builder/fans/corsair-rs-argb-fans-everything-you-need-to-know/
+id: corsair-rs140
+name: Corsair RS140 ARGB
+size_mm: 140
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 1700
+airflow_m3h: 162.3
+airflow_cfm: 95.5
+static_pressure_mmh2o: 3.46
+noise_dba: 36
+approximate: false
+notes: 'Corsair RS ARGB explorer page: 0 and 330–1700 RPM, 14.6–95.5 CFM, 0.11–3.46
+  mmH2O, 10–36 dBA, 0.45 A. Curve shape is approximate.'
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 3.46
+  - - 20.2875
+    - 3.4059
+  - - 40.575
+    - 3.2437
+  - - 60.8625
+    - 2.9734
+  - - 81.15
+    - 2.595
+  - - 101.4375
+    - 2.1084
+  - - 121.725
+    - 1.5137
+  - - 142.0125
+    - 0.8109
+  - - 162.3
+    - 0.0
+  _approximate: true
+  _assumption: Only the free-air and dead-head intercepts are published. Intermediate
+    points use P = Pmax * (1 - (Q/Qmax)^2).
+  source: https://www.corsair.com/us/en/explorer/diy-builder/fans/corsair-rs-argb-fans-everything-you-need-to-know/

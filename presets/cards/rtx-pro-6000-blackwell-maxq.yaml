@@ -1,0 +1,78 @@
+_source: https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/professional-desktop-gpus/rtx-pro-6000-max-q/workstation-datasheet-blackwell-rtx-pro-6000-max-q-nvidia-us-5349650-web.pdf
+tbp_w:
+  value: 300
+  approximate: false
+  source: https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/professional-desktop-gpus/rtx-pro-6000-max-q/workstation-datasheet-blackwell-rtx-pro-6000-max-q-nvidia-us-5349650-web.pdf
+slots:
+  value: 2
+  approximate: false
+  source: https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/professional-desktop-gpus/rtx-pro-6000-max-q/workstation-datasheet-blackwell-rtx-pro-6000-max-q-nvidia-us-5349650-web.pdf
+length_mm:
+  value: 266.7
+  approximate: false
+  source: https://www.elsa-jp.co.jp/wp-content/uploads/2025/03/Datasheet_NVIDIA_RTX_PRO_6000_Blackwell_Max-Q_Workstation_Edition.pdf
+height_mm:
+  value: 111.15
+  approximate: false
+  source: https://www.elsa-jp.co.jp/wp-content/uploads/2025/03/Datasheet_NVIDIA_RTX_PRO_6000_Blackwell_Max-Q_Workstation_Edition.pdf
+thickness_mm:
+  value: 37
+  approximate: false
+  source: https://www.elsa-jp.co.jp/wp-content/uploads/2025/03/Datasheet_NVIDIA_RTX_PRO_6000_Blackwell_Max-Q_Workstation_Edition.pdf
+blower: true
+throttle_c:
+  value: 88
+  approximate: true
+  assumption: SPEC rev 3 default throttle flag, configurable about 87–90 °C. Not printed
+    as a single number on the NVIDIA datasheet.
+cutoff_c:
+  value: 90
+  approximate: true
+  assumption: 'Stefano''s anchor B: close-packed cards hit a 90 °C cutoff.'
+fan_curves:
+  _approximate: true
+  _assumption: 'stock: duty rises with die temperature but caps at 70% from 88 °C
+    up, matching the behaviour Stefano observes (it does not reach 100% at the throttle
+    point). maxq_aggressive: 100% duty by 70 °C, per SPEC rev 3. Neither curve is
+    an NVIDIA published fan table.'
+  stock:
+  - - 20
+    - 0.3
+  - - 40
+    - 0.38
+  - - 55
+    - 0.48
+  - - 65
+    - 0.57
+  - - 75
+    - 0.64
+  - - 82
+    - 0.68
+  - - 88
+    - 0.7
+  - - 100
+    - 0.7
+  maxq_aggressive:
+  - - 20
+    - 0.35
+  - - 40
+    - 0.55
+  - - 50
+    - 0.72
+  - - 60
+    - 0.86
+  - - 70
+    - 1.0
+  - - 100
+    - 1.0
+notes: 'Form factor on the NVIDIA datasheet: 4.4 in × 10.5 in, dual slot, full height,
+  300 W total board power. ELSA''s board drawing gives 266.7 × 111.15 × 37 mm excluding
+  the bracket. 96 GB GDDR7, 24,064 CUDA cores, PCIe 5.0 x16. NVIDIA''s datasheet says
+  thermal solution ''Active'' and does not publish a P–Q curve. The blower description
+  (enclosed shroud, rear-bracket exhaust) is from board-partner and retailer writeups
+  such as https://www.centralcomputer.com/blog/post/understanding-the-nvidia-rtx-6000-pro-blackwell-lineup-workstation-max-q-and-server-editions.
+  Blower free air, dead-head pressure, fin geometry and TIM live in gpusim/calib.py
+  and are joint-fit to open air plus anchors A and B.'
+id: rtx-pro-6000-blackwell-maxq
+name: NVIDIA RTX PRO 6000 Blackwell Max-Q
+template: false

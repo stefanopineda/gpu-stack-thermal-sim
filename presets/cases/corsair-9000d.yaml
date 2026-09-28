@@ -1,0 +1,253 @@
+_approximate: true
+_assumption: Side-view coordinates and uncited areas are a schematic for the solver
+  and the UI, not a factory drawing.
+_source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+id: corsair-9000d
+name: Corsair iCUE LINK 9000D RGB AIRFLOW
+width_mm:
+  value: 307
+  approximate: false
+  source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+height_mm:
+  value: 698
+  approximate: false
+  source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+depth_mm:
+  value: 698
+  approximate: false
+  source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+internal_volume_l: 110
+motherboards:
+- Mini-ITX
+- mATX
+- ATX
+- E-ATX
+- SSI-EEB
+horizontal_slots:
+  value: 8
+  approximate: false
+  source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+vertical_slots:
+  value: 2
+  approximate: false
+  source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+slot_pitch_mm:
+  value: 20.32
+  approximate: false
+  source: PCI Express Card Electromechanical Specification, slot pitch 0.800 in (20.32
+    mm)
+top_slot_y_mm: 520
+vertical_positions:
+- id: v1
+  y_mm: 480
+  z_mm: 240
+- id: v2
+  y_mm: 400
+  z_mm: 240
+airflow_layout: direct_front_to_gpu
+psu_shroud: true
+psu_location: bottom
+side_panel: tempered_glass
+filters:
+- front
+- top
+front_mesh: true
+gpu_max_length_mm:
+  value: 580
+  approximate: false
+  source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+cpu_cooler_max_mm:
+  value: 180
+  approximate: false
+  source: https://www.corsair.com/us/en/p/pc-cases/cc-9011273-ww/icue-link-9000d-rgb-airflow-pc-case-black%2520CC-9011273-WW
+fan_support:
+  front: 8×120 or 3×140 or 2×200
+  top: 8×120 or 3×140 or 2×200
+  side: 3×120
+  rear: 2×120 or 1×140
+  bottom: none
+  total: up to 18×120
+radiator_support:
+  front: up to 480
+  top: up to 480
+  side: up to 360
+  rear: up to 240
+  bottom: none
+mounts:
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-1
+  panel: front
+  size_mm: 140
+  x_mm: 50
+  y_mm: 200
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-2
+  panel: front
+  size_mm: 140
+  x_mm: 50
+  y_mm: 360
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-3
+  panel: front
+  size_mm: 140
+  x_mm: 50
+  y_mm: 520
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-120-1
+  panel: front
+  size_mm: 120
+  x_mm: 70
+  y_mm: 160
+  z_mm: 80
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-120-2
+  panel: front
+  size_mm: 120
+  x_mm: 70
+  y_mm: 250
+  z_mm: 80
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-120-3
+  panel: front
+  size_mm: 120
+  x_mm: 70
+  y_mm: 340
+  z_mm: 80
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-120-4
+  panel: front
+  size_mm: 120
+  x_mm: 70
+  y_mm: 430
+  z_mm: 80
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-120-5
+  panel: front
+  size_mm: 120
+  x_mm: 70
+  y_mm: 520
+  z_mm: 80
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-1
+  panel: top
+  size_mm: 140
+  x_mm: 180
+  y_mm: 660
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-2
+  panel: top
+  size_mm: 140
+  x_mm: 340
+  y_mm: 660
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-3
+  panel: top
+  size_mm: 140
+  x_mm: 500
+  y_mm: 660
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: side-1
+  panel: side
+  size_mm: 120
+  x_mm: 200
+  y_mm: 400
+  z_mm: 280
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: side-2
+  panel: side
+  size_mm: 120
+  x_mm: 320
+  y_mm: 400
+  z_mm: 280
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: side-3
+  panel: side
+  size_mm: 120
+  x_mm: 440
+  y_mm: 400
+  z_mm: 280
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-1
+  panel: rear
+  size_mm: 140
+  x_mm: 660
+  y_mm: 400
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-2
+  panel: rear
+  size_mm: 120
+  x_mm: 660
+  y_mm: 250
+  z_mm: 80
+leak_areas_m2:
+  _approximate: true
+  _assumption: Estimated mesh and seam areas for a super-tower airflow case.
+  front: 0.03
+  top: 0.025
+  bottom: 0.004
+  side: 0.05
+  seams: 0.015
+rear_slot_area_m2: 0.00145
+clearance_above_top_mm: 40
+dimension_note: 'Corsair lists height 698 mm, length 698 mm, width 307 mm. Expansion:
+  ''8 Horizontal (or 4 Vertical) + 2 Vertical (For Secondary Motherboard)''. Modelled
+  here as 8 horizontal + 2 vertical. Front/top 140 mm and 120 mm patterns are alternate
+  InfiniRail layouts; the mount list includes 3×140 plus extra 120 mm stations so
+  either pattern can be filled. Bottom has no fan or radiator support. PSU max length
+  225 mm. No fans are included with the case.'
+notes: Real case. The Mike Bradley build that uses it is a separate illustrative mock.

@@ -1,0 +1,40 @@
+_source: https://www.corsair.com/us/en/explorer/diy-builder/fans/corsair-rs-argb-fans-everything-you-need-to-know/
+id: corsair-rs120
+name: Corsair RS120 ARGB
+size_mm: 120
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 2100
+airflow_m3h: 123.7
+airflow_cfm: 72.8
+static_pressure_mmh2o: 4.15
+noise_dba: 36
+approximate: false
+notes: 'Corsair''s RS ARGB explorer page: 0 and 420–2100 RPM, 13.3–72.8 CFM, 0.2–4.15
+  mmH2O, 10–36 dBA, 0.40 A. 123.7 m³/h is 72.8 CFM converted. The non-ARGB RS is the
+  same generation; this published ARGB table is the library RS120 entry. Curve shape
+  is approximate. Zero-RPM mode is represented by rpm_min = 0.'
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 4.15
+  - - 15.4625
+    - 4.0852
+  - - 30.925
+    - 3.8906
+  - - 46.3875
+    - 3.5664
+  - - 61.85
+    - 3.1125
+  - - 77.3125
+    - 2.5289
+  - - 92.775
+    - 1.8156
+  - - 108.2375
+    - 0.9727
+  - - 123.7
+    - 0.0
+  _approximate: true
+  _assumption: Only the free-air and dead-head intercepts are published. Intermediate
+    points use P = Pmax * (1 - (Q/Qmax)^2).
+  source: https://www.corsair.com/us/en/explorer/diy-builder/fans/corsair-rs-argb-fans-everything-you-need-to-know/

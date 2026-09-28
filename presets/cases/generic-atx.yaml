@@ -1,0 +1,98 @@
+_approximate: true
+_assumption: Front 2×140 / 3×120, top 2×120, rear 1×120. Approximate hobbyist mid-tower,
+  not a SKU. Side-view coordinates and uncited areas are a schematic for the solver
+  and the UI, not a factory drawing.
+id: generic-atx
+name: Generic ATX mid-tower
+width_mm: 210
+height_mm: 470
+depth_mm: 450
+internal_volume_l: 45
+motherboards:
+- E-ATX
+- ATX
+- mATX
+horizontal_slots: 7
+vertical_slots: 0
+slot_pitch_mm: 20.32
+top_slot_y_mm: 338.4
+vertical_positions: []
+airflow_layout: mixed
+psu_shroud: true
+psu_location: bottom
+side_panel: tempered_glass
+filters:
+- front
+front_mesh: true
+gpu_max_length_mm: 315.0
+cpu_cooler_max_mm: 160
+fan_support:
+  front: 2×140 or 3×120
+  top: 2×120
+  rear: 1×120
+radiator_support:
+  front: up to 360
+  top: up to 240
+  rear: '120'
+mounts:
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-1
+  panel: front
+  size_mm: 140
+  x_mm: 30
+  y_mm: 140
+  z_mm: 100
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-2
+  panel: front
+  size_mm: 140
+  x_mm: 30
+  y_mm: 270
+  z_mm: 100
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-1
+  panel: top
+  size_mm: 120
+  x_mm: 140
+  y_mm: 450
+  z_mm: 100
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-2
+  panel: top
+  size_mm: 120
+  x_mm: 270
+  y_mm: 450
+  z_mm: 100
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-1
+  panel: rear
+  size_mm: 120
+  x_mm: 420
+  y_mm: 280
+  z_mm: 100
+leak_areas_m2:
+  front: 0.012
+  top: 0.008
+  bottom: 0.004
+  side: 0.03
+  seams: 0.01
+rear_slot_area_m2: 0.0013
+clearance_above_top_mm: 26
+dimension_note: Front 2×140 / 3×120, top 2×120, rear 1×120. Approximate hobbyist mid-tower,
+  not a SKU.
+notes: Generic / approximate. Not a measurement of a named case.

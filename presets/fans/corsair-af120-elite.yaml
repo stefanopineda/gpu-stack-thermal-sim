@@ -1,0 +1,41 @@
+_source: https://www.comptoir-hardware.com/articles/refroidissement/46444-nous-avons-essaye-les-corsair-af-elite.html
+id: corsair-af120-elite
+name: Corsair AF120 Elite
+size_mm: 120
+thickness_mm: 25
+rpm_min: 400
+rpm_max: 1850
+airflow_m3h: 100.4
+airflow_cfm: 59.1
+static_pressure_mmh2o: 1.93
+noise_dba: 31.5
+power_w: 4.56
+approximate: false
+notes: Non-RGB AF Elite, as tested/tabulated by Comptoir du Hardware and Hardwareluxx
+  (https://www.hardwareluxx.de/index.php/artikel/hardware/kuehlung/59051-corsair-af120-elite-und-af140-elite-im-test-performante-luefter-ohne-rgb-beleuchtung.html).
+  The RGB Elite is a different, higher-RPM fan and is not this entry. Curve shape
+  is approximate.
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 1.93
+  - - 12.55
+    - 1.8998
+  - - 25.1
+    - 1.8094
+  - - 37.65
+    - 1.6586
+  - - 50.2
+    - 1.4475
+  - - 62.75
+    - 1.1761
+  - - 75.3
+    - 0.8444
+  - - 87.85
+    - 0.4523
+  - - 100.4
+    - 0.0
+  _approximate: true
+  _assumption: Only the free-air and dead-head intercepts are published. Intermediate
+    points use P = Pmax * (1 - (Q/Qmax)^2).
+  source: https://www.comptoir-hardware.com/articles/refroidissement/46444-nous-avons-essaye-les-corsair-af-elite.html

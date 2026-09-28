@@ -1,0 +1,39 @@
+_source: https://www.techpowerup.com/review/corsair-ll120-rgb
+id: corsair-ll120
+name: Corsair LL120 RGB
+size_mm: 120
+thickness_mm: 25
+rpm_min: 600
+rpm_max: 1500
+airflow_m3h: 73.48
+airflow_cfm: 43.25
+static_pressure_mmh2o: 1.61
+noise_dba: 24.8
+power_w: 3.6
+approximate: false
+notes: TechPowerUp review lists 43.25 CFM, 1.61 mmH2O, 600–1500 RPM, 24.8 dBA, 0.30
+  A. 73.48 m³/h is 43.25 CFM converted. Curve shape is approximate.
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 1.61
+  - - 9.185
+    - 1.5848
+  - - 18.37
+    - 1.5094
+  - - 27.555
+    - 1.3836
+  - - 36.74
+    - 1.2075
+  - - 45.925
+    - 0.9811
+  - - 55.11
+    - 0.7044
+  - - 64.295
+    - 0.3773
+  - - 73.48
+    - 0.0
+  _approximate: true
+  _assumption: Only the free-air and dead-head intercepts are published. Intermediate
+    points use P = Pmax * (1 - (Q/Qmax)^2).
+  source: https://www.techpowerup.com/review/corsair-ll120-rgb

@@ -1,0 +1,57 @@
+_approximate: true
+_assumption: Template, not a real SKU. Dimensions and the 300 W budget copy the Max-Q
+  so a user can retarget the calibrated blower physics at another dual-slot blower.
+_source: SPEC.md revision 3
+id: custom-blower-300w
+name: Custom 300 W blower (template)
+template: true
+tbp_w: 300
+slots: 2
+length_mm: 267
+height_mm: 111
+thickness_mm: 37
+blower: true
+throttle_c: 88
+cutoff_c: 90
+fan_curves:
+  _approximate: true
+  _assumption: 'stock: duty rises with die temperature but caps at 70% from 88 °C
+    up, matching the behaviour Stefano observes (it does not reach 100% at the throttle
+    point). maxq_aggressive: 100% duty by 70 °C, per SPEC rev 3. Neither curve is
+    an NVIDIA published fan table.'
+  stock:
+  - - 20
+    - 0.3
+  - - 40
+    - 0.38
+  - - 55
+    - 0.48
+  - - 65
+    - 0.57
+  - - 75
+    - 0.64
+  - - 82
+    - 0.68
+  - - 88
+    - 0.7
+  - - 100
+    - 0.7
+  maxq_aggressive:
+  - - 20
+    - 0.35
+  - - 40
+    - 0.55
+  - - 50
+    - 0.72
+  - - 60
+    - 0.86
+  - - 70
+    - 1.0
+  - - 100
+    - 1.0
+notes: Template only. Labelled as such in the UI. NVIDIA's datasheet says thermal
+  solution 'Active' and does not publish a P–Q curve. The blower description (enclosed
+  shroud, rear-bracket exhaust) is from board-partner and retailer writeups such as
+  https://www.centralcomputer.com/blog/post/understanding-the-nvidia-rtx-6000-pro-blackwell-lineup-workstation-max-q-and-server-editions.
+  Blower free air, dead-head pressure, fin geometry and TIM live in gpusim/calib.py
+  and are joint-fit to open air plus anchors A and B.

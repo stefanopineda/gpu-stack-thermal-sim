@@ -1,0 +1,33 @@
+_source: https://www.mikrocontroller.net/attachment/361299/noctua_nf_a14_industrialPPC_3000_pwm_specs_en.pdf
+id: noctua-nf-a14-ippc-3000
+name: Noctua NF-A14 industrialPPC-3000 PWM
+size_mm: 140
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 3000
+airflow_m3h: 269.3
+airflow_cfm: 158.5
+static_pressure_mmh2o: 10.52
+noise_dba: 41.3
+power_w: 6.6
+approximate: false
+notes: Datasheet PDF lists 10.52 mmH2O and the P–Q stations used here (269.3/0, 208.2/2.63,
+  139.3/3.98, 65.7/7.67, 0/10.52 mmH2O; the project spec rounds 2.63 to 2.6). The
+  current Noctua web spec page (https://www.noctua.at/en/products/nf-a14-industrialppc-3000-pwm/specifications)
+  lists 6.58 mmH2O instead. The solver uses the datasheet curve; Monte Carlo draws
+  static pressure down to the web-page value. 0.55 A at 12 V is on both the datasheet
+  and the web page. Web page also lists 0 RPM at 0% PWM and 850 RPM at 20% PWM; duty
+  in this model is a fraction of 3000 RPM.
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 10.52
+  - - 65.7
+    - 7.67
+  - - 139.3
+    - 3.98
+  - - 208.2
+    - 2.63
+  - - 269.3
+    - 0.0
+  _source: https://www.mikrocontroller.net/attachment/361299/noctua_nf_a14_industrialPPC_3000_pwm_specs_en.pdf

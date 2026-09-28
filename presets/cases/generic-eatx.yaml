@@ -1,0 +1,129 @@
+_approximate: true
+_assumption: Approximate full tower with 8 slots, 3×140 front and top, rear 140. Side-view
+  coordinates and uncited areas are a schematic for the solver and the UI, not a factory
+  drawing.
+id: generic-eatx
+name: Generic E-ATX full tower
+width_mm: 245
+height_mm: 580
+depth_mm: 560
+internal_volume_l: 70
+motherboards:
+- E-ATX
+- ATX
+- mATX
+horizontal_slots: 8
+vertical_slots: 0
+slot_pitch_mm: 20.32
+top_slot_y_mm: 417.59999999999997
+vertical_positions: []
+airflow_layout: mixed
+psu_shroud: true
+psu_location: bottom
+side_panel: tempered_glass
+filters:
+- front
+front_mesh: true
+gpu_max_length_mm: 392.0
+cpu_cooler_max_mm: 160
+fan_support:
+  front: 3×140
+  top: 3×140
+  rear: 1×140
+  bottom: 1×120
+radiator_support:
+  front: up to 420
+  top: up to 420
+  rear: '140'
+  bottom: '120'
+mounts:
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-1
+  panel: front
+  size_mm: 140
+  x_mm: 40
+  y_mm: 140
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-2
+  panel: front
+  size_mm: 140
+  x_mm: 40
+  y_mm: 270
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-3
+  panel: front
+  size_mm: 140
+  x_mm: 40
+  y_mm: 400
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-1
+  panel: top
+  size_mm: 140
+  x_mm: 150
+  y_mm: 550
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-2
+  panel: top
+  size_mm: 140
+  x_mm: 280
+  y_mm: 550
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-3
+  panel: top
+  size_mm: 140
+  x_mm: 410
+  y_mm: 550
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-1
+  panel: rear
+  size_mm: 140
+  x_mm: 520
+  y_mm: 340
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: bottom-1
+  panel: bottom
+  size_mm: 120
+  x_mm: 220
+  y_mm: 40
+  z_mm: 100
+leak_areas_m2:
+  front: 0.012
+  top: 0.008
+  bottom: 0.004
+  side: 0.03
+  seams: 0.01
+rear_slot_area_m2: 0.0013
+clearance_above_top_mm: 26
+dimension_note: Approximate full tower with 8 slots, 3×140 front and top, rear 140.
+notes: Generic / approximate. Not a measurement of a named case.

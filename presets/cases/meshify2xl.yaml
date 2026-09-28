@@ -1,0 +1,194 @@
+_approximate: true
+_assumption: Side-view coordinates and uncited areas are a schematic for the solver
+  and the UI, not a factory drawing.
+_source: https://www.fractal-design.com/products/cases/meshify-series/meshify-2-xl/meshify-2-xl-black-light-tg/
+id: meshify2xl
+name: Fractal Design Meshify 2 XL
+width_mm:
+  value: 240
+  approximate: false
+  source: https://www.fractal-design.com/products/cases/meshify-series/meshify-2-xl/meshify-2-xl-black-light-tg/
+height_mm:
+  value: 566
+  approximate: false
+  source: https://www.fractal-design.com/products/cases/meshify-series/meshify-2-xl/meshify-2-xl-black-light-tg/
+depth_mm:
+  value: 600
+  approximate: false
+  source: https://www.fractal-design.com/products/cases/meshify-series/meshify-2-xl/meshify-2-xl-black-light-tg/
+external_volume_l:
+  value: 77.2
+  approximate: false
+  source: https://www.fractal-design.com/products/cases/meshify-series/meshify-2-xl/meshify-2-xl-black-light-tg/
+internal_volume_l: 58
+motherboards:
+- E-ATX
+- ATX
+- mATX
+- Mini-ITX
+- EE-ATX
+- SSI-CEB
+- SSI-EEB
+horizontal_slots:
+  value: 9
+  approximate: false
+  source: https://www.fractal-design.com/app/uploads/2020/10/Meshify-2-XL-_Product-Sheet_EN.pdf
+vertical_slots:
+  value: 3
+  approximate: false
+  source: https://www.fractal-design.com/app/uploads/2020/10/Meshify-2-XL-_Product-Sheet_EN.pdf
+slot_pitch_mm:
+  value: 20.32
+  approximate: false
+  source: PCI Express Card Electromechanical Specification, slot pitch 0.800 in (20.32
+    mm)
+top_slot_y_mm: 430
+vertical_positions:
+- id: v1
+  y_mm: 420
+  z_mm: 200
+- id: v2
+  y_mm: 360
+  z_mm: 200
+- id: v3
+  y_mm: 300
+  z_mm: 200
+airflow_layout: direct_front_to_gpu
+psu_shroud: true
+psu_location: bottom
+side_panel: tempered_glass
+filters:
+- front
+- top
+- bottom
+front_mesh: true
+gpu_max_length_mm:
+  value: 530
+  approximate: false
+  source: https://www.fractal-design.com/products/cases/meshify-series/meshify-2-xl/meshify-2-xl-black-light-tg/
+cpu_cooler_max_mm:
+  value: 185
+  approximate: false
+  source: https://www.fractal-design.com/products/cases/meshify-series/meshify-2-xl/meshify-2-xl-black-light-tg/
+fan_support:
+  front: 3×140 or 4×120
+  top: 3×140 or 4×120
+  rear: 1×120/140
+  bottom: 2×120/140
+  total: 9×140 or 11×120
+radiator_support:
+  front: up to 480/420
+  top: up to 480/420
+  rear: '120'
+  bottom: up to 240/280
+mounts:
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-1
+  panel: front
+  size_mm: 140
+  x_mm: 40
+  y_mm: 180
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-2
+  panel: front
+  size_mm: 140
+  x_mm: 40
+  y_mm: 320
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: front-3
+  panel: front
+  size_mm: 140
+  x_mm: 40
+  y_mm: 460
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-1
+  panel: top
+  size_mm: 140
+  x_mm: 160
+  y_mm: 540
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-2
+  panel: top
+  size_mm: 140
+  x_mm: 300
+  y_mm: 540
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-3
+  panel: top
+  size_mm: 140
+  x_mm: 440
+  y_mm: 540
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-1
+  panel: rear
+  size_mm: 140
+  x_mm: 560
+  y_mm: 320
+  z_mm: 120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: bottom-1
+  panel: bottom
+  size_mm: 140
+  x_mm: 200
+  y_mm: 40
+  z_mm: 100
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: bottom-2
+  panel: bottom
+  size_mm: 140
+  x_mm: 380
+  y_mm: 40
+  z_mm: 100
+leak_areas_m2:
+  _approximate: true
+  _assumption: Panel leakage areas estimated from a mesh front/top and a glass side,
+    not measured.
+  front: 0.02
+  top: 0.014
+  bottom: 0.008
+  side: 0.045
+  seams: 0.012
+rear_slot_area_m2: 0.00145
+clearance_above_top_mm: 34
+dimension_note: 'Fractal lists product dimensions 600 × 240 × 566 mm as L × W × H,
+  i.e. depth × width × height. The current product page states expansion slots as
+  9; the product sheet and the dark-TG page (https://www.fractal-design.com/products/cases/meshify/meshify-2-xl-dark-tempered-glass/dark-tempered-glass/)
+  state 9 + 3, which is what Stefano''s case has. GPU length on the current page is
+  530 mm open layout (505 mm with a front fan); the 2020 sheet quoted a longer open-layout
+  figure. PSU shroud is non-removable. Dust filters on top, front and bottom. Mesh
+  front. Tempered glass side. Very open internally: airflow_layout is direct_front_to_gpu.'
+notes: Stefano's case. All slot brackets removed in his build (that is a build setting,
+  not a case default).
