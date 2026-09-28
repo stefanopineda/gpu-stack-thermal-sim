@@ -1,7 +1,7 @@
-_source: SPEC.md revision 3 section 11
+_source: SPEC.md revision 4 section 11
 _approximate: true
 _assumption: Demo script and timings, not measurements. Layouts match anchors A and
-  B in SPEC section 10.
+  B in SPEC section 10. Temperatures quoted are the nominal model at 25 °C ambient.
 id: stefano-demo
 title: Stefano's Meshify 2 XL
 illustrative_mock: false
@@ -17,16 +17,13 @@ steps:
   fan_curve: stock
   advance_s: 22
   talking_points:
-  - Four dual-slot blowers in adjacent slots. The fan face points down, so each
-    card inhales the gap below it. Between cards that gap is only a few millimetres.
-    The bottom card's fan faces the PSU-shroud clearance instead. A smaller opening
-    on the backplate side faces the card above, or the CPU clearance on the top card.
-  - The stock blower curve is already at its ~70% duty cap, so the cards cannot spin
+  - Four dual-slot blowers in adjacent slots. The fan face points down, so each card
+    inhales the gap below it, only about 3.6 mm between cards. The bottom card's fan
+    faces the PSU-shroud clearance instead.
+  - The stock blower curve is already at its ~70 % duty cap, so the cards cannot spin
     harder as they heat up.
-  - Middle cards are starved on both faces. Unthrottled dies are about 101, 109, 109
-    and 87 °C, top to bottom, with the middle two near 14 CFM. The three that cross
-    90 °C get the throttle flag. The bottom card's fan sees about 40 mm of PSU clearance
-    and stays near 25 CFM.
+  - Unthrottled dies are about 101, 109, 109 and 87 °C, top to bottom, the middle two
+    near 15 CFM. Three cards cross 90 °C and throttle to the cutoff.
 - id: anchor-a
   title: Gaps plus a vertical card, shroud off (anchor A)
   layout: gap1_vertical
@@ -38,10 +35,9 @@ steps:
   talking_points:
   - One empty slot between horizontal cards, brackets removed, so the downward fan
     face sees an open slot instead of the next card's backplate.
-  - The fourth card moves to a vertical slot off to the side and stops sharing the
-    stack's inlet gap.
-  - Front intake on the Meshify is aimed straight at the GPUs. Hottest die is 86.5 °C.
-    All four cards sit within 0.2 °C of that, about 26 CFM, and nothing is throttling.
+  - The fourth card moves to a vertical slot off to the side.
+  - Hottest die 86.6 °C, all four within 0.1 °C, about 26 CFM each. Nothing throttles.
+    This is the measured anchor.
 - id: shroud-on
   title: Rear shroud with 2× NF-A14 iPPC-3000
   layout: gap1_vertical
@@ -51,14 +47,12 @@ steps:
   fan_curve: stock
   advance_s: 20
   talking_points:
-  - The shroud is a shared plenum over every bracket. Two industrial 140s pull on
-    that plenum, in series with the blowers.
-  - Hottest die is 84.3 °C. Mean blower flow rises from about 25.7 CFM to 26.5 CFM.
-    Exhaust is ducted out instead of drifting back in the rear slots.
-  - Empty slot mouths still bypass some air into the plenum. That parallel path is
-    why the shroud helps, but does not multiply flow by the fan's free-air CFM.
+  - The shroud is a shared plenum over every bracket. Two industrial 140s pull on it,
+    in series with the blowers.
+  - Hottest die 84.2 °C. Mean blower flow rises from 25.7 to 26.5 CFM. The bigger effect
+    is that exhaust is no longer pulled back in through the open slot mouths.
 - id: high-pressure
-  title: Positive pressure, interfaces sealed
+  title: Positive pressure, interfaces taped
   layout: gap1_vertical
   pressure: high
   shroud: 'on'
@@ -66,14 +60,11 @@ steps:
   fan_curve: stock
   advance_s: 20
   talking_points:
-  - Every case fan, including the radiator, is flipped to intake. Panel seals go to
-    tape-and-foam levels.
-  - The only real exhaust path left is the blowers plus the shroud. Case pressure
-    goes positive, which cuts recirculation.
-  - The radiator now preheats the intake with CPU heat. Hottest die is 85.7 °C at
-    about +18 Pa, a bit warmer than leaving the fans as exhaust with the shroud on.
+  - Every case fan and the radiator flip to intake. Seals go to level 4–5 (tape).
+  - Case pressure goes to about +18 Pa, which cuts recirculation, but the radiator now
+    heats the intake with the CPU. Hottest die 85.5 °C, slightly worse than 84.2.
 - id: aggressive-curve
-  title: Custom Accelerated blower curve (0 % at 25 °C → 100 % at 70 °C)
+  title: Custom Accelerated GPU fan curve
   layout: gap1_vertical
   pressure: standard
   shroud: 'on'
@@ -81,12 +72,26 @@ steps:
   fan_curve: custom_accelerated
   advance_s: 18
   talking_points:
-  - The GPU fans are allowed to reach 100% duty by 70 °C instead of capping near 70%
-    duty.
-  - 'Affinity laws: flow scales with RPM, pressure with RPM squared, so the fin channel
-    gets both more mass and more ability to push it.'
-  - Hottest die is 75.5 °C, about 37 CFM. Open air on the same curve is 73.4 °C,
-    against 82.8 °C with the stock cap.
+  - Custom Accelerated is off at 25 °C and ramps linearly to 100 % at 70 °C, instead
+    of capping near 70 % duty.
+  - 'Affinity laws: flow scales with RPM, pressure with RPM squared. Hottest die 75.4 °C,
+    about 37 CFM. One card in open air: 73.4 °C on this curve against 82.8 °C stock.'
+- id: flow-through
+  title: Same slots, 4× RTX PRO 6000 Workstation (600 W flow-through)
+  layout: gap1_vertical
+  pressure: standard
+  shroud: 'on'
+  leakage: leaky
+  fan_curve: stock
+  card: rtx-pro-6000-blackwell-workstation
+  advance_s: 22
+  talking_points:
+  - The Workstation Edition draws air in from beneath and vents it out of the top. With
+    one empty slot (about 21 mm) the card above breathes half of that exhaust.
+  - Unthrottled dies about 95, 93 and 83 °C top to bottom, 83 °C on the vertical card.
+    The top two throttle. Open the network view to see the plume branches.
+  - The shroud barely matters here; most of the heat now leaves through the case fans,
+    not the rear brackets.
 - id: optimal
   title: Optimal air-cooled search
   layout: optimal
@@ -96,8 +101,7 @@ steps:
   fan_curve: custom_accelerated
   advance_s: 24
   talking_points:
-  - The optimizer searches fan direction, shroud, spacing and the GPU fan curve on
-    the same solver.
-  - It ranks by hottest die, then mean die. Water blocks are not in the search.
+  - The optimizer searches fan direction, shroud, spacing and the GPU fan curve on the
+    same solver. Water blocks are not in the search.
   - Treat the winner as the next thing to try on the real machine, not as a guaranteed
     temperature.

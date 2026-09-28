@@ -57,13 +57,11 @@ def sweep(
     ),
 ) -> None:
     """Run the 16-cell factorial, the stock row, and the open-air reference."""
-    from gpusim.sweep import resolve_plots_dir, run_sweep
+    from gpusim.sweep import rank_frame, resolve_plots_dir, run_sweep
 
     plot_root = resolve_plots_dir(out, plots)
     frame = run_sweep(build_id=build, mc=mc, out_dir=out, plots_dir=plot_root)
-    ranked = frame[frame["config"] != "open-air"].sort_values(
-        ["hottest_die_c", "hottest_unthrottled_c", "mean_die_c"]
-    )
+    ranked = rank_frame(frame)
     typer.echo(ranked[["config", "hottest_die_c", "hottest_unthrottled_c", "mean_die_c", "case_pressure_pa"]].to_string(index=False))
     typer.echo(f"Wrote {out / build}")
     typer.echo(f"Plots in {plot_root / build}")

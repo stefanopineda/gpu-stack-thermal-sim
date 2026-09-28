@@ -361,6 +361,12 @@ def solve(
     ]
     if build.illustrative_mock:
         notes.append("Illustrative mock — not a measurement or claim about anyone's real build.")
+    runaway = [c.id for c in reports if c.t_die_unthrottled_c > 150.0]
+    if runaway:
+        notes.append(
+            f"Unthrottled runaway on {', '.join(runaway)} (> 150 °C): the card is starved and has no steady "
+            "state at full power. That number is not physical; read the throttled result."
+        )
     if any(t["mass_kg_s"] > 0 for t in thermal.transfers or []):
         notes.append(
             "Stacked flow-through cards: the upper card breathes part of the lower card's exhaust "

@@ -1,7 +1,7 @@
 _approximate: true
 _assumption: Illustrative mock — not a measurement or claim about anyone's real build.
   Demo steps only.
-_source: SPEC.md revision 3 section 11
+_source: SPEC.md revision 4 section 11
 id: mike-bradley-demo
 title: Mike Bradley powerhouse (illustrative mock)
 illustrative_mock: true
@@ -9,7 +9,7 @@ base_build: mike-bradley-powerhouse
 disclaimer: Illustrative mock — not a measurement or claim about anyone's real build.
 steps:
 - id: as-mocked
-  title: 9000D mock, shroud on, aggressive curve
+  title: 9000D mock, shroud on, Custom Accelerated curve
   layout: keep
   fan_curve: custom_accelerated
   shroud: 'on'
@@ -18,9 +18,10 @@ steps:
   advance_s: 18
   talking_points:
   - Illustrative mock — not a measurement or claim about anyone's real build.
-  - 'A 9000D-style layout: three gapped horizontal Max-Q cards, one vertical, Corsair
-    intake fans, top radiator exhaust, industrial shroud.'
-  - Same physics as Stefano's case. Only the geometry and the fans changed.
+  - 'A 9000D with eight AF120 RGB ELITE front intakes, three RS120 side intakes, a
+    top 360 exhaust, an industrial shroud, three gapped Max-Q cards plus one vertical.
+    Hottest die about 75 °C.'
+  - Same physics as Stefano's case. Only the box and the fans changed.
 - id: shroud-off
   title: Same mock, shroud removed
   layout: keep
@@ -31,9 +32,7 @@ steps:
   advance_s: 16
   talking_points:
   - Pull the shroud off and the bracket outlets see the room again, plus a path back
-    into the case.
-  - Per-card blower flow should drop relative to the shroud-on step. Compare the CFM
-    column, not just the colour.
+    into the case. With this much intake the change is small, about 0.3 °C.
 - id: packed
   title: Mock cards close-packed
   layout: close4
@@ -43,7 +42,6 @@ steps:
   leakage: leaky
   advance_s: 16
   talking_points:
-  - A 9000D has 8 horizontal slots, so four dual-slot cards fill it with no empty
-    slot left.
-  - Even a strong shroud and a 100% blower curve cannot invent an inlet gap that is
-    not there. Watch the middle cards.
+  - Eight horizontal slots, four dual-slot cards, no empty slot left.
+  - Unthrottled about 85, 91, 91 and 75 °C; the middle two throttle. A strong shroud
+    and a 100 % curve do not invent an inlet gap.

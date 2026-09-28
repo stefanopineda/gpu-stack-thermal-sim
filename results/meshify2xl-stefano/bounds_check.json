@@ -9,112 +9,127 @@
     {
       "name": "anchor_a",
       "pass": true,
-      "detail": "anchor A hottest unthrottled die 86.52 \u00b0C (86 \u00b1 3)"
+      "detail": "anchor A hottest unthrottled die 86.58 \u00b0C (86 \u00b1 3)"
     },
     {
       "name": "anchor_b_throttle",
       "pass": true,
-      "detail": "anchor B unthrottled ['100.7', '108.9', '108.7', '87.1'] \u00b0C, throttle [True, True, True, False]"
+      "detail": "anchor B unthrottled ['100.8', '109.0', '108.8', '87.2'] \u00b0C, throttle [True, True, True, False]"
     },
     {
       "name": "close_pack_middle_hottest",
       "pass": true,
-      "detail": "close-packed unthrottled dies ['100.7', '108.9', '108.7', '87.1'] \u00b0C (indexes 1 and 2 are the middle cards)"
+      "detail": "close-packed unthrottled dies ['100.8', '109.0', '108.8', '87.2'] \u00b0C (indexes 1 and 2 are the middle cards)"
     },
     {
-      "name": "maxq_aggressive_open_air",
+      "name": "custom_accelerated_open_air",
       "pass": true,
-      "detail": "aggressive curve, open air, die 73.44 \u00b0C (under ~75)"
+      "detail": "custom accelerated curve (0 % at 25 \u00b0C \u2192 100 % at 70 \u00b0C), open air, die 73.44 \u00b0C (under ~75)"
     },
     {
       "name": "shroud_raises_flow",
       "pass": true,
-      "detail": "mean blower flow 25.68 CFM shroud off \u2192 26.50 CFM shroud on"
+      "detail": "mean blower flow 25.74 CFM shroud off \u2192 26.54 CFM shroud on"
+    },
+    {
+      "name": "open_air_rtx-5090-fe",
+      "pass": true,
+      "detail": "rtx-5090-fe at 575 W, open air, stock curve: die 75.91 \u00b0C (target ~76 \u00b1 5)"
+    },
+    {
+      "name": "open_air_rtx-pro-6000-blackwell-workstation",
+      "pass": true,
+      "detail": "rtx-pro-6000-blackwell-workstation at 600 W, open air, stock curve: die 76.35 \u00b0C (target ~76 \u00b1 5)"
+    },
+    {
+      "name": "open_air_rtx-3090-fe",
+      "pass": true,
+      "detail": "rtx-3090-fe at 350 W, open air, stock curve: die 68.04 \u00b0C (target ~68 \u00b1 5)"
     },
     {
       "name": "cell:s-stacked__p-high__sh-off__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=5.03e-08 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=4.96e-08 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-stacked__p-high__sh-off__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=3.31e-08 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=3.11e-08 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-stacked__p-high__sh-on__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=1.32e-08 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=5.62e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-stacked__p-high__sh-on__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=9.31e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=5.79e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-stacked__p-standard__sh-off__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=4.43e-07 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=1.32e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-stacked__p-standard__sh-off__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=1.65e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=1.32e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:stock",
       "pass": true,
-      "detail": "converged=True, residual=1.65e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=1.32e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-stacked__p-standard__sh-on__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=8.22e-07 kg/s, energy error=0.001%"
+      "detail": "converged=True, residual=3.53e-07 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-stacked__p-standard__sh-on__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=8.72e-07 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=4.38e-07 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-high__sh-off__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=7.27e-10 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=2.09e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-high__sh-off__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=9.52e-10 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=4.22e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-high__sh-on__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=1.95e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=2.04e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-high__sh-on__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=8.38e-10 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=9.98e-10 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-standard__sh-off__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=4.36e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=9.86e-10 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-standard__sh-off__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=2.12e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=1.11e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-standard__sh-on__l-sealed",
       "pass": true,
-      "detail": "converged=True, residual=1.75e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=1.33e-09 kg/s, energy error=0.000%"
     },
     {
       "name": "cell:s-gap1__p-standard__sh-on__l-leaky",
       "pass": true,
-      "detail": "converged=True, residual=1.08e-09 kg/s, energy error=0.000%"
+      "detail": "converged=True, residual=1.58e-09 kg/s, energy error=0.000%"
     }
   ]
 }

@@ -43,8 +43,12 @@ def test_rank_orders_variants_and_keeps_errors_in_place():
     request["variants"].append({"name": "broken", "set": {"gpus.*.card": "no-such-card"}})
     out = client.post("/api/v1/rank", json=request).json()
     ranked = [r for r in out["results"] if "rank" in r]
-    keys = [(r["summary"]["hottest_die_c"], r["summary"]["hottest_unthrottled_c"]) for r in ranked]
+    keys = [
+        (1, r["summary"]["hottest_unthrottled_c"]) if r["summary"]["any_throttle"] else (0, r["summary"]["hottest_die_c"])
+        for r in ranked
+    ]
     assert keys == sorted(keys)
+    assert out["ranking"].startswith("Lower is better")
     assert ranked[0]["name"] == "custom accelerated GPU curve"
     broken = next(r for r in out["results"] if r["name"] == "broken")
     assert "no-such-card" in broken["error"]

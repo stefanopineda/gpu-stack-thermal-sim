@@ -34,6 +34,10 @@ ACCURACY = (
 )
 SCOPE = "Air-cooled GPUs only. GPU water blocks are out of scope. Units are Celsius."
 MAX_VARIANTS = 64
+RANKING = (
+    "Lower is better. Configurations that do not throttle first, by hottest die then mean die; "
+    "configurations that throttle after them, by unthrottled hottest die."
+)
 MAX_CELLS = 256
 
 
@@ -429,11 +433,14 @@ def apply_settings(build: BuildCfg, settings: dict[str, Any], lib: Library) -> B
 def _ranked(rows: list[dict]) -> list[dict]:
     good = [r for r in rows if "error" not in r]
     bad = [r for r in rows if "error" in r]
+    from gpusim.sweep import rank_key
+
     good.sort(
-        key=lambda r: (
+        key=lambda r: rank_key(
             r["summary"]["hottest_die_c"],
             r["summary"]["hottest_unthrottled_c"],
             r["summary"]["mean_die_c"],
+            r["summary"]["any_throttle"],
             r["name"],
         )
     )
@@ -468,7 +475,7 @@ def rank(request: RankRequest) -> dict:
         rows.append(_row(variant.name, patched, lib, options, {**variant.set, **({"patch": variant.patch} if variant.patch else {})}))
     return {
         "api_version": API_VERSION,
-        "ranking": "hottest throttled die, then hottest unthrottled die, then mean die; lower is better",
+        "ranking": RANKING,
         "results": _ranked(rows),
         "accuracy": ACCURACY,
         "scope": SCOPE,
@@ -498,7 +505,7 @@ def sweep(request: SweepRequest) -> dict:
         "api_version": API_VERSION,
         "cells": total,
         "factors": request.factors,
-        "ranking": "hottest throttled die, then hottest unthrottled die, then mean die; lower is better",
+        "ranking": RANKING,
         "results": _ranked(rows),
         "accuracy": ACCURACY,
         "scope": SCOPE,

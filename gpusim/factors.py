@@ -288,6 +288,17 @@ def reference_build(case_id: str, library: Library | None = None) -> BuildCfg:
 
 
 def apply_scenario_step(build: BuildCfg, step, library: Library | None = None) -> BuildCfg:
+    out = _scenario_layout(build, step, library)
+    if getattr(step, "card", None):
+        lib = library or get_library()
+        card = lib.cards[step.card]
+        for gpu in out.gpus:
+            gpu.card = card.id
+            gpu.power_limit_w = card.tbp_w
+    return out
+
+
+def _scenario_layout(build: BuildCfg, step, library: Library | None = None) -> BuildCfg:
     layout = step.layout
     fan_curve = step.fan_curve or "stock"
     pressure = step.pressure or "standard"

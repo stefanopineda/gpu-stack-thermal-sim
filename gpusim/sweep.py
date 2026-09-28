@@ -55,25 +55,35 @@ def _row(label: str, cell: dict | None, sol, mc_rows=None) -> dict:
     return row
 
 
-def _rank_key(row: dict):
-    return (
-        row["hottest_die_c"],
-        row["hottest_unthrottled_c"],
-        row["mean_die_c"],
-        row["config"],
-    )
+RANKING = (
+    "Configurations that do not throttle come first, by hottest die, then mean die. "
+    "Configurations that throttle follow, by unthrottled hottest die: their throttled "
+    "dies all sit on the cutoff, so that column cannot separate them."
+)
+
+
+def rank_key(hottest: float, unthrottled: float, mean: float, throttled: bool, name: str = ""):
+    if throttled:
+        return (1, round(unthrottled, 3), round(mean, 3), name)
+    return (0, round(hottest, 3), round(mean, 3), name)
+
+
+def rank_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    rows = frame[frame["config"] != "open-air"].copy()
+    rows["_key"] = [
+        rank_key(r.hottest_die_c, r.hottest_unthrottled_c, r.mean_die_c, bool(r.any_throttle), r.config)
+        for r in rows.itertuples()
+    ]
+    return rows.sort_values("_key").drop(columns="_key")
 
 
 def results_markdown(frame: pd.DataFrame, build_name: str) -> str:
-    ranked = frame[frame["config"] != "open-air"].sort_values(
-        ["hottest_die_c", "hottest_unthrottled_c", "mean_die_c", "config"]
-    )
+    ranked = rank_frame(frame)
     lines = [
         f"# Sweep results — {build_name}",
         "",
-        "Ranked by throttled hottest die, then unthrottled hottest die, then mean die.",
-        "Lower is better. Throttled equilibrium sits on the cutoff, so the unthrottled",
-        "column is what separates two configs that both hit 90 °C.",
+        RANKING,
+        "Lower is better.",
         "",
         "Typical accuracy ±5–10 °C absolute. Trust the order more than the number.",
         "GPU water blocks are out of scope.",

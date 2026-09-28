@@ -254,6 +254,8 @@ class ScenarioStep(_Base):
     shroud: str | None = None
     leakage: str | None = None
     fan_curve: str | None = None
+    # Swap every card to this model (power limit follows the card's TBP).
+    card: str | None = None
     advance_s: float = 18
 
     @field_validator("fan_curve", mode="before")

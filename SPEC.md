@@ -1,24 +1,27 @@
-# SPEC — gpu-stack-thermal-sim (revision 3)
+# SPEC — gpu-stack-thermal-sim (revision 4)
 
 An open-source Python tool that simulates airflow and temperatures inside multi-GPU AI workstations using a
 **coupled flow-resistance network + thermal-resistance network** (compact model / thermal–electrical
-analogy). It is **not CFD**. It has two jobs:
+analogy). It is **not CFD**. It has three jobs:
 
 1. **Hypothesis generator** — a ranked, uncertainty-bounded 16-cell factorial sweep (plus stock baseline)
    so real-world airflow testing on Stefano's PC is spent on the most promising configurations.
 2. **Live visualizer** (primary deliverable) — an interactive, stream-ready (OBS) 3D UI to build a case
-   configuration, place/flip fans and move cards, and watch airflow, pressure and temperatures update live,
-   to compare configurations, find an optimal air-cooled build, and demonstrate the physics to creators.
+   configuration face by face, place/flip fans and move cards, and watch airflow, pressure and
+   temperatures update live, with a resistor-network view that shows how each number is computed.
+3. **Agent API** (new in rev 4) — a versioned JSON API so an agent can post a full PC spec and get back
+   per-card temperatures, or post variants / a factorial and get back a ranking.
 
 **Audience/scope:** airflow-first, **air-cooled** multi-GPU builders who will not put cards on water blocks.
-**GPU water cooling (water blocks) is out of scope** — state this in the UI and README. Tuned for large
-multi-GPU cases (full towers); ITX/SFF get basic support only.
+**GPU water cooling (water blocks) is out of scope** — stated in the UI, API responses and README. A
+water-cooled **CPU** (AIO radiator) stays supported because it changes the case airflow; there are no
+GPU-AIO paths. Tuned for large multi-GPU cases (full towers); ITX/SFF get basic support only.
 
-**Units:** Celsius everywhere in the model, data files, outputs and UI. Fahrenheit only as a back-end
-conversion / optional UI display toggle. Default ambient **25 °C**.
+**Units:** Celsius everywhere in the model, data files, outputs, API and UI. Fahrenheit only as a UI display
+toggle. Default ambient **25 °C**.
 
-The PC is already built and in hand (Stefano's own machine). Implement everything below. Commit and push to
-`origin main` as you go (small, meaningful commits). If earlier code exists in the repo, refactor it freely.
+Revision 4 implements Stefano's rev 4 brief (16 items). The item → section map is in §15; the working plan
+is `docs/REV4_PLAN.md`. Everything in revision 3 that this revision does not change still holds.
 
 ---
 
@@ -26,122 +29,107 @@ The PC is already built and in hand (Stefano's own machine). Implement everythin
 
 | Term | Meaning |
 |---|---|
-| **blower card** | GPU with a radial (blower) fan that pulls air in at the card's fan inlet (top/side of the shroud, facing the neighbouring slot) and exhausts through the **rear I/O bracket** |
-| **rear exhaust shroud** | a shroud fitted over the rear PCIe/I/O bracket area outside the case, forming a **shared exhaust plenum** over every GPU bracket outlet, with its own fans (count/model configurable) pulling suction across all outlets. Stefano's real build has one with 2x Noctua NF-A14 industrialPPC-3000 PWM. Selectable on every case preset |
-| **passive rear duct** | the same shroud without fans (collects/routes exhaust, adds a small resistance, prevents re-ingestion). Kept as an option, not a sweep factor |
-| **case pressure** | static pressure of the case interior relative to ambient: positive (more intake than exhaust) or negative |
-| **mount** | a fan/radiator position on a case panel (front, top, rear, bottom, side) |
-| **interface** | any opening between the case interior and ambient (panel mesh, filter, PCIe slot covers, gaps, rear bracket vents) |
-| **seal level** | 5-step porosity setting of an interface (see §5) |
-| **slot gap state** | what occupies the space next to a card's blower inlet (see §6) |
-| **stock** | the baseline configuration defined in §3 |
+| **blower card** | GPU with a radial (blower) fan. Its fan face points down (toward the floor / PSU); air leaves through the **rear I/O bracket** |
+| **flow-through card** | GPU with axial fans on the fan face (down) and a fin stack that is open on the backplate side, so air leaves **up** into the gap above the card, plus a smaller share out the bracket. RTX PRO 6000 Blackwell Workstation Edition, RTX 5090 FE, RTX 3090 FE |
+| **plume ingestion** | the upper card drawing part of its intake straight from the exhaust jet of a flow-through card below it (§6.3) |
+| **rear exhaust shroud** | a shroud over the rear PCIe/I/O bracket area outside the case: a **shared exhaust plenum** over every bracket outlet, with its own fans pulling suction. Stefano's has 2× Noctua NF-A14 industrialPPC-3000 PWM |
+| **passive rear duct** | the same shroud without fans. An option, not a sweep factor |
+| **case pressure** | static pressure of the case interior relative to ambient |
+| **face** | one of Front / Top / Rear / Bottom / Side; the UI's left bar selects one face (or Internals, or GPUs) |
+| **mount** | a fan/radiator position on a face |
+| **interface** | any opening between the case interior and ambient (panel mesh, filter, slot mouths, seams) |
+| **seal level** | 5-step open-area setting of an interface, **1 = fully open … 5 = sealed** (§5; reversed from rev 3) |
+| **slot gap state** | what occupies the space next to a card's fan face (§6) |
+| **Stock / Custom Accelerated** | the two named GPU fan curves (§1.1) |
+| **stock** (sweep row) | the baseline configuration defined in §3 |
 
 ---
 
 ## 1. Hardware
 
-### 1.1 GPUs (primary)
-**4x NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition**: 300 W TBP each (configurable power limit per
-card), dual-slot, blower-style, exhausting out the rear I/O bracket. This is the **default and primary card**.
-Verify published specs (TBP, dimensions, slot width) from NVIDIA/partner pages and cite them.
+### 1.1 GPUs
 
-Card definition fields: power (W) and power-limit, slot width, blower P–Q curve (max static pressure, max flow,
-curve shape, RPM range, fan-ramp curve), heatsink proxies (fin area, hydraulic diameter, fin-channel loss k),
-TIM resistance, die→heatsink and memory→heatsink resistances, memory power share, throttle temperature
-(default 88 °C, configurable ~87–90 °C), shroud/backplate area for adjacent-card preheating, fan inlet area
-and position. Each value carries a `source:` or `assumption:` note.
+Card definition fields: power (W) and power limit, slot width, dimensions, **cooler type** (`blower` |
+`flow_through`), fan P–Q (free-air flow, dead-head pressure, RPM), heatsink proxies (fin area, hydraulic
+diameter, fin-channel loss k), TIM, die→heatsink and memory→heatsink resistances, memory power share,
+throttle flag (default 88 °C) and cutoff, inlet faces and split, flow-through exhaust geometry (width of the
+flow-through region, backplate cutout area), bracket vent area. Each value carries a `source:` or
+`approximate: true` + `assumption:`. Per-card-type calibration numbers live in `gpusim/calib.py` `CARD`.
 
-**GPU fan (blower) curve presets** — a per-card user input that affects the whole picture:
-- `stock`: duty rises with die temperature but **caps around ~70 % duty even near 88–90 °C** (the behaviour
-  Stefano observes);
-- `maxq_aggressive`: reaches **100 % duty at 70 °C**; in good airflow it should keep a card **under ~75 °C**;
-- `custom`: user-editable (temp → duty points).
-Blower P–Q scales with duty (RPM) via affinity laws (Q ∝ N, P ∝ N²); the solver iterates duty ⇄ die temp.
+| Card (id) | Cooler | TBP | Slots | L × H × T mm | Sources |
+|---|---|---:|---:|---|---|
+| RTX PRO 6000 Blackwell **Max-Q** (`rtx-pro-6000-blackwell-maxq`) — primary | blower | 300 W | 2 | 266.7 × 111.15 × 37 | NVIDIA datasheet, ELSA drawing |
+| RTX PRO 6000 Blackwell **Workstation Edition** (`rtx-pro-6000-blackwell-workstation`) | flow-through, 2 axial fans ("Double-flow-through") | 600 W | 2 | 304 × 137 × 40 | NVIDIA datasheet; StorageReview (dims); Puget (two-fan, same housing as 5090 FE); AEC Magazine (intake beneath, vent out the top) |
+| GeForce **RTX 5090 Founders Edition** (`rtx-5090-fe`) | flow-through ("double flow through") | 575 W | 2 | 304 × 137 × 40 (T approximate) | NVIDIA product page (575 W, 2-slot, 90 °C max); Gamers Nexus (≈72 °C, ≈1570 RPM); Tom's Hardware (≈80 °C) |
+| GeForce **RTX 3090 Founders Edition** (`rtx-3090-fe`) | hybrid flow-through: PCB-side fan pushes out the bracket, rear fan pulls up through the fins | 350 W | 3 | 313 × 138 × 58 (T approximate) | NVIDIA product page (350 W, 3-slot, 93 °C max); Tom's Hardware cooler teardown and review (≈65 °C, ≈1100 RPM); Legit Reviews (≈67 °C, ≈1175 RPM) |
+| **custom-blower-300w** | blower template | 300 W | 2 | as Max-Q | template, labelled as such |
 
-**Adjustable initial conditions (labelled "approximation" in the UI):** power limit (W), memory clock offset,
-undervolt (mV or % V), CUDA core clock offset. Map to heat load with simple documented approximations, e.g.
-dynamic power `P_dyn ∝ f · V²` plus a static/leakage share and a memory-power share scaling with memory
-clock; clamp to the power limit. Document the formulas and that they are rough.
+Flow-through cards were **not** used to move the Max-Q anchors. Their blocks are set only against a
+single-card open-air review temperature (§10). PRO 6000 Workstation and 5090 FE share every cooler number
+(same housing); no sustained-load PRO 6000 Workstation review temperature was found, so its open-air
+result (≈76 °C at 600 W) follows from the 5090 FE fit.
 
-Also include a generic **`custom-blower-300w`** card template (clearly labelled as a template) so users can add
-other blower cards. No other named card models are required.
+**GPU fan curves** — per card, part of the flow ⇄ thermal iteration. Duty is a fraction of max fan RPM; fan
+P–Q scales by affinity laws (Q ∝ N, P ∝ N²). No RPM floor: 0 % duty stops the fan.
 
-### 1.2 Stefano's own build (default configuration; resolved with Stefano, see §14)
-- Case: **Fractal Design Meshify 2 XL** — 9 horizontal expansion slots + 3 vertical slots off to the side.
-  **All slot brackets/covers removed (open)**; straight front-to-GPU airflow; very low internal resistance.
-- Case fans: **Noctua 140 mm redux-1700** (140 mm, 1700 RPM) in the front/other case mounts.
-- CPU cooler: **Arctic 360 mm AIO radiator** with the **three Arctic 120 mm (P12-class) fans it came with**;
-  default **top-mounted, exhaust (push)** — a default assumption, flippable in the UI; thickness default
-  38 mm (approximate).
-- GPUs: 4x RTX PRO 6000 Blackwell Max-Q: **3 horizontal cards + 1 card vertically mounted** in the Meshify's
-  vertical slots (provide presets for each of the 3 vertical slot positions).
-- **Rear exhaust shroud**: custom shroud covering all PCIe output slots with **two Noctua NF-A14
-  industrialPPC-3000 PWM** (140 mm) fans pulling suction across every GPU output slot.
-- Ambient 25 °C. GPU fan curve `stock` by default.
-- The **16-cell factorial sweep + stock baseline runs on this default configuration** (build id e.g.
-  `meshify2xl-stefano`).
+- `stock`: per card (card YAML). Max-Q: rises with die temperature but **caps near 70 % duty even at
+  88–90 °C** (Stefano's observation). Flow-through cards: approximate curves pinned to the review RPM at the
+  review temperature (5090 FE ≈ 52 % of an assumed 3000 RPM near 75 °C; 3090 FE ≈ 38 % near 66 °C).
+- `custom_accelerated` ("Custom Accelerated"): **off (0 %) at 25 °C, linear to 100 % at 70 °C**, held at
+  100 % above. Global (`calib.GLOBAL_FAN_CURVES`), same for every card. It **replaces rev 3's
+  `maxq_aggressive`**, which is accepted as an alias everywhere (YAML, API, CLI). The rev 3 aggressive
+  calibration target (one Max-Q in open air < ~75 °C) was re-checked: 73.44 °C, unchanged.
+- `custom`: user temperature → duty points.
+
+Adjustable initial conditions (labelled "approximation"): power limit, memory clock offset, undervolt, core
+clock offset, mapped to heat by the documented rough split in `gpusim/physics.py` (unchanged from rev 3).
+
+### 1.2 Stefano's own build (default configuration)
+
+Unchanged from rev 3: Fractal Meshify 2 XL (9 horizontal + 3 vertical slots, all brackets removed, low
+internal resistance), 3× Noctua 140 mm redux-1700 front intake, 1× redux-1700 rear exhaust (assumed),
+Arctic Liquid Freezer III 360 top exhaust with its three P12s, CPU **water-cooled** at 150 W (approximate),
+4× RTX PRO 6000 Blackwell Max-Q in slots 1/4/7 + vertical v2, custom rear shroud with 2× NF-A14 iPPC-3000,
+stock GPU curve, 25 °C. Build id `meshify2xl-stefano`.
 
 ---
 
 ## 2. Data files (all presets are data, not code)
 
-Directory `presets/` with YAML (or TOML), validated by a schema (pydantic or equivalent):
-- `cards/*.yaml`, `fans/*.yaml`, `radiators/*.yaml`, `cases/*.yaml`, and
-- `builds/*.yaml` (a full configuration: case + mounts + fans + radiator + GPU slot map + seal levels +
-  obstructions + ambient), and `scenarios/*.yaml` (demo steps, sweep definitions).
-Every numeric value has a `source:` URL/citation or `approximate: true` with an `assumption:` note.
+`presets/{cards,fans,radiators,cases,builds,scenarios}/*.yaml`, validated by pydantic. Every numeric value
+has a `source:` URL/citation or `approximate: true` with an `assumption:`; the loader rejects a bare number.
 
 ### 2.1 Case presets
-Each case: external dimensions (W×H×D mm), internal volume estimate, motherboard form factors, expansion slot
-count and slot pitch (20.32 mm), slot position relative to case bottom, PSU location/shroud, fan and radiator
-mount positions with allowed sizes/counts per panel, stock filter/panel type and porosity, side panel type,
-drive cage options. Required:
 
-1. **Fractal Design Meshify 2 XL** (Stefano's case) — use published specs: 240 × 566 × 600 mm (W×H×D),
-   9 horizontal + 3 vertical expansion slots; front 3×140 / 4×120 (radiator up to 480/420 mm);
-   top 3×140 / 4×120 (radiator up to 480/420 mm); rear 1×120/140 (radiator 120 mm); bottom 2×120/140
-   (radiator up to 280/240 mm); dust filters top, front, bottom; mesh front and top; tempered glass side;
-   PSU shroud (non-removable). Source: Fractal product sheet
-   (https://www.fractal-design.com/app/uploads/2020/10/Meshify-2-XL-_Product-Sheet_EN.pdf). Verify and cite.
-2. **Corsair iCUE 9000D RGB Airflow** — verify published dimensions, expansion slot count, and fan/radiator
-   mounts from Corsair's spec page; cite.
-3. **Generic ATX mid-tower**, **generic mATX**, **generic E-ATX full tower** — standard dimensions and
-   typical mounts (label as generic/approximate).
-4. **Phanteks multi-GPU case** — the request was "a Phanteks case with 13 expansion slots". Published specs
-   checked so far show no current Phanteks case with 13 slots: **Enthoo Elite Server** = 12 PCIe slots
-   (582 × 261 × 721 mm, phanteks.com; one Phanteks release text says 11), **Enthoo Pro 2 Server V2** = 11,
-   original **Enthoo Elite** = 10. Implement **Phanteks Enthoo Elite Server (12 slots)** as the multi-GPU
-   Phanteks preset, verify from phanteks.com, and keep the slot count a data field (confirmed by Stefano, §14).
-5. **"Mike Bradley powerhouse" (demo mock)** — a 9000D-style maximum-airflow multi-GPU build. Must be
-   labelled everywhere (file, UI, docs) as **"Illustrative mock — not a measurement or claim about anyone's
-   real build."**
+Required cases (rev 3 list) with these rev 4 changes:
+
+- **Corsair 9000D RGB AIRFLOW**: Corsair lists **"Included Fans: No Fans Included"**. The front supports
+  8×120 / 3×140 / 2×200; rev 4 models the front as the **8×120 array, 4 high × 2 wide** (Corsair: "dual
+  480mm radiators side-by-side"), the top as one row of 4×120, side 3×120, rear 1×140. Mount coordinates
+  are a non-overlapping grid. The 9000D **template** populates the front array with 8× Corsair iCUE AF120
+  RGB ELITE (65.57 CFM, 2.68 mmH₂O, 2100 RPM, Corsair spec page) as intake — an assumption, stated on the
+  build. The two extra vertical slots are, per Corsair, for a secondary motherboard; they are used as
+  vertical GPU positions for convenience.
+- **Meshify 2 XL**: rear mount moved above the slot area (schematic coordinate).
+- **Phanteks Enthoo Elite Server**: 12 slots, 582 × 261 × 721 mm read as H × W × D; one rear 140 modelled
+  (only one fits above the 12-slot bracket area in the schematic); midplate fans spread.
+- Generic ATX / mATX / E-ATX: rear mounts moved above the slot area.
+- **Mike Bradley powerhouse** — 9000D-style mock: 8× AF120 RGB ELITE front, 3× RS120 side intake, top 360
+  exhaust, 2× iPPC shroud, four Max-Q on Custom Accelerated. Labelled everywhere as **"Illustrative mock —
+  not a measurement or claim about anyone's real build."**
 
 ### 2.2 Fan library
-Each fan: size (mm), RPM (min/max), airflow (CFM and m³/h), static pressure (mmH₂O and Pa), P–Q curve points
-or parametric curve (if the manufacturer publishes only max flow and max pressure, use a documented generic
-curve shape and flag `approximate: true`), noise, source. Fans scale with RPM by affinity laws
-(Q ∝ N, P ∝ N²). Required entries:
-Required entries (the UI's "top ~10" list per size is drawn from these):
-- **Noctua 140mm redux-1700** (Stefano's case fans): base on the published **NF-P14s redux-1500 PWM**
-  (140×140×25, 1500 RPM, 133.7 m³/h = 78.7 CFM, 1.91 mmH₂O; noctua.at) scaled to 1700 RPM by affinity laws
-  (≈151.5 m³/h ≈ 89.2 CFM, ≈2.45 mmH₂O) — flag `approximate: true` (scaled). Also include the unscaled
-  NF-P14s redux-1500 PWM and NF-P12 redux-1700 PWM (120 mm, published specs).
-- **Noctua NF-A14 industrialPPC-3000 PWM** (shroud fans): 140×140×25, 3000 RPM, 269.3 m³/h (158.5 CFM),
-  0.55 A, 6.6 W @ 12 V. Static pressure: Noctua's datasheet PDF lists **10.52 mmH₂O** with P–Q points
-  (269.3 m³/h, 0), (208.2, 2.6), (139.3, 3.98), (65.7, 7.67), (0, 10.52 mmH₂O), while the current web spec page
-  lists 6.58 mmH₂O. Use the datasheet curve, note the discrepancy, and cover it in the Monte Carlo range.
-- **Arctic P12 (PWM PST)** 120 mm — also used as the **three Arctic 120 mm radiator fans**.
-- **Corsair** AF120/AF140 (Elite), LL120/LL140, RS120/RS140 — verify published specs.
-- **Generic 120 mm, generic 140 mm, generic 170 mm** case fans (170 mm less common, still supported; no
-  Noctua 170 mm entry is used in Stefano's build).
-- Rule: case-fan mounts default to 140 mm (170 mm where the case allows); **radiator fans are the exception**
-  (3×120 mm for a 360 mm radiator).
+
+Rev 3 list plus **Corsair iCUE AF120 RGB ELITE** (Corsair spec page; curve between the published
+intercepts is the generic quadratic, flagged approximate).
 
 ### 2.3 Radiators
-Radiator = airflow resistance (quadratic k scaled by core thickness and fin density, FPI) + heat source into
-the air stream (CPU package power, configurable, default e.g. 150 W under GPU load). Default:
-**Arctic 360 mm, 38 mm thick** (thickness approximate) with 3x Arctic P12-class fans, **top, exhaust (push)**
-by default. Position front/top and direction intake/exhaust are user-flippable.
+
+Radiator = quadratic core loss scaled by thickness/38 mm and FPI/18, fans in series, allowed on the
+**front, top or bottom** face (legacy rear/side builds still load). Front radiator breathes the front
+intake volume (the GPU zone on direct-front-to-GPU cases), bottom the GPU zone, top the main case volume.
+With a water-cooled CPU the CPU heat rides this air stream; with an air-cooled CPU a present radiator is a
+passive core with fans and no heat.
 
 ---
 
@@ -149,242 +137,278 @@ by default. Position front/top and direction intake/exhaust are user-flippable.
 
 | Factor | Level A | Level B |
 |---|---|---|
-| **spacing** | `stacked`: the 3 horizontal cards in adjacent dual-slot positions, no free slot between them (the blower fan face points down at the next card; the lowest card's fan face points at the PSU-shroud clearance) | `gap1`: one empty slot between each pair of horizontal cards (the Meshify 2 XL has 9 horizontal slots) |
-| **pressure** | `high` (positive): all case fans intake, case interfaces sealed (foil tape), radiator as intake, the **only** exhaust path is through the GPU blowers (rear brackets, plus the shroud when on) | `standard`: front intake, Arctic 360 radiator top exhaust plus rear exhaust fan (if mounted) |
-| **shroud** | rear exhaust shroud `off` | rear exhaust shroud `on` with its fans (default 2x NF-A14 industrialPPC-3000) |
-| **leakage** | `sealed` (seal level 1–2 on panels and rear slot openings) | `leaky` (realistic stock: seal level 3–4) |
+| **spacing** | `stacked`: 3 horizontal cards in adjacent dual-slot positions | `gap1`: one empty slot between horizontal cards |
+| **pressure** | `high`: all case fans and the radiator intake | `standard`: front/bottom/side intake, top/rear/radiator exhaust |
+| **shroud** | `off` | `on` (2× NF-A14 iPPC-3000) |
+| **leakage** | `sealed` — seal levels **4–5** (front 4, top 4, bottom 5, side 5, seams 5, rear slots 5) | `leaky` — realistic stock, levels **3–5** (front 3, top 3, bottom 4, side 5 glass, seams 4, rear slots 3) |
 
-Because all slot brackets are removed in Stefano's build, the open rear slot area is a real interface: it
-is a leakage/recirculation path when the shroud is off, and it is covered by the shroud plenum when the
-shroud is on.
+Rear slots `leaky` = level 3 (45 %): brackets are removed, but roughly half of the slot openings sit behind
+the cards' own brackets. The 4th card stays in vertical slot v2 in all cells. Stock row: stacked, standard,
+shroud off, leaky, stock GPU curve. The open-air single-card reference is reported for calibration.
 
-The 4th card stays in its vertical-slot position in all cells (it is off to the side of the horizontal
-stack). The passive rear duct is not a sweep factor but must be runnable via `gpusim run`.
-
-**Stock baseline** (reported as its own row labelled `stock`, even though it coincides with one cell):
-`stacked`, `standard` pressure, shroud `off`, `leaky`, stock GPU fan curve, Stefano's default fan
-directions (front intake, radiator top exhaust).
-
-Also run a **single card in open air** reference (1 card, no case, 25 °C ambient) for calibration.
+**Ranking (rev 4).** Configurations that do not throttle come first, ordered by hottest die then mean die.
+Configurations that throttle follow, ordered by **unthrottled** hottest die: their throttled dies all sit on
+the cutoff, so that column cannot separate them. The same rule is used by the sweep, the CLI and the API.
 
 ---
 
 ## 4. Flow network
 
-Nodes (pressures): ambient (reference, P = 0), case main volume, GPU zone sub-volume, each card's blower
-inlet region (the gap next to it), each card's blower exhaust / rear bracket, rear exhaust shroud plenum (when
-on, active or passive), radiator, each fan mount, PSU chamber (if shrouded), leakage interfaces.
-- Branches are sign-aware quadratic resistances `dP = k * Q * |Q|` (reverse flow and recirculation
-  representable). k derived from geometry (loss coefficients, free-area ratio, orifice equations) with
-  documented assumptions (Idelchik-style loss coefficients).
-- Fans and blowers are pressure sources with P–Q curves scaled by RPM (affinity laws); a fan on an empty
-  mount becomes an open orifice; a blanked mount is closed (or seal level 1).
-- Solve nonlinear mass conservation at every internal node with `scipy.optimize.root` or a damped Newton
-  solver with analytic Jacobian; robust initial guess; report residuals; fail loudly on non-convergence.
-- **Rear exhaust shroud**: a shared exhaust plenum node connected to every GPU bracket outlet (one branch per
-  card, in parallel); the shroud fans are pressure sources from plenum → ambient, i.e. **in series with the
-  blower outlets**; also model plenum leakage to ambient and back toward the case. Passive duct = same without
-  fans.
-- **Recirculation**: blower exhaust partially re-ingested (through rear leakage/slot covers/nearby intakes)
-  when case pressure is negative and there is no shroud/duct — modelled as a pressure-dependent recirculation branch
-  and mixing fraction.
-- **Adjacent-card preheating**: in a tower the blower fan face points down, toward the floor. Card N's
-  main inlet therefore sees the gap below it (card N+1's backplate, or the PSU-shroud clearance when
-  nothing is below). A smaller backplate-side / end opening, when the card preset says the inlet is
-  split, sees the gap above (card N-1, or the CPU-area clearance on the top card). When `stacked` the
-  downward gap is only a few millimetres (see §6), so intake resistance rises. Card numbering: card 1 =
-  closest to the CPU (top slot), card 4 = lowest. Document this.
-- Air density from ideal gas with temperature and **altitude**; conserve mass flow, not volumetric flow.
-- Optional buoyancy (stack effect), off by default.
+Nodes (gauge pressure, ambient = 0): main case volume, GPU zone, each card's inlet and exhaust region, rear
+plume (shroud off) or shroud plenum (on/passive), and **CPU cooler outlet** (air-cooled CPU only).
+Branches are sign-aware `ΔP = k·Q·|Q| + k_lin·Q − P_fan(Q)`; k from orifice relations
+`k = ρ / (2 C_d² A²)` (Idelchik-style). Fans and GPU fans are pressure sources scaled by affinity laws.
+Damped Newton with an analytic Jacobian; fails loudly on non-convergence; mass conserved at every node.
 
-## 5. Interfaces and seal levels
+Rev 4 branches:
 
-Every case interface (front/top/bottom/side panels and their filters, PCIe slot covers, rear bracket vent
-pattern, panel seams/gaps, mount openings) has a **seal level** with 5 steps, each mapped to a documented
-effective open-area fraction / orifice discharge coefficient → k:
+- **Flow-through card**: fan-face inlet slit(s) (GPU zone → card inlet), axial fans + fin channel
+  (inlet → exhaust), **up-exit** (exhaust → main case volume) with area `min(exit_width × gap_above,
+  backplate cutout)`, and the bracket vent (exhaust → plume/plenum). The bracket share follows from the
+  areas: ≈ 7–8 % for PRO 6000 WS / 5090 FE, ≈ 22 % for the 3090 FE. The jet rises into the upper case
+  volume, not back into the GPU zone the cards breathe from; what the card above swallows is the plume
+  overlay (§6.3). No blower short-circuit branch on flow-through cards.
+- **Air-cooled CPU**: `case → cpu` = tower fan (default generic 140, count, duty) in series with the fin
+  stack (`cpu_heatsink_k = 2.5e4 Pa/(m³/s)²`, ≈ 20 Pa at 60 CFM, approximate); `cpu → case` = cooler outlet
+  spreading back into the case (`cpu_exit_area = 0.03 m²` × internal k multiplier); the **rear mount pulls
+  from the cooler outlet**. The CPU heat is added on the cooler branch, so it enters the case air.
+- **Water-cooled CPU**: heat on the radiator branch (rev 3 behaviour). Water-cooled with no radiator is a
+  loud error.
+- **Sealed interfaces (level 5)** have no branch (infinite resistance) and are still reported, with k = ∞.
+- Blower cards, shroud, recirculation, rear-slot reingestion, adjacent-card preheating, altitude and
+  optional buoyancy: unchanged from rev 3.
 
-| Level | Name | Meaning |
-|---|---|---|
-| 1 | tightly sealed | taped/foam-sealed, near-zero leakage |
-| 2 | some air gaps | seams and small gaps only |
-| 3 | moderate airflow | typical stock panel/filter |
-| 4 | moderate penetration | open mesh, missing covers |
-| 5 | wide open | panel removed / fully open |
+## 5. Interfaces and seal levels (reversed in rev 4)
 
-Dust filter density per intake (none / fine / dense) adds a separate resistance.
+Every interface (front/top/bottom/side panels, seams, rear slot mouths) has a seal level. The level sets
+the open-area fraction of the interface's geometric area (case preset) and a discharge coefficient:
+
+| Level | Name | Open area | C_d | Typical |
+|---|---|---:|---:|---|
+| 1 | fully open | 100 % | 0.80 | panel removed, no filter |
+| 2 | open grille / missing covers | 70 % | 0.72 | coarse bare mesh, slot covers out |
+| 3 | typical mesh + filter | 45 % | 0.65 | stock mesh front/top with dust filter |
+| 4 | restricted | 5 % | 0.62 | solid panel seams, small gaps, taped mesh with gaps |
+| 5 | sealed | 0 % | — | solid tempered glass or metal, taped; **no branch, R = ∞** |
+
+**Default side seal is 5** (solid glass/metal). Side panel `mesh` caps the side at 3; `removed` forces 1.
+Defaults when a build omits an interface: front 3, top 3, bottom 4, side 5, seams 4, rear slots 3.
+**Migration from rev 3** (1 was sealed): rev 3 levels 1/2/3/4/5 map to rev 4 levels 5/4/4/3/1, except the
+glass side (rev 3 level 2 → rev 4 level 5, its edge gaps now counted under seams). Every preset, the
+factorial, the tests and the docs use the rev 4 direction. The percentages are assumptions; Monte Carlo
+scales every seal area ±20 % (lognormal σ 0.20). Dust filter density per intake: none / fine / dense.
 
 ## 6. GPU layout and inter-card airflow (critical)
 
-- **Explicit slot map**: which expansion slots (horizontal and vertical) hold which card, and whether each
-  slot bracket/cover is present or removed. The blower fan face points down. The solver derives the gap
-  on each inlet face from that map, for every card the same way: the fan side sees the card below, empty
-  slots, or the PSU-shroud clearance when nothing is below; the backplate / end side sees the card above
-  or the CPU-area clearance. Also card-to-side-panel clearance and card-to-bottom fan distance. The
-  lowest card is not a special bypass.
-- The space next to each card's blower inlet has one of three **slot gap states**:
-  1. `open_slot` — empty PCIe slot, low resistance, good flow;
-  2. `blocked_slot` — slot cover/blocker or cable obstruction present, reduced flow;
-  3. `no_slot` — no space at all (card directly against the next card or the shroud): high resistance, the
-     blower intake is **starved** and cannot pull air.
-- **Blower intake starvation**: effective inlet area from gap size vs blower demand; model as an inlet
-  resistance k(gap) that rises steeply as gap → 0, and a blower operating point that drops accordingly.
-- The UI must show what is accounted for at each interface and each internal resistance
-  (label with name, k, flow, ΔP).
+### 6.1 Slot map and gaps (unchanged)
+
+Explicit slot map (horizontal + vertical). Fan face points down. For every card: fan side = card below,
+empty slots, or `psu_shroud_clearance_mm`; backplate side = card above or CPU-area clearance; vertical
+cards use `vertical_inlet_gap_mm`. Adjacent dual-slot Max-Q: ≈ 3.6 mm; one empty slot ≈ 24 mm. Slot gap
+states `open_slot` / `blocked_slot` / `no_slot`, inlet resistance k(gap) rising steeply as gap → 0. No
+special lowest-card bypass.
+
+### 6.2 Blower cards
+
+Unchanged: backplate/shroud heat is partly captured by the inlet that breathes that gap
+(`capture_g0_mm = 9`).
+
+### 6.3 Plume ingestion between stacked cards (new, item 12)
+
+A flow-through card exhausts **up** through its backplate into the gap above it, which is the fan face of
+the card above. A resistor alone cannot represent this: in a network the upper card's inlet node would mix
+the jet with all the zone air at the zone temperature. Rev 4 adds an explicit coupling term:
+
+- The upper card draws a fraction **φ(g)** of its **fan-side intake mass** straight from the lower card's
+  exhaust jet instead of the GPU zone:
+  `φ(g) = φ_max · exp(−g / L_plume)`, `φ_max = 0.85`, `L_plume = 40 mm` (global, approximate), g = the air
+  gap between the two cards. One empty slot (≈ 21 mm) → φ ≈ 0.50; two (≈ 41 mm) → 0.30; three
+  (≈ 62 mm) → 0.18.
+- Ingested mass `ṁ_ing = min(φ · ṁ_inlet,fan(upper), 0.98 · ṁ_up-exit(lower))` — never more than the jet.
+- **Mass and energy:** the overlay reroutes `ṁ_ing` in the thermal advection balance: jet → upper inlet,
+  removed from the jet's stream into the case and from the zone's stream into the upper inlet, and the
+  displaced zone air is sent where the jet share would have gone. Every node still balances (reported as
+  `advection_residual_kg_s`, ~1e-8 kg/s); total enthalpy out equals heat in (energy error ~1e-6).
+- Applies whenever the lower card is flow-through and a horizontal card sits directly above it (whatever
+  the upper card's cooler). Vertical cards have no card above. Monte Carlo varies φ_max uniform 0.70–0.95
+  and L_plume lognormal σ 0.25.
+
+Behaviour (Meshify, two cards, shroud off, stock curve, unthrottled):
+
+| Cards | Empty slots (gap) | Upper °C | Lower °C | Δ | Δ without the plume term |
+|---|---|---:|---:|---:|---:|
+| 2× RTX 5090 FE | 1 (21.0 mm) | 90.2 | 82.3 | +7.9 | +0.8 |
+| | 2 (41.3 mm) | 83.8 | 78.9 | +4.9 | +0.7 |
+| | 3 (61.6 mm) | 81.5 | 77.9 | +3.6 | +0.5 |
+| 2× PRO 6000 Workstation | 1 / 2 / 3 | 91.2 / 84.6 / 82.7 | 83.2 / 79.9 / 78.9 | +8.0 / +4.8 / +3.7 | +0.8 / +0.7 / +0.6 |
+| 2× RTX 3090 FE | 1 / 2 / 3 | 81.1 / 75.9 / 73.8 | 74.2 / 70.7 / 69.7 | +6.8 / +5.2 / +4.1 | −0.3 / +1.2 / +1.6 |
+
+Touching dual-slot flow-through cards (0.6 mm) have no steady state at full power (unthrottled runaway,
+flagged in the notes as not physical); the throttled equilibrium is reported. Tests
+(`tests/test_plume.py`) check upper > lower, Δ shrinking with spacing, the jet cap, node balance and
+energy balance.
 
 ## 7. Internal obstructions and other factors
 
-Include, document, and expose in both the data files and the UI:
-- Obstruction level `low / medium / high` in the GPU zone; cable management `clean` (routed behind the tray)
-  vs `cluttered` (cables in the GPU zone).
-- PSU placement (bottom under shroud vs open; PSU fan intake orientation up/down), PSU chamber isolation.
-- Drive cages present/removed (front intake resistance).
-- Dust filter density per intake.
-- Radiator thickness, FPI and position (front/top, intake/exhaust), CPU heat load.
-- Rear bracket vent pattern (open area) of each card.
-- Ambient temperature, altitude/air density.
-- GPU power limit per card.
-- Side panel type (tempered glass vs mesh; side fan mounts if the case supports them).
-- Motherboard/CPU cooler heat load in the case; room exhaust re-ingestion (case near a wall) as an optional
-  ambient offset.
-Add any other factor with material impact and note it in the spec section of the README.
+- **Obstruction** `low / medium / high` and **cable management** `clean / cluttered` are **k multipliers** on
+  the internal branches (GPU zone → main case, CPU cooler outlet → case): obstruction ×1.0 / ×2.5 / ×6.0,
+  cables ×1.0 / ×2.0 (multiplied together). Cluttered cables also multiply every card inlet slit's k by
+  1.35 (bundles lying across the fans). All approximate, in `gpusim/calib.py`. Anchors use low/clean
+  (×1), so they do not move.
+- **CPU** (Internals panel): power (W) and air vs water (§4).
+- PSU (shrouded / open, fan up / down), drive cage, dust filters, radiator thickness/FPI/position, bracket
+  vent area, ambient, altitude, per-card power limit, side panel, room re-ingestion offset, buoyancy:
+  unchanged from rev 3.
 
 ## 8. Thermal network (per card)
 
-Nodes: die, memory, heatsink, air stream (inlet → outlet).
-- Die→heatsink: TIM conduction + spreading resistance. Memory→heatsink resistance with its own power share.
-- Heatsink→air: velocity-dependent convection `h` from a Nusselt correlation form (e.g.
-  `Nu = C * Re^m * Pr^(1/3)` for fin channels), using the blower operating-point flow; ε-NTU or log-mean
-  temperature for the air stream.
-- Enthalpy rise `Q = m_dot * cp * (T_out - T_in)`.
-- Small linearized radiation term shroud/backplate → case walls; backplate heat into the neighbour's inlet.
-- **Iterate flow ⇄ thermal to convergence** (density vs temperature; fan ramp changes blower RPM → flow).
-- **GPU fan curve** (stock / maxq_aggressive / custom, §1.1) is part of the flow ⇄ thermal iteration.
-- **Throttle** model: die ≥ throttle threshold (~87–90 °C, default 88 °C) → `throttle = True`; hard cutoff
-  90 °C; reduce power to find the throttled equilibrium; report both the unthrottled prediction and the
-  throttled result.
+Die, memory, heatsink, air stream. Die→heatsink `R_tim`, memory→heatsink `R_mem`; heatsink→air
+`R_conv = 1 / (ε ṁ c_p)` with ε-NTU and `Nu = C Re^m Pr^(1/3)`; parallel shroud/backplate path `R_ext` to
+the GPU zone. Air temperatures from an upwind advection balance on the solved flow field **plus the plume
+overlay** (§6.3). Flow ⇄ thermal iterate to convergence (duty from the fan curve, density from
+temperature). Each card's chain is reported (`thermal` block): zone air, inlet (with plume share and
+captured heat), ṁ, ε, R_conv, heatsink, R_tim, die, memory, so that
+`T_die = T_in + Q_channel · R_conv + P_die · R_tim` can be shown with numbers.
+
+**Throttle**: die ≥ throttle flag (88 °C default) → `throttle = True`; above the cutoff (90 °C Max-Q /
+5090 / PRO 6000 WS, 93 °C 3090) power is reduced to the throttled equilibrium. Rev 4 scales each limit by
+`(cutoff − T_in) / (T_die − T_in)` (die rise over inlet is near-linear in power), up to 10 passes, and lets
+overshot cards back up. Both unthrottled and throttled results are reported; unthrottled > 150 °C is
+flagged as a non-physical runaway.
 
 ## 9. Outputs per configuration/cell
 
-Per-card die temperature, memory temperature, exhaust temperature, mass and volumetric flow (CFM), case
-pressure relative to ambient (Pa), throttle flag, solver residuals, energy balance error. **Ranked
-recommendation**: sort by hottest die (ascending), tie-break by mean die temperature.
+Per-card die (throttled and unthrottled), memory, inlet, exhaust, mass and volumetric flow, fan duty,
+power, throttle flag, cooler, fan curve, thermal chain; case pressure; plume transfers; solver residuals;
+advection residual; energy balance error; notes. Ranking rule in §3.
 
-## 10. Calibration & honesty (enforced in code and tests)
+## 10. Calibration & honesty
 
-- **Single card in open air at 300 W: die 75–85 °C** (target ~83 °C). Tune only global/per-card physical
-  parameters (never per-cell). Document in `docs/CALIBRATION.md`.
-- **4 cards close-packed (all four horizontal, no gaps), stock GPU fan curve, no shroud: middle cards
-  hottest and hottest die > ~85 °C.**
-- **Calibration anchors — Stefano's real measurements** (pytest checks with tolerance, e.g. ±3 °C for A; and
-  report the fit/residuals in `docs/CALIBRATION.md` and the bounds check):
-  - **A)** Meshify 2 XL, 3 horizontal cards stacked **with gaps** + 1 vertical card off to the side, no
-    booster/shroud fans, stock GPU fan curve → peaked ~86 °C, **stable ~86 °C** (hottest die).
-  - **B)** 4 cards **close-packed (no gaps)**, stock curve → **thermal throttling, hit the 90 °C cutoff**
-    (unthrottled prediction ≥ 90 °C, `throttle = True`).
-  Fit only global/per-card physical parameters to single-card open air + A + B simultaneously; never per-cell.
-- Every sweep run evaluates these bounds and writes `bounds_check.json` / `.md` (pass/fail + numbers);
-  violations are flagged loudly.
-- **pytest** (`tests/`): calibration bounds; middle cards hottest in stacked stock; energy balance
-  (heat in == enthalpy out within 1–2 %); mass conservation at every node; preset/schema validation for all
-  data files; convergence for all 16 cells + stock and for every case preset; solve time < 0.5 s per
-  configuration (no MC); calibration anchors A and B; `maxq_aggressive` curve keeps a single card < ~75 °C in
-  good airflow; shroud raises per-card flow vs shroud off; API/UI smoke test.
-- **Monte Carlo / sensitivity** over uncertain parameters (branch k's, fan/blower curves, h coefficient, TIM,
-  ambient, leakage/seal mapping) with documented distributions; default N = 200, fixed seed; report 5th–95th
-  percentile per card and hottest die per cell; tornado (one-at-a-time) sensitivity for stock.
-- State in README, UI footer, and outputs: **typical accuracy ±5–10 °C absolute; better for ranking
-  configurations than for absolute temperatures.**
-- Cite the method honestly (no fabricated page numbers): compact thermal models / thermal–electrical analogy
-  and flow network modelling — G. N. Ellison, *Thermal Computations for Electronics: Conductive, Radiative,
-  and Convective Air Cooling* (CRC Press); I. E. Idelchik, *Handbook of Hydraulic Resistance*; flow network
-  modelling for electronics cooling (e.g. Electronics Cooling magazine articles on FNM).
+Only global or per-card-type parameters; never per-cell. Checked by `gpusim/bounds.py`, written to
+`results/<build>/bounds_check.{json,md}` on every sweep, and asserted in pytest:
+
+| Check | Target | Rev 3 | Rev 4 | Δ |
+|---|---|---:|---:|---:|
+| Max-Q, open air, 300 W, stock | 75–85 °C (~83) | 82.81 | 82.81 | 0.00 |
+| Anchor A (gap1 + vertical, shroud off, standard, leaky, stock) | 86 ± 3 °C | 86.52 | 86.58 | +0.06 |
+| Anchor B (4 close-packed, stock) unthrottled, top → bottom | ≥ 90 hottest, throttle, middle hottest | 100.7 / 108.9 / 108.7 / 87.1 | 100.8 / 109.0 / 108.8 / 87.2 | +0.1 each |
+| Max-Q, open air, Custom Accelerated (was maxq_aggressive) | < ~75 °C (~73) | 73.44 | 73.44 | 0.00 |
+| Best Meshify cell (gap1, standard, shroud on, leaky) | — | 84.3 | 84.20 | −0.1 |
+| Custom Accelerated on the best cell | — | 75.5 | 75.43 | −0.07 |
+| RTX 5090 FE, open air, 575 W, stock | ~76 ± 5 °C (reviews) | — | 75.91 | new |
+| RTX PRO 6000 Workstation, open air, 600 W, stock | ~76 ± 5 °C (5090 FE fit) | — | 76.35 | new |
+| RTX 3090 FE, open air, 350 W, stock | ~68 ± 5 °C (reviews) | — | 68.04 | new |
+
+The small anchor moves come from the seal re-map (§5), not from a retune; no global knob was changed for
+the Max-Q. Monte Carlo (N = 200, seed 12345) now also varies the plume term; bands in `docs/CALIBRATION.md`.
+**Typical accuracy ±5–10 °C absolute; better for ranking configurations than for absolute temperatures.**
+Method citations as rev 3 (Ellison; Idelchik; flow-network modelling for electronics cooling), no invented
+page numbers.
 
 ## 11. Visualizer (primary deliverable, designed for OBS live streaming)
 
-- One command: `uv run gpusim ui` (opens a local web app; e.g. FastAPI + lightweight frontend, or
-  Streamlit/Panel/Dash — your choice, but interaction must feel live). Uses the same solver.
-- **Rendering**: **3D side-view** case rendering in the browser (e.g. three.js; solver stays in Python behind
-  a local API). Colour-coded, stream-readable: distinct colours for **intake** fans, **exhaust** fans, and
-  **blanked/empty** mounts (e.g. blue / red / grey), GPUs coloured by die temperature.
-- **Onboarding**: start screen with **Quick start** (templates: Corsair 9000D plain sample, Meshify 2 XL —
-  Stefano's build) vs **Build from scratch**. The Mike Bradley 9000D build is a separate button, labelled
-  as an illustrative mock. Quick start reaches a first thermal number in **under one minute**.
-- **Fan placement**: click any mount (front/top/rear/bottom/side) to place a fan; **one-click flip
-  intake/exhaust**; "Add fan" defaults to a generic case fan of the mount's size, then a dropdown of the top
-  ~10 common fans **filtered by size (120/140/170 mm)** showing static pressure, RPM and CFM.
-- **Configuration controls** (very easy, visual): pick case; radiator model/position/direction; rear exhaust
-  shroud on/off/passive with fan model and count (any case); GPU slot map (horizontal + vertical slots),
-  bracket present/removed and slot gap states; per-card GPU fan curve (stock / maxq_aggressive / custom);
-  per-card initial conditions (power limit, memory clock, undervolt, core offset — labelled approximations);
-  seal level per interface; obstruction level, cable management, PSU, drive cages, filters, side panel,
-  ambient (°C), altitude.
-- **Drag/move** fans and cards (snapping to valid mounts/slots) and see results update live (debounced;
-  solver < ~0.5 s per solve without MC).
-- **Optimal air-cooled build** mode: for a given card count (and optionally a case), search fan placement and
-  direction, shroud, spacing and GPU fan curve (coarse grid or heuristic search on the fast solver) and
-  recommend the best configuration with predicted per-card temps and MC uncertainty; also available as
-  `gpusim optimize --cards 4 [--case meshify2xl]`.
-- **Overlay**: live resistor network drawn on the side view (each resistance labelled with k, flow, ΔP); airflow arrows scaled/coloured by magnitude and
-  direction (reverse flow visible); colour map of air temperature by zone; per-card die/memory temps;
-  throttle warnings; case pressure (+/−, Pa); hover/labels showing each resistance's k, flow and ΔP.
-- **Stream theme**: dark, clean, large fonts, 1920×1080 layout, no clutter, suitable for OBS browser-source or
-  window capture; presenter-friendly (hide-controls toggle / "presentation mode").
-- **Compare mode**: two configurations side by side with Δ per card.
-- **Demo mode**: scripted stepping through saved scenarios (keyboard next/prev + optional auto-advance):
-  1. Stefano's build — Meshify 2 XL + Noctua 140mm redux-1700 fans + Arctic 360 top exhaust + 3 horizontal
-     + 1 vertical RTX PRO 6000 Blackwell Max-Q, all brackets removed, rear exhaust shroud with 2x NF-A14
-     industrialPPC-3000: walk through close-packed (anchor B, throttling) → gaps + vertical, no shroud
-     (anchor A, ~86 °C) → shroud on → high pressure → `maxq_aggressive` fan curve → optimal.
-  2. "Mike Bradley powerhouse" 9000D-style **illustrative mock** for comparison.
-- **DEMO.md**: run-of-show with talking points per step (what changes physically and why the temps move).
+`uv run gpusim ui` (FastAPI + three.js r160, vendored ES module). Binds 8000, or the next free port within
++29. Static files are served with `Cache-Control: no-cache`. Rev 4 layout at 1920 × 1080:
+
+- **Header**: build name, mock banner, hottest die, case pressure, ambient; camera (¾ front, side, ¾ rear);
+  view mode (Case / Split / Network); Optimize, °F, Compare, Demo, Present.
+- **Left driving bar** (item 8): **Front / Top / Rear / Bottom / Side / Internals / GPUs**. Selecting a face
+  opens only that face's panel: its mounts (fan model from the size-filtered top-10, direction, speed; a
+  "Set all" row), seal level with the level's meaning, dust filter, radiator (front/top/bottom), and on Rear
+  the brackets and the shroud. Internals: case, CPU (W, air/water, tower fan), obstruction, cables, drive
+  cage, PSU, seams, ambient, altitude, re-ingestion, buoyancy. GPUs: card picker (blower / flow-through
+  groups), slot, power limit, **Stock / Custom Accelerated / Custom** curve, clock and voltage
+  approximations, spacing buttons.
+- **3D case** (items 1–4): fans are discs lying in the plane of their face with a direction cone, so the ¾
+  camera shows them as ovals on the front, top, rear, bottom or glass side; blue intake, red exhaust, grey
+  blanked. Cards sit with the bracket at the rear wall and the PCB edge off the motherboard tray, coloured
+  by die °C, with their own fan discs on the fan face and a plume cone on flow-through cards. PSU
+  bottom-rear under its shroud. Motherboard, CPU tower or AIO pump. Radiator slab against its panel with
+  its fans on its inner face. Rear shroud with its fans outside the rear wall.
+- **Face inset** (item 5): head-on drawing of the selected face, auto-scaled so every fan is visible
+  without overlap (the 9000D's 8×120 front grid included). Labels collapse identical fans on one face
+  ("Front fans ×8: all Corsair iCUE AF120 RGB ELITE · 65.6 CFM · 2.68 mmH₂O · intake").
+- **Network view** (item 6): alongside the case (Split) or full screen. Layer 1 airflow network — pressure
+  = voltage, flow = current — with labelled seal resistances (∞ for solid glass/metal), fan impedances,
+  inter-card slot resistances, fin channels, bracket vents, internal resistances, shroud and plume
+  branches, node pressures and temperatures. Layer 2 thermal network per card — zone air → inlet mixing
+  (plume share) → R_conv → heatsink → R_tim → die, R_ext and R_mem — with
+  `T_die = T_in + Q_ch·R_conv + P_die·R_tim` evaluated in numbers. Parallel identical branches collapse
+  (×n) with members in the tooltip.
+- **Tooltips everywhere** (item 7): every input, legend item, header control and network element has a
+  hover text stating its assumption (seal meaning and %, filter k, fan laws, curves, CPU air/water,
+  obstruction/cable multipliers, PSU, shroud, card types, slot gaps, clocks, plume term).
+- **Readout**: per card die (throttled), unthrottled, memory, inlet, exhaust, CFM, duty, power, gap, plume
+  share; energy balance and residual; notes.
+- **Start screen** (item 15): Quick start (Meshify 2 XL — Stefano; Corsair 9000D Airflow), **Start from a
+  template** (9000D Airflow, Meshify 2 XL, generic ATX / mATX / E-ATX, Phanteks Enthoo Elite Server),
+  Build from scratch (any case). Mike Bradley mock as a shareable demo URL **`/?demo=mike-bradley`**,
+  labelled "Illustrative mock — not a measurement or claim about anyone's real build." Other URL params:
+  `?template=<build id>`, `?start=meshify|9000|mock`, `?demo=stefano`, `?net=split|full`, `?face=…`,
+  `?view=front34|side|rear34`, `?present=1`.
+- Compare, Demo (arrow keys, auto-advance), Presentation mode, drag fans between mounts and cards between
+  slots, Optimal air-cooled search: kept from rev 3. The Stefano demo gains a flow-through step
+  (same slots, 4× PRO 6000 Workstation).
 
 ## 12. Other deliverables
 
-- Package `gpusim/`, `pyproject.toml` (Python ≥ 3.10; numpy, scipy, pandas, matplotlib, pyyaml, pydantic,
-  click/typer, plus the UI stack; optional graphviz). `uv venv && uv pip install -e ".[dev]"`.
-- CLI:
-  - `gpusim sweep [--build meshify2xl-stefano] [--mc 200] [--out results/]` — 16 cells + stock + open-air
-    reference → `results/<build>/results.csv`, `results.md` (ranked table), `bounds_check.json/.md`, plots
-    in `plots/<build>/`.
-  - `gpusim run --build ... --spacing stacked --pressure high --shroud on --leakage sealed [--rear-duct passive] [--fan-curve maxq_aggressive]`
-  - `gpusim optimize --cards 4 [--case ...]`
-  - `gpusim schematic --build ...` — network schematic PNG (graphviz if available, else matplotlib).
-  - `gpusim calibrate --log nvidia_smi.csv` — least-squares fit of h/TIM from nvidia-smi logs
-    (power.draw, temperature.gpu, fan.speed, optional memory temp) with an example log in `examples/`.
-  - `gpusim ui` — visualizer.
-- Plots (PNG): die temp vs config with MC error bars (per card and hottest), flow vs config, case pressure vs
-  config, network schematic.
-- **HYPOTHESIS.md**: 3–5 cells worth testing physically on Stefano's PC, each with predicted ΔT vs stock
-  (with MC range), confidence, reasoning, and recommended test order (cheapest/most informative first).
-- **README.md**: what/why, scope (air-cooled only; water blocks out of scope; large cases first), method +
-  citations, install, usage (CLI + UI), real example output table,
-  accuracy statement, and **How to extend**: add a card/case/fan/radiator/build, and calibrate from nvidia-smi
-  logs (`nvidia-smi --query-gpu=timestamp,index,power.draw,temperature.gpu,temperature.memory,fan.speed,clocks.sm --format=csv -l 1`).
-- Run the sweep for Stefano's default build (and optionally the 9000D mock build) and commit `results/`
-  and `plots/`. Everything passes `pytest -q`. Push to GitHub.
+- CLI: `sweep`, `run`, `optimize`, `schematic`, `calibrate`, `ui` (rev 3), plus **`simulate SPEC.json`**,
+  **`rank REQUEST.json`** (variants or a factorial), **`schema`** (exports `docs/openapi.json` and
+  `docs/simspec.schema.json`).
+- **Agent API** (item 14), FastAPI, docs at `/docs`:
+  - `POST /api/v1/simulate` — `SimSpec {build, extra_fans?, extra_cards?, options{throttle, mc, seed,
+    detail}}` → summary, per-card rows, plume, notes, accuracy; `detail = "full"` adds the thermal chains
+    and the network; `mc > 0` adds 5th–95th bands.
+  - `POST /api/v1/rank` — `{base, variants[{name, patch (RFC 7396 merge patch), set (macros / dotted
+    paths)}], include_base}` → ranked results; a failing variant reports its error in place.
+  - `POST /api/v1/sweep` — `{base, factors{name: [levels]}}` → full factorial (≤ 256 cells), ranked.
+    Macros: spacing (stacked|gap1|gap2|gap3), pressure, shroud, leakage, fan_curve, cpu_cooling,
+    obstruction, cables; anything else is a dotted path (`gpus.*.power_limit_w`, `shroud.count`).
+  - `GET /api/v1/presets`, `GET /api/v1/builds/{id}`, `GET /api/v1/schema`.
+  - Inline fans (intercepts or P–Q points) and inline cards (`calibration_from` a calibrated card type,
+    optional overrides). Validation errors (unknown ids, overlapping slots, cards past the last slot) are
+    HTTP 422 with a reason.
+  - Examples: `examples/api/*.json`, `examples/api_client.py` (stdlib HTTP, or `--offline`). README
+    section with curl and Python.
+- Plots, HYPOTHESIS.md, README, DEMO.md, docs/CALIBRATION.md as rev 3, updated for rev 4. The sweep for
+  `meshify2xl-stefano` is rerun and `results/` and `plots/` committed. `pytest -q` green.
 
 ## 13. Engineering notes
 
-- Physically plausible, documented parameters; transparency over curve-fit magic.
-- Rankings must emerge from physics (flow split, recirculation, preheating, starvation), never hard-coded
-  per-configuration offsets.
-- Deterministic by default (fixed seeds). Sweep with MC in a few minutes on a laptop.
+Physically plausible, documented parameters; rankings emerge from physics (flow split, recirculation,
+preheating, starvation, plume ingestion), never per-configuration offsets. Deterministic by default.
+Solve time < 0.5 s per configuration without MC; the Meshify sweep with MC 200 runs in about 50 s.
 
-## 14. Resolved questions (answered by Stefano; record in README "Build assumptions")
+## 14. Resolved questions and rev 4 decisions
 
-- **Case fans:** Noctua **140 mm redux at 1700 RPM** → library entry "Noctua 140mm redux-1700" (NF-P14s
-  redux curve scaled to 1700 RPM, approximate). No 170 mm Noctua in his build (generic 170 mm stays in the
-  library).
-- **Radiator:** Arctic 360 mm with its three 120 mm Arctic (P12-class) fans; default **top, exhaust (push)**
-  — a default assumption, flippable in the UI.
-- **Phanteks case:** **Enthoo Elite Server (12 slots)** confirmed.
-- **Meshify 2 XL slots:** 9 horizontal + 3 vertical off to the side; **all slot brackets removed (open)**;
-  straight front-to-GPU airflow, very low internal resistance. Current layout: 3 horizontal + 1 vertical.
-- **Rear exhaust shroud:** custom shroud over all PCIe output slots with **two Noctua NF-A14
-  industrialPPC-3000 PWM** fans pulling suction across every GPU output slot (shared plenum, §4). It replaces
-  the passive duct as the sweep factor; a passive-duct option remains.
-- **Ambient:** 25 °C; Celsius throughout.
-- **Measured anchors:** A) 3 horizontal with gaps + 1 vertical, no booster/shroud fans, stock GPU curve →
-  ~86 °C stable; B) 4 close-packed, stock curve → throttled at 90 °C cutoff.
-- Remaining unknowns (approximate, covered by Monte Carlo): radiator thickness/FPI, exact stock GPU fan curve
-  points, shroud leakage, NF-A14 iPPC-3000 static pressure (datasheet vs web page).
+Rev 3 answers stand (Noctua 140 redux-1700 case fans; Arctic 360 top exhaust; Enthoo Elite Server 12
+slots; Meshify 9 + 3 slots, brackets removed; rear shroud 2× NF-A14 iPPC-3000; 25 °C; anchors A and B).
+Rev 4 decisions made without further questions, all documented as assumptions:
+
+- 9000D ships with no fans (Corsair); the template fills the 8×120 front with AF120 RGB ELITE.
+- Flow-through exhaust rises into the main case volume; the card above swallows φ(g) of it.
+- φ_max 0.85, L_plume 40 mm; CPU tower 2.5e4 Pa/(m³/s)²; obstruction ×1 / 2.5 / 6; cables ×1 / 2.
+- Seal percentages 100 / 70 / 45 / 5 / 0; leaky rear slots at 3.
+- 5090 FE and 3090 FE thicknesses and every flow-through fan/fin number are approximate.
+- Ranking puts non-throttling configurations first; throttling ones by unthrottled die.
+
+## 15. Rev 4 item map
+
+| Item | Where |
+|---|---|
+| 1 fans on faces | §11 3D case |
+| 2 GPUs at the rear | §11 3D case |
+| 3 PSU | §11 3D case |
+| 4 radiator on its fans | §2.3, §11 |
+| 5 9000D fan array, auto-sized face, collapsed labels | §2.1, §11 face inset |
+| 6 resistor-network view, two layers, math | §11 network view, §8 |
+| 7 tooltips | §11 |
+| 8 left driving bar | §11 |
+| 9 seal levels 1 open … 5 sealed | §5 |
+| 10 CPU air / water | §4, §7 |
+| 11 GPU picker, Stock / Custom Accelerated | §1.1 |
+| 12 plume ingestion | §6.3 |
+| 13 obstruction / cables k multipliers | §7 |
+| 14 agent API | §12 |
+| 15 quick start, templates, mock demo URL | §2.1, §11 |
+| 16 airflow-first scope | scope paragraph, §2.3 |
