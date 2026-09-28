@@ -1,6 +1,6 @@
 [project]
 name = "gpusim"
-version = "0.3.0"
+version = "0.4.0"
 description = "Compact airflow and thermal-network simulator for air-cooled multi-GPU workstations"
 readme = "README.md"
 requires-python = ">=3.10"

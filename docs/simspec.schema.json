@@ -1,0 +1,2167 @@
+{
+  "SimSpec": {
+    "$defs": {
+      "BuildCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "case": {
+            "title": "Case",
+            "type": "string"
+          },
+          "ambient_c": {
+            "default": 25.0,
+            "title": "Ambient C",
+            "type": "number"
+          },
+          "altitude_m": {
+            "default": 0.0,
+            "title": "Altitude M",
+            "type": "number"
+          },
+          "gpus": {
+            "items": {
+              "$ref": "#/$defs/GpuCfg"
+            },
+            "title": "Gpus",
+            "type": "array"
+          },
+          "mounts": {
+            "items": {
+              "$ref": "#/$defs/MountCfg"
+            },
+            "title": "Mounts",
+            "type": "array"
+          },
+          "radiator": {
+            "$ref": "#/$defs/RadiatorCfg"
+          },
+          "cpu": {
+            "$ref": "#/$defs/CpuCfg"
+          },
+          "shroud": {
+            "$ref": "#/$defs/ShroudCfg"
+          },
+          "seals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Seals",
+            "type": "object"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Filters",
+            "type": "object"
+          },
+          "obstruction": {
+            "default": "low",
+            "title": "Obstruction",
+            "type": "string"
+          },
+          "cables": {
+            "default": "clean",
+            "title": "Cables",
+            "type": "string"
+          },
+          "psu_location": {
+            "default": "bottom_shroud",
+            "title": "Psu Location",
+            "type": "string"
+          },
+          "psu_fan": {
+            "default": "down",
+            "title": "Psu Fan",
+            "type": "string"
+          },
+          "drive_cage": {
+            "default": "removed",
+            "title": "Drive Cage",
+            "type": "string"
+          },
+          "side_panel": {
+            "default": "tempered_glass",
+            "title": "Side Panel",
+            "type": "string"
+          },
+          "brackets_removed": {
+            "default": true,
+            "title": "Brackets Removed",
+            "type": "boolean"
+          },
+          "room_reingestion_c": {
+            "default": 0.0,
+            "title": "Room Reingestion C",
+            "type": "number"
+          },
+          "buoyancy": {
+            "default": false,
+            "title": "Buoyancy",
+            "type": "boolean"
+          },
+          "open_air": {
+            "default": false,
+            "title": "Open Air",
+            "type": "boolean"
+          },
+          "illustrative_mock": {
+            "default": false,
+            "title": "Illustrative Mock",
+            "type": "boolean"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "case",
+          "gpus"
+        ],
+        "title": "BuildCfg",
+        "type": "object"
+      },
+      "CardSpec": {
+        "additionalProperties": false,
+        "description": "A card that is not in presets/cards. It borrows a calibrated cooler.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "calibration_from": {
+            "description": "Existing card id whose cooler physics to reuse, e.g. rtx-5090-fe or rtx-pro-6000-blackwell-maxq",
+            "title": "Calibration From",
+            "type": "string"
+          },
+          "tbp_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tbp W"
+          },
+          "slots": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Slots"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Length Mm"
+          },
+          "height_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height Mm"
+          },
+          "thickness_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thickness Mm"
+          },
+          "throttle_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Throttle C"
+          },
+          "cutoff_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cutoff C"
+          },
+          "stock_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "[[\u00b0C, duty 0\u20131], \u2026]",
+            "title": "Stock Curve"
+          },
+          "tuning_overrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Override calibration numbers, e.g. {'qmax_m3s': 0.05, 'r_tim': 0.04}",
+            "title": "Tuning Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "calibration_from"
+        ],
+        "title": "CardSpec",
+        "type": "object"
+      },
+      "CpuCfg": {
+        "description": "CPU heat and how it leaves the case.\n\nwater: the package heat rides the radiator branch (needs a radiator).\nair: the heat goes into the case air through a tower cooler, whose fan and\nfin stack are a branch in the flow network. The rear mount pulls from the\ncooler outlet.",
+        "properties": {
+          "power_w": {
+            "default": 150.0,
+            "title": "Power W",
+            "type": "number"
+          },
+          "cooling": {
+            "default": "water",
+            "title": "Cooling",
+            "type": "string"
+          },
+          "cooler_fan": {
+            "default": "generic-140",
+            "title": "Cooler Fan",
+            "type": "string"
+          },
+          "cooler_fan_count": {
+            "default": 1,
+            "title": "Cooler Fan Count",
+            "type": "integer"
+          },
+          "cooler_duty": {
+            "default": 0.8,
+            "title": "Cooler Duty",
+            "type": "number"
+          },
+          "heatsink_k": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Heatsink K"
+          }
+        },
+        "title": "CpuCfg",
+        "type": "object"
+      },
+      "FanSpec": {
+        "additionalProperties": false,
+        "description": "A fan that is not in presets/fans. Give P\u2013Q points, or the two intercepts.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "size_mm": {
+            "description": "120, 140, 170 \u2026",
+            "title": "Size Mm",
+            "type": "integer"
+          },
+          "rpm_max": {
+            "title": "Rpm Max",
+            "type": "number"
+          },
+          "rpm_min": {
+            "default": 0.0,
+            "title": "Rpm Min",
+            "type": "number"
+          },
+          "airflow_cfm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Free-air flow at rpm_max",
+            "title": "Airflow Cfm"
+          },
+          "static_pressure_mmh2o": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Dead-head pressure at rpm_max",
+            "title": "Static Pressure Mmh2O"
+          },
+          "pq_points_m3h_mmh2o": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "[[m\u00b3/h, mmH\u2082O], \u2026] at rpm_max. Overrides the intercepts.",
+            "title": "Pq Points M3H Mmh2O"
+          }
+        },
+        "required": [
+          "id",
+          "size_mm",
+          "rpm_max"
+        ],
+        "title": "FanSpec",
+        "type": "object"
+      },
+      "GpuCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "slot": {
+            "title": "Slot",
+            "type": "string"
+          },
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "fan_curve": {
+            "default": "stock",
+            "title": "Fan Curve",
+            "type": "string"
+          },
+          "custom_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Custom Curve"
+          },
+          "power_limit_w": {
+            "default": 300,
+            "title": "Power Limit W",
+            "type": "number"
+          },
+          "memory_clock_offset_mhz": {
+            "default": 0,
+            "title": "Memory Clock Offset Mhz",
+            "type": "number"
+          },
+          "core_clock_offset_mhz": {
+            "default": 0,
+            "title": "Core Clock Offset Mhz",
+            "type": "number"
+          },
+          "undervolt_mv": {
+            "default": 0,
+            "title": "Undervolt Mv",
+            "type": "number"
+          },
+          "gap_override": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Gap Override"
+          }
+        },
+        "required": [
+          "id",
+          "slot",
+          "card"
+        ],
+        "title": "GpuCfg",
+        "type": "object"
+      },
+      "MountCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "panel": {
+            "title": "Panel",
+            "type": "string"
+          },
+          "size_mm": {
+            "title": "Size Mm",
+            "type": "integer"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fan"
+          },
+          "state": {
+            "default": "blanked",
+            "title": "State",
+            "type": "string"
+          },
+          "direction": {
+            "default": "intake",
+            "title": "Direction",
+            "type": "string"
+          },
+          "duty": {
+            "default": 1.0,
+            "title": "Duty",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "panel",
+          "size_mm"
+        ],
+        "title": "MountCfg",
+        "type": "object"
+      },
+      "RadiatorCfg": {
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Model"
+          },
+          "panel": {
+            "default": "top",
+            "title": "Panel",
+            "type": "string"
+          },
+          "direction": {
+            "default": "exhaust",
+            "title": "Direction",
+            "type": "string"
+          },
+          "arrangement": {
+            "default": "push",
+            "title": "Arrangement",
+            "type": "string"
+          },
+          "cpu_power_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cpu Power W"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fan"
+          },
+          "fan_count": {
+            "default": 3,
+            "title": "Fan Count",
+            "type": "integer"
+          },
+          "fan_duty": {
+            "default": 1.0,
+            "title": "Fan Duty",
+            "type": "number"
+          }
+        },
+        "title": "RadiatorCfg",
+        "type": "object"
+      },
+      "ShroudCfg": {
+        "properties": {
+          "mode": {
+            "default": "off",
+            "title": "Mode",
+            "type": "string"
+          },
+          "fan": {
+            "default": "noctua-nf-a14-ippc-3000",
+            "title": "Fan",
+            "type": "string"
+          },
+          "count": {
+            "default": 2,
+            "title": "Count",
+            "type": "integer"
+          },
+          "duty": {
+            "default": 1.0,
+            "title": "Duty",
+            "type": "number"
+          }
+        },
+        "title": "ShroudCfg",
+        "type": "object"
+      },
+      "SimOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "throttle": {
+            "default": true,
+            "description": "Solve the throttled equilibrium as well as the unthrottled one",
+            "title": "Throttle",
+            "type": "boolean"
+          },
+          "mc": {
+            "default": 0,
+            "description": "Monte Carlo samples for 5th\u201395th bands (0 = nominal only)",
+            "maximum": 400,
+            "minimum": 0,
+            "title": "Mc",
+            "type": "integer"
+          },
+          "seed": {
+            "default": 12345,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "detail": {
+            "default": "summary",
+            "description": "full adds the flow network, node temperatures and per-card thermal breakdown",
+            "enum": [
+              "summary",
+              "full"
+            ],
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "title": "SimOptions",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "build": {
+        "$ref": "#/$defs/BuildCfg"
+      },
+      "extra_fans": {
+        "items": {
+          "$ref": "#/$defs/FanSpec"
+        },
+        "title": "Extra Fans",
+        "type": "array"
+      },
+      "extra_cards": {
+        "items": {
+          "$ref": "#/$defs/CardSpec"
+        },
+        "title": "Extra Cards",
+        "type": "array"
+      },
+      "options": {
+        "$ref": "#/$defs/SimOptions"
+      }
+    },
+    "required": [
+      "build"
+    ],
+    "title": "SimSpec",
+    "type": "object"
+  },
+  "RankRequest": {
+    "$defs": {
+      "BuildCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "case": {
+            "title": "Case",
+            "type": "string"
+          },
+          "ambient_c": {
+            "default": 25.0,
+            "title": "Ambient C",
+            "type": "number"
+          },
+          "altitude_m": {
+            "default": 0.0,
+            "title": "Altitude M",
+            "type": "number"
+          },
+          "gpus": {
+            "items": {
+              "$ref": "#/$defs/GpuCfg"
+            },
+            "title": "Gpus",
+            "type": "array"
+          },
+          "mounts": {
+            "items": {
+              "$ref": "#/$defs/MountCfg"
+            },
+            "title": "Mounts",
+            "type": "array"
+          },
+          "radiator": {
+            "$ref": "#/$defs/RadiatorCfg"
+          },
+          "cpu": {
+            "$ref": "#/$defs/CpuCfg"
+          },
+          "shroud": {
+            "$ref": "#/$defs/ShroudCfg"
+          },
+          "seals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Seals",
+            "type": "object"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Filters",
+            "type": "object"
+          },
+          "obstruction": {
+            "default": "low",
+            "title": "Obstruction",
+            "type": "string"
+          },
+          "cables": {
+            "default": "clean",
+            "title": "Cables",
+            "type": "string"
+          },
+          "psu_location": {
+            "default": "bottom_shroud",
+            "title": "Psu Location",
+            "type": "string"
+          },
+          "psu_fan": {
+            "default": "down",
+            "title": "Psu Fan",
+            "type": "string"
+          },
+          "drive_cage": {
+            "default": "removed",
+            "title": "Drive Cage",
+            "type": "string"
+          },
+          "side_panel": {
+            "default": "tempered_glass",
+            "title": "Side Panel",
+            "type": "string"
+          },
+          "brackets_removed": {
+            "default": true,
+            "title": "Brackets Removed",
+            "type": "boolean"
+          },
+          "room_reingestion_c": {
+            "default": 0.0,
+            "title": "Room Reingestion C",
+            "type": "number"
+          },
+          "buoyancy": {
+            "default": false,
+            "title": "Buoyancy",
+            "type": "boolean"
+          },
+          "open_air": {
+            "default": false,
+            "title": "Open Air",
+            "type": "boolean"
+          },
+          "illustrative_mock": {
+            "default": false,
+            "title": "Illustrative Mock",
+            "type": "boolean"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "case",
+          "gpus"
+        ],
+        "title": "BuildCfg",
+        "type": "object"
+      },
+      "CardSpec": {
+        "additionalProperties": false,
+        "description": "A card that is not in presets/cards. It borrows a calibrated cooler.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "calibration_from": {
+            "description": "Existing card id whose cooler physics to reuse, e.g. rtx-5090-fe or rtx-pro-6000-blackwell-maxq",
+            "title": "Calibration From",
+            "type": "string"
+          },
+          "tbp_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tbp W"
+          },
+          "slots": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Slots"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Length Mm"
+          },
+          "height_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height Mm"
+          },
+          "thickness_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thickness Mm"
+          },
+          "throttle_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Throttle C"
+          },
+          "cutoff_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cutoff C"
+          },
+          "stock_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "[[\u00b0C, duty 0\u20131], \u2026]",
+            "title": "Stock Curve"
+          },
+          "tuning_overrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Override calibration numbers, e.g. {'qmax_m3s': 0.05, 'r_tim': 0.04}",
+            "title": "Tuning Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "calibration_from"
+        ],
+        "title": "CardSpec",
+        "type": "object"
+      },
+      "CpuCfg": {
+        "description": "CPU heat and how it leaves the case.\n\nwater: the package heat rides the radiator branch (needs a radiator).\nair: the heat goes into the case air through a tower cooler, whose fan and\nfin stack are a branch in the flow network. The rear mount pulls from the\ncooler outlet.",
+        "properties": {
+          "power_w": {
+            "default": 150.0,
+            "title": "Power W",
+            "type": "number"
+          },
+          "cooling": {
+            "default": "water",
+            "title": "Cooling",
+            "type": "string"
+          },
+          "cooler_fan": {
+            "default": "generic-140",
+            "title": "Cooler Fan",
+            "type": "string"
+          },
+          "cooler_fan_count": {
+            "default": 1,
+            "title": "Cooler Fan Count",
+            "type": "integer"
+          },
+          "cooler_duty": {
+            "default": 0.8,
+            "title": "Cooler Duty",
+            "type": "number"
+          },
+          "heatsink_k": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Heatsink K"
+          }
+        },
+        "title": "CpuCfg",
+        "type": "object"
+      },
+      "FanSpec": {
+        "additionalProperties": false,
+        "description": "A fan that is not in presets/fans. Give P\u2013Q points, or the two intercepts.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "size_mm": {
+            "description": "120, 140, 170 \u2026",
+            "title": "Size Mm",
+            "type": "integer"
+          },
+          "rpm_max": {
+            "title": "Rpm Max",
+            "type": "number"
+          },
+          "rpm_min": {
+            "default": 0.0,
+            "title": "Rpm Min",
+            "type": "number"
+          },
+          "airflow_cfm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Free-air flow at rpm_max",
+            "title": "Airflow Cfm"
+          },
+          "static_pressure_mmh2o": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Dead-head pressure at rpm_max",
+            "title": "Static Pressure Mmh2O"
+          },
+          "pq_points_m3h_mmh2o": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "[[m\u00b3/h, mmH\u2082O], \u2026] at rpm_max. Overrides the intercepts.",
+            "title": "Pq Points M3H Mmh2O"
+          }
+        },
+        "required": [
+          "id",
+          "size_mm",
+          "rpm_max"
+        ],
+        "title": "FanSpec",
+        "type": "object"
+      },
+      "GpuCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "slot": {
+            "title": "Slot",
+            "type": "string"
+          },
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "fan_curve": {
+            "default": "stock",
+            "title": "Fan Curve",
+            "type": "string"
+          },
+          "custom_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Custom Curve"
+          },
+          "power_limit_w": {
+            "default": 300,
+            "title": "Power Limit W",
+            "type": "number"
+          },
+          "memory_clock_offset_mhz": {
+            "default": 0,
+            "title": "Memory Clock Offset Mhz",
+            "type": "number"
+          },
+          "core_clock_offset_mhz": {
+            "default": 0,
+            "title": "Core Clock Offset Mhz",
+            "type": "number"
+          },
+          "undervolt_mv": {
+            "default": 0,
+            "title": "Undervolt Mv",
+            "type": "number"
+          },
+          "gap_override": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Gap Override"
+          }
+        },
+        "required": [
+          "id",
+          "slot",
+          "card"
+        ],
+        "title": "GpuCfg",
+        "type": "object"
+      },
+      "MountCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "panel": {
+            "title": "Panel",
+            "type": "string"
+          },
+          "size_mm": {
+            "title": "Size Mm",
+            "type": "integer"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fan"
+          },
+          "state": {
+            "default": "blanked",
+            "title": "State",
+            "type": "string"
+          },
+          "direction": {
+            "default": "intake",
+            "title": "Direction",
+            "type": "string"
+          },
+          "duty": {
+            "default": 1.0,
+            "title": "Duty",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "panel",
+          "size_mm"
+        ],
+        "title": "MountCfg",
+        "type": "object"
+      },
+      "RadiatorCfg": {
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Model"
+          },
+          "panel": {
+            "default": "top",
+            "title": "Panel",
+            "type": "string"
+          },
+          "direction": {
+            "default": "exhaust",
+            "title": "Direction",
+            "type": "string"
+          },
+          "arrangement": {
+            "default": "push",
+            "title": "Arrangement",
+            "type": "string"
+          },
+          "cpu_power_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cpu Power W"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fan"
+          },
+          "fan_count": {
+            "default": 3,
+            "title": "Fan Count",
+            "type": "integer"
+          },
+          "fan_duty": {
+            "default": 1.0,
+            "title": "Fan Duty",
+            "type": "number"
+          }
+        },
+        "title": "RadiatorCfg",
+        "type": "object"
+      },
+      "ShroudCfg": {
+        "properties": {
+          "mode": {
+            "default": "off",
+            "title": "Mode",
+            "type": "string"
+          },
+          "fan": {
+            "default": "noctua-nf-a14-ippc-3000",
+            "title": "Fan",
+            "type": "string"
+          },
+          "count": {
+            "default": 2,
+            "title": "Count",
+            "type": "integer"
+          },
+          "duty": {
+            "default": 1.0,
+            "title": "Duty",
+            "type": "number"
+          }
+        },
+        "title": "ShroudCfg",
+        "type": "object"
+      },
+      "SimOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "throttle": {
+            "default": true,
+            "description": "Solve the throttled equilibrium as well as the unthrottled one",
+            "title": "Throttle",
+            "type": "boolean"
+          },
+          "mc": {
+            "default": 0,
+            "description": "Monte Carlo samples for 5th\u201395th bands (0 = nominal only)",
+            "maximum": 400,
+            "minimum": 0,
+            "title": "Mc",
+            "type": "integer"
+          },
+          "seed": {
+            "default": 12345,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "detail": {
+            "default": "summary",
+            "description": "full adds the flow network, node temperatures and per-card thermal breakdown",
+            "enum": [
+              "summary",
+              "full"
+            ],
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "title": "SimOptions",
+        "type": "object"
+      },
+      "SimSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "build": {
+            "$ref": "#/$defs/BuildCfg"
+          },
+          "extra_fans": {
+            "items": {
+              "$ref": "#/$defs/FanSpec"
+            },
+            "title": "Extra Fans",
+            "type": "array"
+          },
+          "extra_cards": {
+            "items": {
+              "$ref": "#/$defs/CardSpec"
+            },
+            "title": "Extra Cards",
+            "type": "array"
+          },
+          "options": {
+            "$ref": "#/$defs/SimOptions"
+          }
+        },
+        "required": [
+          "build"
+        ],
+        "title": "SimSpec",
+        "type": "object"
+      },
+      "Variant": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "patch": {
+            "additionalProperties": true,
+            "description": "JSON merge patch (RFC 7396) on the base build. Lists replace whole lists.",
+            "title": "Patch",
+            "type": "object"
+          },
+          "set": {
+            "additionalProperties": true,
+            "description": "Dotted-path or macro settings, same keys as /sweep factors (e.g. {'spacing': 'gap1', 'gpus.*.fan_curve': 'custom_accelerated'})",
+            "title": "Set",
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "Variant",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "base": {
+        "$ref": "#/$defs/SimSpec"
+      },
+      "variants": {
+        "items": {
+          "$ref": "#/$defs/Variant"
+        },
+        "maxItems": 64,
+        "minItems": 1,
+        "title": "Variants",
+        "type": "array"
+      },
+      "include_base": {
+        "default": true,
+        "title": "Include Base",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "base",
+      "variants"
+    ],
+    "title": "RankRequest",
+    "type": "object"
+  },
+  "SweepRequest": {
+    "$defs": {
+      "BuildCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "case": {
+            "title": "Case",
+            "type": "string"
+          },
+          "ambient_c": {
+            "default": 25.0,
+            "title": "Ambient C",
+            "type": "number"
+          },
+          "altitude_m": {
+            "default": 0.0,
+            "title": "Altitude M",
+            "type": "number"
+          },
+          "gpus": {
+            "items": {
+              "$ref": "#/$defs/GpuCfg"
+            },
+            "title": "Gpus",
+            "type": "array"
+          },
+          "mounts": {
+            "items": {
+              "$ref": "#/$defs/MountCfg"
+            },
+            "title": "Mounts",
+            "type": "array"
+          },
+          "radiator": {
+            "$ref": "#/$defs/RadiatorCfg"
+          },
+          "cpu": {
+            "$ref": "#/$defs/CpuCfg"
+          },
+          "shroud": {
+            "$ref": "#/$defs/ShroudCfg"
+          },
+          "seals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Seals",
+            "type": "object"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Filters",
+            "type": "object"
+          },
+          "obstruction": {
+            "default": "low",
+            "title": "Obstruction",
+            "type": "string"
+          },
+          "cables": {
+            "default": "clean",
+            "title": "Cables",
+            "type": "string"
+          },
+          "psu_location": {
+            "default": "bottom_shroud",
+            "title": "Psu Location",
+            "type": "string"
+          },
+          "psu_fan": {
+            "default": "down",
+            "title": "Psu Fan",
+            "type": "string"
+          },
+          "drive_cage": {
+            "default": "removed",
+            "title": "Drive Cage",
+            "type": "string"
+          },
+          "side_panel": {
+            "default": "tempered_glass",
+            "title": "Side Panel",
+            "type": "string"
+          },
+          "brackets_removed": {
+            "default": true,
+            "title": "Brackets Removed",
+            "type": "boolean"
+          },
+          "room_reingestion_c": {
+            "default": 0.0,
+            "title": "Room Reingestion C",
+            "type": "number"
+          },
+          "buoyancy": {
+            "default": false,
+            "title": "Buoyancy",
+            "type": "boolean"
+          },
+          "open_air": {
+            "default": false,
+            "title": "Open Air",
+            "type": "boolean"
+          },
+          "illustrative_mock": {
+            "default": false,
+            "title": "Illustrative Mock",
+            "type": "boolean"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "case",
+          "gpus"
+        ],
+        "title": "BuildCfg",
+        "type": "object"
+      },
+      "CardSpec": {
+        "additionalProperties": false,
+        "description": "A card that is not in presets/cards. It borrows a calibrated cooler.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "calibration_from": {
+            "description": "Existing card id whose cooler physics to reuse, e.g. rtx-5090-fe or rtx-pro-6000-blackwell-maxq",
+            "title": "Calibration From",
+            "type": "string"
+          },
+          "tbp_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tbp W"
+          },
+          "slots": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Slots"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Length Mm"
+          },
+          "height_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height Mm"
+          },
+          "thickness_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thickness Mm"
+          },
+          "throttle_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Throttle C"
+          },
+          "cutoff_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cutoff C"
+          },
+          "stock_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "[[\u00b0C, duty 0\u20131], \u2026]",
+            "title": "Stock Curve"
+          },
+          "tuning_overrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Override calibration numbers, e.g. {'qmax_m3s': 0.05, 'r_tim': 0.04}",
+            "title": "Tuning Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "calibration_from"
+        ],
+        "title": "CardSpec",
+        "type": "object"
+      },
+      "CpuCfg": {
+        "description": "CPU heat and how it leaves the case.\n\nwater: the package heat rides the radiator branch (needs a radiator).\nair: the heat goes into the case air through a tower cooler, whose fan and\nfin stack are a branch in the flow network. The rear mount pulls from the\ncooler outlet.",
+        "properties": {
+          "power_w": {
+            "default": 150.0,
+            "title": "Power W",
+            "type": "number"
+          },
+          "cooling": {
+            "default": "water",
+            "title": "Cooling",
+            "type": "string"
+          },
+          "cooler_fan": {
+            "default": "generic-140",
+            "title": "Cooler Fan",
+            "type": "string"
+          },
+          "cooler_fan_count": {
+            "default": 1,
+            "title": "Cooler Fan Count",
+            "type": "integer"
+          },
+          "cooler_duty": {
+            "default": 0.8,
+            "title": "Cooler Duty",
+            "type": "number"
+          },
+          "heatsink_k": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Heatsink K"
+          }
+        },
+        "title": "CpuCfg",
+        "type": "object"
+      },
+      "FanSpec": {
+        "additionalProperties": false,
+        "description": "A fan that is not in presets/fans. Give P\u2013Q points, or the two intercepts.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "size_mm": {
+            "description": "120, 140, 170 \u2026",
+            "title": "Size Mm",
+            "type": "integer"
+          },
+          "rpm_max": {
+            "title": "Rpm Max",
+            "type": "number"
+          },
+          "rpm_min": {
+            "default": 0.0,
+            "title": "Rpm Min",
+            "type": "number"
+          },
+          "airflow_cfm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Free-air flow at rpm_max",
+            "title": "Airflow Cfm"
+          },
+          "static_pressure_mmh2o": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Dead-head pressure at rpm_max",
+            "title": "Static Pressure Mmh2O"
+          },
+          "pq_points_m3h_mmh2o": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "[[m\u00b3/h, mmH\u2082O], \u2026] at rpm_max. Overrides the intercepts.",
+            "title": "Pq Points M3H Mmh2O"
+          }
+        },
+        "required": [
+          "id",
+          "size_mm",
+          "rpm_max"
+        ],
+        "title": "FanSpec",
+        "type": "object"
+      },
+      "GpuCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "slot": {
+            "title": "Slot",
+            "type": "string"
+          },
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "fan_curve": {
+            "default": "stock",
+            "title": "Fan Curve",
+            "type": "string"
+          },
+          "custom_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Custom Curve"
+          },
+          "power_limit_w": {
+            "default": 300,
+            "title": "Power Limit W",
+            "type": "number"
+          },
+          "memory_clock_offset_mhz": {
+            "default": 0,
+            "title": "Memory Clock Offset Mhz",
+            "type": "number"
+          },
+          "core_clock_offset_mhz": {
+            "default": 0,
+            "title": "Core Clock Offset Mhz",
+            "type": "number"
+          },
+          "undervolt_mv": {
+            "default": 0,
+            "title": "Undervolt Mv",
+            "type": "number"
+          },
+          "gap_override": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Gap Override"
+          }
+        },
+        "required": [
+          "id",
+          "slot",
+          "card"
+        ],
+        "title": "GpuCfg",
+        "type": "object"
+      },
+      "MountCfg": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "panel": {
+            "title": "Panel",
+            "type": "string"
+          },
+          "size_mm": {
+            "title": "Size Mm",
+            "type": "integer"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fan"
+          },
+          "state": {
+            "default": "blanked",
+            "title": "State",
+            "type": "string"
+          },
+          "direction": {
+            "default": "intake",
+            "title": "Direction",
+            "type": "string"
+          },
+          "duty": {
+            "default": 1.0,
+            "title": "Duty",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "panel",
+          "size_mm"
+        ],
+        "title": "MountCfg",
+        "type": "object"
+      },
+      "RadiatorCfg": {
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Model"
+          },
+          "panel": {
+            "default": "top",
+            "title": "Panel",
+            "type": "string"
+          },
+          "direction": {
+            "default": "exhaust",
+            "title": "Direction",
+            "type": "string"
+          },
+          "arrangement": {
+            "default": "push",
+            "title": "Arrangement",
+            "type": "string"
+          },
+          "cpu_power_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cpu Power W"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fan"
+          },
+          "fan_count": {
+            "default": 3,
+            "title": "Fan Count",
+            "type": "integer"
+          },
+          "fan_duty": {
+            "default": 1.0,
+            "title": "Fan Duty",
+            "type": "number"
+          }
+        },
+        "title": "RadiatorCfg",
+        "type": "object"
+      },
+      "ShroudCfg": {
+        "properties": {
+          "mode": {
+            "default": "off",
+            "title": "Mode",
+            "type": "string"
+          },
+          "fan": {
+            "default": "noctua-nf-a14-ippc-3000",
+            "title": "Fan",
+            "type": "string"
+          },
+          "count": {
+            "default": 2,
+            "title": "Count",
+            "type": "integer"
+          },
+          "duty": {
+            "default": 1.0,
+            "title": "Duty",
+            "type": "number"
+          }
+        },
+        "title": "ShroudCfg",
+        "type": "object"
+      },
+      "SimOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "throttle": {
+            "default": true,
+            "description": "Solve the throttled equilibrium as well as the unthrottled one",
+            "title": "Throttle",
+            "type": "boolean"
+          },
+          "mc": {
+            "default": 0,
+            "description": "Monte Carlo samples for 5th\u201395th bands (0 = nominal only)",
+            "maximum": 400,
+            "minimum": 0,
+            "title": "Mc",
+            "type": "integer"
+          },
+          "seed": {
+            "default": 12345,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "detail": {
+            "default": "summary",
+            "description": "full adds the flow network, node temperatures and per-card thermal breakdown",
+            "enum": [
+              "summary",
+              "full"
+            ],
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "title": "SimOptions",
+        "type": "object"
+      },
+      "SimSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "build": {
+            "$ref": "#/$defs/BuildCfg"
+          },
+          "extra_fans": {
+            "items": {
+              "$ref": "#/$defs/FanSpec"
+            },
+            "title": "Extra Fans",
+            "type": "array"
+          },
+          "extra_cards": {
+            "items": {
+              "$ref": "#/$defs/CardSpec"
+            },
+            "title": "Extra Cards",
+            "type": "array"
+          },
+          "options": {
+            "$ref": "#/$defs/SimOptions"
+          }
+        },
+        "required": [
+          "build"
+        ],
+        "title": "SimSpec",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "base": {
+        "$ref": "#/$defs/SimSpec"
+      },
+      "factors": {
+        "additionalProperties": {
+          "items": {},
+          "type": "array"
+        },
+        "description": "Factor \u2192 levels. Macros: spacing (stacked|gap1|gap2|gap3), pressure (standard|high), shroud (off|on|passive), leakage (sealed|leaky), fan_curve (stock|custom_accelerated), cpu_cooling (air|water), obstruction (low|medium|high), cables (clean|cluttered). Anything else is a dotted path into the build, e.g. shroud.count, gpus.*.power_limit_w, ambient_c.",
+        "title": "Factors",
+        "type": "object"
+      }
+    },
+    "required": [
+      "base",
+      "factors"
+    ],
+    "title": "SweepRequest",
+    "type": "object"
+  }
+}

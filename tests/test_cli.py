@@ -11,7 +11,7 @@ runner = CliRunner()
 def test_version_and_single_run():
     version = runner.invoke(app, ["version"])
     assert version.exit_code == 0
-    assert "0.3" in version.stdout
+    assert "0.4" in version.stdout
     result = runner.invoke(
         app,
         ["run", "--spacing", "gap1", "--pressure", "standard", "--shroud", "off", "--leakage", "leaky"],

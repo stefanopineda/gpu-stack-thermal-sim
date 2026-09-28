@@ -1,0 +1,1263 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "gpusim",
+    "description": "\nCompact airflow + thermal network for **air-cooled** multi-GPU workstations\n(not CFD; GPU water blocks are out of scope; Celsius).\n\nAgents: POST a full PC spec to `/api/v1/simulate`, a base spec plus variants to\n`/api/v1/rank`, or a base spec plus factors to `/api/v1/sweep`. Start from a\nsaved build at `/api/v1/builds/{id}` and the id lists at `/api/v1/presets`.\n\nTypical accuracy \u00b15\u201310 \u00b0C absolute; better for ranking than for absolute\ntemperatures.\n",
+    "version": "0.4.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "visualizer"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presets": {
+      "get": {
+        "tags": [
+          "visualizer"
+        ],
+        "summary": "Presets",
+        "operationId": "presets_api_presets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/build/{build_id}": {
+      "get": {
+        "tags": [
+          "visualizer"
+        ],
+        "summary": "Get Build",
+        "operationId": "get_build_api_build__build_id__get",
+        "parameters": [
+          {
+            "name": "build_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Build Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/solve": {
+      "post": {
+        "tags": [
+          "visualizer"
+        ],
+        "summary": "Api Solve",
+        "operationId": "api_solve_api_solve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuildCfg"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/optimize": {
+      "post": {
+        "tags": [
+          "visualizer"
+        ],
+        "summary": "Api Optimize",
+        "operationId": "api_optimize_api_optimize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenario": {
+      "post": {
+        "tags": [
+          "visualizer"
+        ],
+        "summary": "Api Scenario",
+        "operationId": "api_scenario_api_scenario_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulate": {
+      "post": {
+        "tags": [
+          "agent API v1"
+        ],
+        "summary": "V1 Simulate",
+        "description": "Solve one full PC spec. Returns per-card die / memory / inlet / exhaust\ntemperatures, flow, fan duty, throttle state, case pressure, and (with\n`options.detail = \"full\"`) the flow network and each card's thermal chain.",
+        "operationId": "v1_simulate_api_v1_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rank": {
+      "post": {
+        "tags": [
+          "agent API v1"
+        ],
+        "summary": "V1 Rank",
+        "description": "Solve a base spec and named variants (merge patches and/or macro settings),\nthen rank them by hottest die. A variant that fails reports its error in place.",
+        "operationId": "v1_rank_api_v1_rank_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RankRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sweep": {
+      "post": {
+        "tags": [
+          "agent API v1"
+        ],
+        "summary": "V1 Sweep",
+        "description": "Full factorial over the given factors (\u2264 256 cells), ranked.",
+        "operationId": "v1_sweep_api_v1_sweep_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SweepRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/presets": {
+      "get": {
+        "tags": [
+          "agent API v1"
+        ],
+        "summary": "V1 Presets",
+        "description": "Ids an agent can reference: cases (with slot counts and mount ids), cards,\nfans, radiators, saved builds, fan curves, seal levels, sweep macros.",
+        "operationId": "v1_presets_api_v1_presets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/builds/{build_id}": {
+      "get": {
+        "tags": [
+          "agent API v1"
+        ],
+        "summary": "V1 Build",
+        "description": "A saved build, as a ready-to-edit `build` object for /simulate.",
+        "operationId": "v1_build_api_v1_builds__build_id__get",
+        "parameters": [
+          {
+            "name": "build_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Build Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schema": {
+      "get": {
+        "tags": [
+          "agent API v1"
+        ],
+        "summary": "V1 Schema",
+        "description": "JSON Schemas for the request bodies (same as docs/simspec.schema.json).",
+        "operationId": "v1_schema_api_v1_schema_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BuildCfg": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "case": {
+            "type": "string",
+            "title": "Case"
+          },
+          "ambient_c": {
+            "type": "number",
+            "title": "Ambient C",
+            "default": 25.0
+          },
+          "altitude_m": {
+            "type": "number",
+            "title": "Altitude M",
+            "default": 0.0
+          },
+          "gpus": {
+            "items": {
+              "$ref": "#/components/schemas/GpuCfg"
+            },
+            "type": "array",
+            "title": "Gpus"
+          },
+          "mounts": {
+            "items": {
+              "$ref": "#/components/schemas/MountCfg"
+            },
+            "type": "array",
+            "title": "Mounts"
+          },
+          "radiator": {
+            "$ref": "#/components/schemas/RadiatorCfg"
+          },
+          "cpu": {
+            "$ref": "#/components/schemas/CpuCfg"
+          },
+          "shroud": {
+            "$ref": "#/components/schemas/ShroudCfg"
+          },
+          "seals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Seals"
+          },
+          "filters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Filters"
+          },
+          "obstruction": {
+            "type": "string",
+            "title": "Obstruction",
+            "default": "low"
+          },
+          "cables": {
+            "type": "string",
+            "title": "Cables",
+            "default": "clean"
+          },
+          "psu_location": {
+            "type": "string",
+            "title": "Psu Location",
+            "default": "bottom_shroud"
+          },
+          "psu_fan": {
+            "type": "string",
+            "title": "Psu Fan",
+            "default": "down"
+          },
+          "drive_cage": {
+            "type": "string",
+            "title": "Drive Cage",
+            "default": "removed"
+          },
+          "side_panel": {
+            "type": "string",
+            "title": "Side Panel",
+            "default": "tempered_glass"
+          },
+          "brackets_removed": {
+            "type": "boolean",
+            "title": "Brackets Removed",
+            "default": true
+          },
+          "room_reingestion_c": {
+            "type": "number",
+            "title": "Room Reingestion C",
+            "default": 0.0
+          },
+          "buoyancy": {
+            "type": "boolean",
+            "title": "Buoyancy",
+            "default": false
+          },
+          "open_air": {
+            "type": "boolean",
+            "title": "Open Air",
+            "default": false
+          },
+          "illustrative_mock": {
+            "type": "boolean",
+            "title": "Illustrative Mock",
+            "default": false
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "case",
+          "gpus"
+        ],
+        "title": "BuildCfg"
+      },
+      "CardSpec": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "calibration_from": {
+            "type": "string",
+            "title": "Calibration From",
+            "description": "Existing card id whose cooler physics to reuse, e.g. rtx-5090-fe or rtx-pro-6000-blackwell-maxq"
+          },
+          "tbp_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tbp W"
+          },
+          "slots": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slots"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Mm"
+          },
+          "height_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Mm"
+          },
+          "thickness_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thickness Mm"
+          },
+          "throttle_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Throttle C"
+          },
+          "cutoff_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutoff C"
+          },
+          "stock_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stock Curve",
+            "description": "[[\u00b0C, duty 0\u20131], \u2026]"
+          },
+          "tuning_overrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Tuning Overrides",
+            "description": "Override calibration numbers, e.g. {'qmax_m3s': 0.05, 'r_tim': 0.04}"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "calibration_from"
+        ],
+        "title": "CardSpec",
+        "description": "A card that is not in presets/cards. It borrows a calibrated cooler."
+      },
+      "CpuCfg": {
+        "properties": {
+          "power_w": {
+            "type": "number",
+            "title": "Power W",
+            "default": 150.0
+          },
+          "cooling": {
+            "type": "string",
+            "title": "Cooling",
+            "default": "water"
+          },
+          "cooler_fan": {
+            "type": "string",
+            "title": "Cooler Fan",
+            "default": "generic-140"
+          },
+          "cooler_fan_count": {
+            "type": "integer",
+            "title": "Cooler Fan Count",
+            "default": 1
+          },
+          "cooler_duty": {
+            "type": "number",
+            "title": "Cooler Duty",
+            "default": 0.8
+          },
+          "heatsink_k": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heatsink K"
+          }
+        },
+        "type": "object",
+        "title": "CpuCfg",
+        "description": "CPU heat and how it leaves the case.\n\nwater: the package heat rides the radiator branch (needs a radiator).\nair: the heat goes into the case air through a tower cooler, whose fan and\nfin stack are a branch in the flow network. The rear mount pulls from the\ncooler outlet."
+      },
+      "FanSpec": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "size_mm": {
+            "type": "integer",
+            "title": "Size Mm",
+            "description": "120, 140, 170 \u2026"
+          },
+          "rpm_max": {
+            "type": "number",
+            "title": "Rpm Max"
+          },
+          "rpm_min": {
+            "type": "number",
+            "title": "Rpm Min",
+            "default": 0.0
+          },
+          "airflow_cfm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Airflow Cfm",
+            "description": "Free-air flow at rpm_max"
+          },
+          "static_pressure_mmh2o": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Static Pressure Mmh2O",
+            "description": "Dead-head pressure at rpm_max"
+          },
+          "pq_points_m3h_mmh2o": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pq Points M3H Mmh2O",
+            "description": "[[m\u00b3/h, mmH\u2082O], \u2026] at rpm_max. Overrides the intercepts."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "size_mm",
+          "rpm_max"
+        ],
+        "title": "FanSpec",
+        "description": "A fan that is not in presets/fans. Give P\u2013Q points, or the two intercepts."
+      },
+      "GpuCfg": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "slot": {
+            "type": "string",
+            "title": "Slot"
+          },
+          "card": {
+            "type": "string",
+            "title": "Card"
+          },
+          "fan_curve": {
+            "type": "string",
+            "title": "Fan Curve",
+            "default": "stock"
+          },
+          "custom_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Curve"
+          },
+          "power_limit_w": {
+            "type": "number",
+            "title": "Power Limit W",
+            "default": 300
+          },
+          "memory_clock_offset_mhz": {
+            "type": "number",
+            "title": "Memory Clock Offset Mhz",
+            "default": 0
+          },
+          "core_clock_offset_mhz": {
+            "type": "number",
+            "title": "Core Clock Offset Mhz",
+            "default": 0
+          },
+          "undervolt_mv": {
+            "type": "number",
+            "title": "Undervolt Mv",
+            "default": 0
+          },
+          "gap_override": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Override"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slot",
+          "card"
+        ],
+        "title": "GpuCfg"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MountCfg": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "panel": {
+            "type": "string",
+            "title": "Panel"
+          },
+          "size_mm": {
+            "type": "integer",
+            "title": "Size Mm"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fan"
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "default": "blanked"
+          },
+          "direction": {
+            "type": "string",
+            "title": "Direction",
+            "default": "intake"
+          },
+          "duty": {
+            "type": "number",
+            "title": "Duty",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "panel",
+          "size_mm"
+        ],
+        "title": "MountCfg"
+      },
+      "OptimizeRequest": {
+        "properties": {
+          "cards": {
+            "type": "integer",
+            "title": "Cards",
+            "default": 4
+          },
+          "case": {
+            "type": "string",
+            "title": "Case",
+            "default": "meshify2xl"
+          },
+          "mc": {
+            "type": "integer",
+            "title": "Mc",
+            "default": 40
+          }
+        },
+        "type": "object",
+        "title": "OptimizeRequest"
+      },
+      "RadiatorCfg": {
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "panel": {
+            "type": "string",
+            "title": "Panel",
+            "default": "top"
+          },
+          "direction": {
+            "type": "string",
+            "title": "Direction",
+            "default": "exhaust"
+          },
+          "arrangement": {
+            "type": "string",
+            "title": "Arrangement",
+            "default": "push"
+          },
+          "cpu_power_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Power W"
+          },
+          "fan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fan"
+          },
+          "fan_count": {
+            "type": "integer",
+            "title": "Fan Count",
+            "default": 3
+          },
+          "fan_duty": {
+            "type": "number",
+            "title": "Fan Duty",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "title": "RadiatorCfg"
+      },
+      "RankRequest": {
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/SimSpec"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/Variant"
+            },
+            "type": "array",
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Variants"
+          },
+          "include_base": {
+            "type": "boolean",
+            "title": "Include Base",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "base",
+          "variants"
+        ],
+        "title": "RankRequest"
+      },
+      "ScenarioRequest": {
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id"
+          },
+          "step": {
+            "type": "integer",
+            "title": "Step",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_id"
+        ],
+        "title": "ScenarioRequest"
+      },
+      "ShroudCfg": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "off"
+          },
+          "fan": {
+            "type": "string",
+            "title": "Fan",
+            "default": "noctua-nf-a14-ippc-3000"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "default": 2
+          },
+          "duty": {
+            "type": "number",
+            "title": "Duty",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "title": "ShroudCfg"
+      },
+      "SimOptions": {
+        "properties": {
+          "throttle": {
+            "type": "boolean",
+            "title": "Throttle",
+            "description": "Solve the throttled equilibrium as well as the unthrottled one",
+            "default": true
+          },
+          "mc": {
+            "type": "integer",
+            "maximum": 400.0,
+            "minimum": 0.0,
+            "title": "Mc",
+            "description": "Monte Carlo samples for 5th\u201395th bands (0 = nominal only)",
+            "default": 0
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed",
+            "default": 12345
+          },
+          "detail": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "full"
+            ],
+            "title": "Detail",
+            "description": "full adds the flow network, node temperatures and per-card thermal breakdown",
+            "default": "summary"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SimOptions"
+      },
+      "SimSpec": {
+        "properties": {
+          "build": {
+            "$ref": "#/components/schemas/BuildCfg"
+          },
+          "extra_fans": {
+            "items": {
+              "$ref": "#/components/schemas/FanSpec"
+            },
+            "type": "array",
+            "title": "Extra Fans"
+          },
+          "extra_cards": {
+            "items": {
+              "$ref": "#/components/schemas/CardSpec"
+            },
+            "type": "array",
+            "title": "Extra Cards"
+          },
+          "options": {
+            "$ref": "#/components/schemas/SimOptions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "build"
+        ],
+        "title": "SimSpec"
+      },
+      "SweepRequest": {
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/SimSpec"
+          },
+          "factors": {
+            "additionalProperties": {
+              "items": {},
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Factors",
+            "description": "Factor \u2192 levels. Macros: spacing (stacked|gap1|gap2|gap3), pressure (standard|high), shroud (off|on|passive), leakage (sealed|leaky), fan_curve (stock|custom_accelerated), cpu_cooling (air|water), obstruction (low|medium|high), cables (clean|cluttered). Anything else is a dotted path into the build, e.g. shroud.count, gpus.*.power_limit_w, ambient_c."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "base",
+          "factors"
+        ],
+        "title": "SweepRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Variant": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "patch": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Patch",
+            "description": "JSON merge patch (RFC 7396) on the base build. Lists replace whole lists."
+          },
+          "set": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Set",
+            "description": "Dotted-path or macro settings, same keys as /sweep factors (e.g. {'spacing': 'gap1', 'gpus.*.fan_curve': 'custom_accelerated'})"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "Variant"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "agent API v1",
+      "description": "Stable JSON interface for agents and scripts."
+    },
+    {
+      "name": "visualizer",
+      "description": "Endpoints the browser UI uses. Not versioned."
+    }
+  ]
+}

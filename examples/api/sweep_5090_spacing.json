@@ -1,0 +1,146 @@
+{
+  "base": {
+    "build": {
+      "id": "agent-rig-2x5090",
+      "name": "2x RTX 5090 FE, generic E-ATX full tower, air-cooled CPU",
+      "case": "generic-eatx",
+      "ambient_c": 25,
+      "gpus": [
+        {
+          "id": "gpu1",
+          "slot": "1",
+          "card": "rtx-5090-fe",
+          "fan_curve": "stock",
+          "power_limit_w": 575
+        },
+        {
+          "id": "gpu2",
+          "slot": "4",
+          "card": "rtx-5090-fe",
+          "fan_curve": "stock",
+          "power_limit_w": 575
+        }
+      ],
+      "mounts": [
+        {
+          "id": "front-1",
+          "panel": "front",
+          "size_mm": 140,
+          "fan": "acme-140-pwm",
+          "state": "fan",
+          "direction": "intake",
+          "duty": 1.0
+        },
+        {
+          "id": "front-2",
+          "panel": "front",
+          "size_mm": 140,
+          "fan": "acme-140-pwm",
+          "state": "fan",
+          "direction": "intake",
+          "duty": 1.0
+        },
+        {
+          "id": "front-3",
+          "panel": "front",
+          "size_mm": 140,
+          "fan": "acme-140-pwm",
+          "state": "fan",
+          "direction": "intake",
+          "duty": 1.0
+        },
+        {
+          "id": "top-1",
+          "panel": "top",
+          "size_mm": 140,
+          "fan": "noctua-140-redux-1700",
+          "state": "fan",
+          "direction": "exhaust",
+          "duty": 1.0
+        },
+        {
+          "id": "top-2",
+          "panel": "top",
+          "size_mm": 140,
+          "fan": "noctua-140-redux-1700",
+          "state": "fan",
+          "direction": "exhaust",
+          "duty": 1.0
+        },
+        {
+          "id": "rear-1",
+          "panel": "rear",
+          "size_mm": 140,
+          "fan": "noctua-140-redux-1700",
+          "state": "fan",
+          "direction": "exhaust",
+          "duty": 1.0
+        },
+        {
+          "id": "bottom-1",
+          "panel": "bottom",
+          "size_mm": 120,
+          "fan": "arctic-p12-pwm-pst",
+          "state": "fan",
+          "direction": "intake",
+          "duty": 1.0
+        }
+      ],
+      "radiator": {
+        "model": null
+      },
+      "cpu": {
+        "power_w": 200,
+        "cooling": "air",
+        "cooler_fan": "generic-140",
+        "cooler_fan_count": 2,
+        "cooler_duty": 0.8
+      },
+      "shroud": {
+        "mode": "off"
+      },
+      "seals": {
+        "front": 3,
+        "top": 3,
+        "bottom": 3,
+        "side": 5,
+        "seams": 4,
+        "rear_slots": 2
+      },
+      "filters": {
+        "front": "fine",
+        "bottom": "fine"
+      },
+      "obstruction": "medium",
+      "cables": "clean",
+      "brackets_removed": true
+    },
+    "extra_fans": [
+      {
+        "id": "acme-140-pwm",
+        "name": "Acme 140 PWM (example inline fan)",
+        "size_mm": 140,
+        "rpm_max": 1800,
+        "airflow_cfm": 82.0,
+        "static_pressure_mmh2o": 2.1
+      }
+    ],
+    "options": {
+      "detail": "summary"
+    }
+  },
+  "factors": {
+    "spacing": [
+      "gap1",
+      "gap2",
+      "gap3"
+    ],
+    "fan_curve": [
+      "stock",
+      "custom_accelerated"
+    ],
+    "cpu_cooling": [
+      "air"
+    ]
+  }
+}

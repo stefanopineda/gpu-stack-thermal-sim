@@ -120,6 +120,64 @@ the water-block limit.
 Demo script: [DEMO.md](DEMO.md). What to measure next: [HYPOTHESIS.md](HYPOTHESIS.md).
 Fit notes: [docs/CALIBRATION.md](docs/CALIBRATION.md).
 
+## Agent API
+
+For people whose agents spec out their own rigs. The same JSON works over HTTP,
+on the command line, and in Python. Interactive docs are at `/docs` (FastAPI);
+the exported contract is [`docs/openapi.json`](docs/openapi.json) and the request
+schemas are [`docs/simspec.schema.json`](docs/simspec.schema.json)
+(`uv run gpusim schema` regenerates both).
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `POST /api/v1/simulate` | `SimSpec`: `build` + optional `extra_fans`, `extra_cards`, `options` | per-card die / memory / inlet / exhaust °C, CFM, fan duty, power, throttle, case Pa; `options.detail = "full"` adds the flow network and each card's thermal chain |
+| `POST /api/v1/rank` | `base` spec + `variants` (merge patch and/or `set`) | variants ranked by hottest die; a broken variant reports its error in place |
+| `POST /api/v1/sweep` | `base` spec + `factors` | full factorial (≤ 256 cells), ranked |
+| `GET /api/v1/presets` | — | case / card / fan / radiator / build ids, slot counts, mount ids, seal levels, curves |
+| `GET /api/v1/builds/{id}` | — | a saved build to edit and post back |
+| `GET /api/v1/schema` | — | JSON Schemas for the three bodies |
+
+A `build` names a case, lists mounts (fan id, `intake`/`exhaust`, or
+`blanked`/`empty`), GPUs with slots (`"1"`…, `"v2"` for a vertical slot), card
+id, `fan_curve` (`stock`, `custom_accelerated`, or `custom` with points), seal
+levels 1–5, filters, `cpu` (`power_w`, `cooling: air|water`), radiator,
+shroud, obstruction and cables. Fans or cards that are not in `presets/` can be
+sent inline: a fan with its two intercepts or P–Q points, a card with
+`calibration_from` an existing card type (it borrows that cooler's calibrated
+physics). Sweep and `set` accept macros (`spacing`, `pressure`, `shroud`,
+`leakage`, `fan_curve`, `cpu_cooling`, `obstruction`, `cables`) and dotted
+paths such as `gpus.*.power_limit_w` or `shroud.count`.
+
+```bash
+uv run gpusim ui --no-open-browser --port 8010 &
+curl -s -X POST localhost:8010/api/v1/simulate \
+  -H 'content-type: application/json' \
+  -d @examples/api/simulate_custom_rig.json | jq '.summary, .cards'
+curl -s -X POST localhost:8010/api/v1/rank \
+  -H 'content-type: application/json' \
+  -d @examples/api/rank_meshify_variants.json | jq '.results[] | {rank, name, hottest: .summary.hottest_die_c}'
+```
+
+```python
+import json, urllib.request
+spec = json.load(open("examples/api/simulate_custom_rig.json"))
+req = urllib.request.Request("http://127.0.0.1:8010/api/v1/simulate",
+                             data=json.dumps(spec).encode(),
+                             headers={"content-type": "application/json"})
+result = json.load(urllib.request.urlopen(req))
+print(result["summary"]["hottest_die_c"], [c["t_die_c"] for c in result["cards"]])
+
+# No server: the same call in-process.
+from gpusim import api
+result = api.simulate(api.SimSpec.model_validate(spec))
+```
+
+Offline CLI twins: `uv run gpusim simulate examples/api/simulate_custom_rig.json`
+and `uv run gpusim rank examples/api/sweep_5090_spacing.json` (a file with
+`factors` runs as a sweep). A fuller client is `examples/api_client.py`.
+Every response carries the accuracy line and the scope: air-cooled only,
+Celsius, ±5–10 °C absolute.
+
 ## Sweep on Stefano's build
 
 16 cells (spacing × pressure × shroud × leakage) plus the stock row. Ranked by

@@ -10,9 +10,10 @@ Air temperatures come from an upwind advection balance on the solved flow
 field: every node mixes the streams that flow into it. Rev 4 adds a plume
 ingestion overlay. When a flow-through card's exhaust jet points at the fan
 face of the card above, a fraction φ(gap) of that card's fan-side intake is
-taken straight from the jet instead of from the mixed GPU zone. The same mass
-is removed from the jet's stream into the zone and from the zone's stream into
-the upper inlet, so every node still balances and no energy is created.
+taken straight from the jet instead of from the GPU zone. The same mass is
+removed from the jet's stream into the upper case volume and from the zone's
+stream into the upper inlet, and the displaced zone air is sent where the jet
+share would have gone, so every node still balances and no energy is created.
 """
 
 from __future__ import annotations
@@ -88,6 +89,10 @@ def plume_transfers(net: Network, flow: FlowSolution, sample: dict) -> list[dict
                 "to_node": f"cin-{upper}",
                 "out_branch": up.id,
                 "in_branch": inlet.id,
+                # Zone air the upper card no longer takes goes where the jet
+                # share would have gone, so both nodes still balance.
+                "displaced_from": inlet.a,
+                "displaced_to": up.b,
                 "mass_kg_s": m_ing,
                 "share_of_upper_intake": (m_ing / m_in) if m_in > 0 else 0.0,
                 "share_of_lower_jet": (m_ing / m_up) if m_up > 0 else 0.0,
@@ -116,6 +121,8 @@ def _streams(net: Network, flow: FlowSolution, transfers) -> list[tuple[str, str
     for t in transfers or []:
         if t["mass_kg_s"] > 0:
             out.append((t["from_node"], t["to_node"], t["mass_kg_s"], None))
+            if t["displaced_from"] != t["displaced_to"]:
+                out.append((t["displaced_from"], t["displaced_to"], t["mass_kg_s"], None))
     return out
 
 

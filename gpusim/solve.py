@@ -98,7 +98,7 @@ class Solution:
         }
 
 
-def prepare_sample(build: BuildCfg, sample: dict | None = None) -> dict:
+def prepare_sample(build: BuildCfg, sample: dict | None = None, library: Library | None = None) -> dict:
     merged = dict(GLOBAL)
     extra_cards = {}
     if sample:
@@ -108,7 +108,7 @@ def prepare_sample(build: BuildCfg, sample: dict | None = None) -> dict:
                 merged[key] = value
     cards = {}
     for gpu in build.gpus:
-        base = card_tuning(gpu.card)
+        base = card_tuning(gpu.card, library)
         base.update(extra_cards.get(gpu.card, {}))
         cards[gpu.card] = base
     merged["cards"] = cards
@@ -240,7 +240,7 @@ def solve(
     """Solve one configuration. Raises if the flow network does not converge."""
     started = time.perf_counter()
     lib = library or get_library()
-    merged = prepare_sample(build, sample)
+    merged = prepare_sample(build, sample, lib)
     t_amb = (
         build.ambient_c
         + build.room_reingestion_c
@@ -388,14 +388,14 @@ def solve(
     )
 
 
-def sample_tuning(rng, build: BuildCfg) -> dict:
+def sample_tuning(rng, build: BuildCfg, library: Library | None = None) -> dict:
     """One Monte Carlo draw. Distributions are documented in docs/CALIBRATION.md."""
     def ln(sigma: float) -> float:
         return float(rng.lognormal(0.0, sigma))
 
     cards = {}
     for gpu in build.gpus:
-        base = card_tuning(gpu.card)
+        base = card_tuning(gpu.card, library)
         base["r_tim"] *= ln(0.10)
         base["r_mem"] *= ln(0.10)
         base["qmax_m3s"] *= ln(0.08)
@@ -427,7 +427,7 @@ def solve_monte_carlo(build: BuildCfg, n: int = 200, seed: int = 12345, library=
     lib = library or get_library()
     rows = []
     for _ in range(n):
-        draw = sample_tuning(rng, build)
+        draw = sample_tuning(rng, build, lib)
         # Uncertainty bands are on the unthrottled coupled solution (duty still iterates).
         sol = solve(build, lib, draw, outer=outer, do_throttle=False)
         rows.append(sol)

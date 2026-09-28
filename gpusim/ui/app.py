@@ -1,4 +1,7 @@
-"""FastAPI visualizer. The solver stays in Python; the browser only draws."""
+"""FastAPI app: the visualizer plus the agent API (/api/v1, docs at /docs).
+
+The solver stays in Python; the browser only draws.
+"""
 
 from __future__ import annotations
 
@@ -9,13 +12,31 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from gpusim import __version__
+from gpusim import api as simapi
+from gpusim.calib import CABLE_K, GLOBAL, GLOBAL_FAN_CURVES, OBSTRUCTION_K
 from gpusim.factors import apply_scenario_step
 from gpusim.library import get_library
 from gpusim.models import BuildCfg
 from gpusim.solve import solve
 
 STATIC = Path(__file__).resolve().parent / "static"
-app = FastAPI(title="gpusim", version="0.3.0")
+DESCRIPTION = """
+Compact airflow + thermal network for **air-cooled** multi-GPU workstations
+(not CFD; GPU water blocks are out of scope; Celsius).
+
+Agents: POST a full PC spec to `/api/v1/simulate`, a base spec plus variants to
+`/api/v1/rank`, or a base spec plus factors to `/api/v1/sweep`. Start from a
+saved build at `/api/v1/builds/{id}` and the id lists at `/api/v1/presets`.
+
+Typical accuracy ±5–10 °C absolute; better for ranking than for absolute
+temperatures.
+"""
+TAGS = [
+    {"name": "agent API v1", "description": "Stable JSON interface for agents and scripts."},
+    {"name": "visualizer", "description": "Endpoints the browser UI uses. Not versioned."},
+]
+app = FastAPI(title="gpusim", version=__version__, description=DESCRIPTION, openapi_tags=TAGS)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -65,17 +86,17 @@ def _case_public(case) -> dict:
     }
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def index():
     return FileResponse(STATIC / "index.html")
 
 
-@app.get("/api/health")
+@app.get("/api/health", tags=["visualizer"])
 def health():
     return {"ok": True, "units": "C", "water_blocks": False}
 
 
-@app.get("/api/presets")
+@app.get("/api/presets", tags=["visualizer"])
 def presets():
     lib = get_library()
     return {
@@ -92,11 +113,20 @@ def presets():
                 "length_mm": c.length_mm,
                 "height_mm": c.height_mm,
                 "thickness_mm": c.thickness_mm,
-                "fan_curves": list(c.fan_curves),
+                "fan_curves": list(c.fan_curves) + [k for k in GLOBAL_FAN_CURVES if k not in c.fan_curves],
+                "stock_curve": c.fan_curves.get("stock"),
+                "cooler": c.cooler,
+                "throttle_c": c.throttle_c,
+                "cutoff_c": c.cutoff_c,
                 "notes": c.notes,
             }
             for c in lib.cards.values()
         ],
+        "global_fan_curves": GLOBAL_FAN_CURVES,
+        "seal_levels": simapi.seal_table(),
+        "obstruction_k": OBSTRUCTION_K,
+        "cable_k": CABLE_K,
+        "plume": {"phi_max": GLOBAL["plume_phi_max"], "length_mm": GLOBAL["plume_length_mm"]},
         "radiators": [r.model_dump() for r in lib.radiators.values()],
         "cases": [_case_public(c) for c in lib.cases.values()],
         "builds": [
@@ -126,7 +156,7 @@ def presets():
     }
 
 
-@app.get("/api/build/{build_id}")
+@app.get("/api/build/{build_id}", tags=["visualizer"])
 def get_build(build_id: str):
     lib = get_library()
     if build_id not in lib.builds:
@@ -134,7 +164,7 @@ def get_build(build_id: str):
     return lib.builds[build_id].model_dump()
 
 
-@app.post("/api/solve")
+@app.post("/api/solve", tags=["visualizer"])
 def api_solve(build: BuildCfg):
     lib = get_library()
     if not build.open_air and build.case not in lib.cases:
@@ -146,7 +176,7 @@ def api_solve(build: BuildCfg):
     return sol.to_dict()
 
 
-@app.post("/api/optimize")
+@app.post("/api/optimize", tags=["visualizer"])
 def api_optimize(body: OptimizeRequest):
     from gpusim.optimize import optimize
 
@@ -156,7 +186,7 @@ def api_optimize(body: OptimizeRequest):
         raise HTTPException(400, str(exc)) from exc
 
 
-@app.post("/api/scenario")
+@app.post("/api/scenario", tags=["visualizer"])
 def api_scenario(body: ScenarioRequest):
     lib = get_library()
     if body.scenario_id not in lib.scenarios:
@@ -192,4 +222,102 @@ def api_scenario(body: ScenarioRequest):
         "build": configured.model_dump(),
         "solution": sol.to_dict(),
         "optimal": None,
+    }
+
+
+# ------------------------------------------------------------------ agent API v1
+
+
+def _bad(exc: Exception) -> HTTPException:
+    return HTTPException(422, str(exc))
+
+
+@app.post("/api/v1/simulate", tags=["agent API v1"])
+def v1_simulate(spec: simapi.SimSpec):
+    """Solve one full PC spec. Returns per-card die / memory / inlet / exhaust
+    temperatures, flow, fan duty, throttle state, case pressure, and (with
+    `options.detail = "full"`) the flow network and each card's thermal chain."""
+    try:
+        return simapi.simulate(spec)
+    except Exception as exc:
+        raise _bad(exc) from exc
+
+
+@app.post("/api/v1/rank", tags=["agent API v1"])
+def v1_rank(request: simapi.RankRequest):
+    """Solve a base spec and named variants (merge patches and/or macro settings),
+    then rank them by hottest die. A variant that fails reports its error in place."""
+    try:
+        return simapi.rank(request)
+    except Exception as exc:
+        raise _bad(exc) from exc
+
+
+@app.post("/api/v1/sweep", tags=["agent API v1"])
+def v1_sweep(request: simapi.SweepRequest):
+    """Full factorial over the given factors (≤ 256 cells), ranked."""
+    try:
+        return simapi.sweep(request)
+    except Exception as exc:
+        raise _bad(exc) from exc
+
+
+@app.get("/api/v1/presets", tags=["agent API v1"])
+def v1_presets():
+    """Ids an agent can reference: cases (with slot counts and mount ids), cards,
+    fans, radiators, saved builds, fan curves, seal levels, sweep macros."""
+    lib = get_library()
+    return {
+        "api_version": simapi.API_VERSION,
+        "cases": [
+            {
+                "id": c.id,
+                "name": c.name,
+                "horizontal_slots": c.horizontal_slots,
+                "vertical_slots": [v.id for v in c.vertical_positions],
+                "mounts": [{"id": m.id, "panel": m.panel, "size_mm": m.size_mm} for m in c.mounts],
+                "radiator_support": c.radiator_support,
+            }
+            for c in lib.cases.values()
+        ],
+        "cards": [
+            {"id": c.id, "name": c.name, "tbp_w": c.tbp_w, "slots": c.slots, "cooler": c.cooler, "template": c.template}
+            for c in lib.cards.values()
+        ],
+        "fans": [
+            {"id": f.id, "name": f.name, "size_mm": f.size_mm, "airflow_cfm": f.airflow_cfm,
+             "static_pressure_mmh2o": f.static_pressure_mmh2o, "rpm_max": f.rpm_max}
+            for f in lib.fans.values()
+        ],
+        "radiators": [{"id": r.id, "name": r.name, "size_mm": r.size_mm} for r in lib.radiators.values()],
+        "builds": [{"id": b.id, "name": b.name, "case": b.case, "illustrative_mock": b.illustrative_mock} for b in lib.builds.values()],
+        "fan_curves": ["stock", *GLOBAL_FAN_CURVES, "custom"],
+        "fan_curve_aliases": {"maxq_aggressive": "custom_accelerated"},
+        "seal_levels": simapi.seal_table(),
+        "sweep_macros": list(simapi.MACROS),
+        "accuracy": simapi.ACCURACY,
+        "scope": simapi.SCOPE,
+    }
+
+
+@app.get("/api/v1/builds/{build_id}", tags=["agent API v1"])
+def v1_build(build_id: str):
+    """A saved build, as a ready-to-edit `build` object for /simulate."""
+    lib = get_library()
+    if build_id not in lib.builds:
+        raise HTTPException(404, f"Unknown build {build_id}. Known: {', '.join(sorted(lib.builds))}")
+    return lib.builds[build_id].model_dump()
+
+
+@app.get("/api/v1/schema", tags=["agent API v1"])
+def v1_schema():
+    """JSON Schemas for the request bodies (same as docs/simspec.schema.json)."""
+    return simapi_schemas()
+
+
+def simapi_schemas() -> dict:
+    return {
+        "SimSpec": simapi.SimSpec.model_json_schema(),
+        "RankRequest": simapi.RankRequest.model_json_schema(),
+        "SweepRequest": simapi.SweepRequest.model_json_schema(),
     }

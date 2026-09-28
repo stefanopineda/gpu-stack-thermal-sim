@@ -60,6 +60,10 @@ class CardModel(_Base):
     inlet_faces: str = "both"
     inlet_split: float = 0.75
     notes: str = ""
+    # A card added through the API can borrow the calibrated cooler physics of
+    # an existing card type (gpusim/calib.py) instead of shipping its own block.
+    calibration_from: str | None = None
+    tuning_overrides: dict[str, float] = Field(default_factory=dict)
 
     @property
     def flow_through(self) -> bool:

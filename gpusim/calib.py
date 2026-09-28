@@ -245,7 +245,14 @@ CARD = {
 }
 
 
-def card_tuning(card_id: str) -> dict:
+def card_tuning(card_id: str, library=None) -> dict:
+    """Per-card-type block. A library card may borrow another type's block."""
+    if card_id not in CARD and library is not None and card_id in library.cards:
+        card = library.cards[card_id]
+        if card.calibration_from and card.calibration_from in CARD:
+            out = dict(CARD[card.calibration_from])
+            out.update({k: float(v) for k, v in (card.tuning_overrides or {}).items() if k in out})
+            return out
     if card_id not in CARD:
         raise KeyError(
             f"No calibration block for card '{card_id}'. "

@@ -257,11 +257,14 @@ def build_network(
             above = gap.get("above") or {"gap_mm": 30.0, "state": "open_slot", "neighbor": None}
             area = exit_area_m2(above["gap_mm"], params["exit_width_m"], params["exit_area_m2"])
             toward = above.get("neighbor") or ("free air" if gap.get("vertical") else "CPU area")
+            # The jet rises past the card into the upper case volume, not back
+            # into the fresh GPU zone the cards breathe from. The share the
+            # card above swallows is the plume overlay in thermal.py.
             add(
                 Branch(
                     id=f"upexit-{gpu.id}",
                     a=f"cex-{gpu.id}",
-                    b="gpu",
+                    b="case",
                     k=orifice_k(area, rho_ref, 0.65),
                     k_lin=1.0,
                     rho=rho_for(f"cex-{gpu.id}"),

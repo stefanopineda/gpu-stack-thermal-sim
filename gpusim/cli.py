@@ -160,6 +160,78 @@ def calibrate(
     typer.echo(fitted["note"])
 
 
+def _read_json(path: Path) -> dict:
+    import json
+
+    return json.loads(Path(path).read_text())
+
+
+def _write_json(data: dict, out: Path | None) -> None:
+    import json
+
+    text = json.dumps(data, indent=2, default=str)
+    if out:
+        Path(out).write_text(text + "\n")
+        typer.echo(f"Wrote {out}")
+    else:
+        typer.echo(text)
+
+
+@app.command()
+def simulate(
+    spec: Path = typer.Argument(..., exists=True, help="SimSpec JSON (same body as POST /api/v1/simulate)"),
+    out: Path | None = typer.Option(None, help="Write the JSON result here instead of stdout"),
+) -> None:
+    """Solve one full PC spec from a JSON file. Offline twin of /api/v1/simulate."""
+    from gpusim import api
+
+    _write_json(api.simulate(api.SimSpec.model_validate(_read_json(spec))), out)
+
+
+@app.command()
+def rank(
+    request: Path = typer.Argument(..., exists=True, help="RankRequest (variants) or SweepRequest (factors) JSON"),
+    out: Path | None = typer.Option(None, help="Write the JSON result here instead of stdout"),
+) -> None:
+    """Rank variants or a factorial from a JSON file. Offline twin of /api/v1/rank and /api/v1/sweep."""
+    from gpusim import api
+
+    body = _read_json(request)
+    if "factors" in body:
+        result = api.sweep(api.SweepRequest.model_validate(body))
+    else:
+        result = api.rank(api.RankRequest.model_validate(body))
+    if out:
+        _write_json(result, out)
+        return
+    for row in result["results"]:
+        if "error" in row:
+            typer.echo(f"  -  {row['name']}: ERROR {row['error']}")
+            continue
+        s = row["summary"]
+        temps = ", ".join(f"{c['t_die_unthrottled_c']:.1f}" for c in row["cards"])
+        typer.echo(
+            f"{row['rank']:>3}  {row['name']}: hottest {s['hottest_die_c']:.1f} °C "
+            f"(unthrottled {s['hottest_unthrottled_c']:.1f}; cards {temps})"
+        )
+
+
+@app.command()
+def schema(
+    out: Path = typer.Option(Path("docs"), help="Directory for openapi.json and simspec.schema.json"),
+) -> None:
+    """Export the OpenAPI document and the request JSON Schemas."""
+    import json
+
+    from gpusim.ui.app import app as fastapi_app
+    from gpusim.ui.app import simapi_schemas
+
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "openapi.json").write_text(json.dumps(fastapi_app.openapi(), indent=2) + "\n")
+    (out / "simspec.schema.json").write_text(json.dumps(simapi_schemas(), indent=2) + "\n")
+    typer.echo(f"Wrote {out / 'openapi.json'} and {out / 'simspec.schema.json'}")
+
+
 def _port_is_free(host: str, port: int) -> bool:
     import socket
 
