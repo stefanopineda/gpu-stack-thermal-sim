@@ -40,15 +40,8 @@
 
     <div class="stage">
       <div class="viewport">
-        <canvas id="scene"></canvas>
-        <div id="legend" class="legend">
-          <span><i class="swatch intake"></i>Intake</span>
-          <span><i class="swatch exhaust"></i>Exhaust</span>
-          <span><i class="swatch blank"></i>Empty / blanked</span>
-        </div>
-        <div id="labels" class="labels"></div>
         <div id="demo-bar" class="demo-bar hidden">
-          <div>
+          <div class="demo-copy">
             <strong id="demo-title"></strong>
             <p id="demo-points"></p>
           </div>
@@ -58,6 +51,15 @@
             <button id="demo-next" type="button">Next</button>
             <label><input id="demo-auto" type="checkbox" /> auto</label>
           </div>
+        </div>
+        <div class="scene-wrap">
+          <canvas id="scene"></canvas>
+          <div id="legend" class="legend">
+            <span><i class="swatch intake"></i>Intake</span>
+            <span><i class="swatch exhaust"></i>Exhaust</span>
+            <span><i class="swatch blank"></i>Empty / blanked</span>
+          </div>
+          <div id="labels" class="labels"></div>
         </div>
       </div>
       <aside id="readout"></aside>

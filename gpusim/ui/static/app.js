@@ -48,10 +48,13 @@ async function boot() {
   $("quick-9000").onclick = () => quick("corsair-9000d-sample");
   $("quick-mock").onclick = () => quick("mike-bradley-powerhouse");
   $("from-scratch").onclick = () => scratch();
-  const start = new URLSearchParams(location.search).get("start");
-  if (start === "meshify") quick("meshify2xl-stefano");
-  else if (start === "9000") quick("corsair-9000d-sample");
-  else if (start === "mock") quick("mike-bradley-powerhouse");
+  const params = new URLSearchParams(location.search);
+  const start = params.get("start");
+  let pending = null;
+  if (start === "meshify") pending = quick("meshify2xl-stefano");
+  else if (start === "9000") pending = quick("corsair-9000d-sample");
+  else if (start === "mock") pending = quick("mike-bradley-powerhouse");
+  if (pending && params.get("demo") === "1") pending.then(() => startDemo());
   $("unit-toggle").onclick = () => {
     state.unitF = !state.unitF;
     $("unit-toggle").textContent = state.unitF ? "°C" : "°F";
@@ -543,7 +546,8 @@ function slotPoints() {
     });
   }
   kase.vertical_positions.forEach((v) => {
-    pts.push({ slot: v.id, x: kase.depth_mm * 0.62, y: v.y_mm, z: v.z_mm });
+    // Just rearward of the horizontal cards, clear of the rear fan disc.
+    pts.push({ slot: v.id, x: kase.depth_mm * 0.72, y: v.y_mm, z: v.z_mm });
   });
   return pts;
 }
@@ -577,14 +581,38 @@ function draw3d() {
   psu.position.set(d * 0.48, shroudH / 2, w * 0.38);
   root.add(psu);
   if (state.build.radiator && state.build.radiator.model) {
+    const radGeo = new THREE.BoxGeometry(0.40, 0.038, 0.12);
+    const fin = document.createElement("canvas");
+    fin.width = 128;
+    fin.height = 32;
+    const pen = fin.getContext("2d");
+    pen.fillStyle = "#d5dde2";
+    pen.fillRect(0, 0, 128, 32);
+    pen.strokeStyle = "#8a5a32";
+    pen.lineWidth = 2;
+    for (let row = 3; row < 32; row += 4) {
+      pen.beginPath();
+      pen.moveTo(0, row);
+      pen.lineTo(128, row);
+      pen.stroke();
+    }
+    pen.strokeStyle = "#e0a15a";
+    pen.lineWidth = 4;
+    pen.strokeRect(2, 2, 124, 28);
     const rad = new THREE.Mesh(
-      new THREE.BoxGeometry(0.40, 0.04, 0.13),
-      new THREE.MeshStandardMaterial({ color: 0x8d6a45, roughness: 0.5 }),
+      radGeo,
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(fin) }),
     );
     const along = state.build.radiator.panel === "front" ? 0.06 : d * 0.45;
-    const up = state.build.radiator.panel === "front" ? h * 0.45 : h - 0.03;
+    const up = state.build.radiator.panel === "front" ? h * 0.45 : h - 0.028;
     rad.position.set(along, up, w * 0.45);
     root.add(rad);
+    const radEdge = new THREE.LineSegments(
+      new THREE.EdgesGeometry(radGeo),
+      new THREE.LineBasicMaterial({ color: 0xe0a15a }),
+    );
+    radEdge.position.copy(rad.position);
+    root.add(radEdge);
   }
   if (state.build.shroud && state.build.shroud.mode !== "off") {
     const duct = new THREE.Mesh(
@@ -600,28 +628,75 @@ function draw3d() {
   state.build.mounts.forEach((m) => {
     const layout = kase.mounts.find((x) => x.id === m.id);
     if (!layout) return;
-    const color = m.state !== "fan" ? 0x8d877e : m.direction === "intake" ? 0x3c8dff : 0xe24b3b;
+    const blowing = m.state === "fan" || m.state === "radiator";
+    const dir = m.state === "radiator"
+      ? (state.build.radiator?.direction || m.direction)
+      : m.direction;
+    const color = blowing ? (dir === "intake" ? 0x3c8dff : 0xe24b3b) : 0x8d877e;
+    const side = layout.panel === "side";
+    const radius = m.size_mm / 2000;
     const mesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(m.size_mm / 2000, m.size_mm / 2000, 0.025, 20),
-      new THREE.MeshStandardMaterial({ color, roughness: 0.45 }),
+      m.state === "radiator"
+        ? new THREE.RingGeometry(radius * 0.42, radius, 28)
+        : new THREE.CylinderGeometry(radius, radius, 0.025, 20),
+      new THREE.MeshBasicMaterial({
+        color,
+        side: THREE.DoubleSide,
+        transparent: side,
+        opacity: side ? 0.22 : 1,
+        depthWrite: !side,
+      }),
     );
-    mesh.rotation.x = Math.PI / 2;
+    if (m.state !== "radiator") mesh.rotation.x = Math.PI / 2;
     mesh.position.set(layout.x_mm / 1000, layout.y_mm / 1000, layout.z_mm / 1000);
     mesh.userData = { id: m.id, kind: "fan" };
+    if (side) mesh.renderOrder = 5;
     root.add(mesh);
+    if (side) {
+      const ring = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(
+          new THREE.Path().absarc(0, 0, radius, 0, Math.PI * 2, false).getPoints(32),
+        ),
+        new THREE.LineBasicMaterial({ color }),
+      );
+      ring.position.copy(mesh.position);
+      ring.renderOrder = 6;
+      root.add(ring);
+    }
   });
   const slots = Object.fromEntries(slotPoints().map((s) => [s.slot, s]));
   (state.solution?.cards || []).forEach((card) => {
     const gpu = state.build.gpus.find((g) => g.id === card.id);
-    const at = slots[String(gpu?.slot || card.slot)];
+    const slot = String(gpu?.slot || card.slot);
+    const at = slots[slot];
     if (!at) return;
+    const vertical = slot.toLowerCase().startsWith("v");
+    const geo = vertical
+      ? new THREE.BoxGeometry(0.18, 0.11, 0.012)
+      : new THREE.BoxGeometry(0.26, 0.036, 0.11);
     const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(0.26, 0.036, 0.11),
-      new THREE.MeshStandardMaterial({ color: tempColor(card.t_die_c), roughness: 0.4 }),
+      geo,
+      new THREE.MeshStandardMaterial({
+        color: tempColor(card.t_die_c),
+        roughness: 0.4,
+        transparent: vertical,
+        opacity: vertical ? 0.4 : 1,
+        depthWrite: !vertical,
+      }),
     );
     mesh.position.set(at.x / 1000, at.y / 1000, at.z / 1000);
     mesh.userData = { id: card.id, kind: "gpu" };
+    if (vertical) mesh.renderOrder = 2;
     root.add(mesh);
+    if (vertical) {
+      const wire = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: 0xf0e2cf, depthTest: false }),
+      );
+      wire.position.copy(mesh.position);
+      wire.renderOrder = 8;
+      root.add(wire);
+    }
   });
   frameCamera();
 }
@@ -653,7 +728,24 @@ function frameCamera() {
 function drawLabels() {
   const layer = $("labels");
   layer.innerHTML = "";
-  if (!state.solution || !state.solution.branches || !state.scene) return;
+  if (!state.solution || !state.scene || !state.build) return;
+  const slots = Object.fromEntries(slotPoints().map((s) => [s.slot, s]));
+  (state.solution.cards || []).forEach((card) => {
+    const gpu = state.build.gpus.find((g) => g.id === card.id);
+    const slot = String(gpu?.slot || card.slot || "");
+    if (!slot.toLowerCase().startsWith("v")) return;
+    const at = slots[slot];
+    if (!at) return;
+    const p = project(at.x - 20, at.y + 70, at.z);
+    if (!p || p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) return;
+    const tag = document.createElement("div");
+    tag.className = "tag card-tag";
+    tag.style.left = `${p.x * 100}%`;
+    tag.style.top = `${p.y * 100}%`;
+    tag.textContent = `${slot} · ${fmt(card.t_die_c)}`;
+    layer.appendChild(tag);
+  });
+  if (!state.solution.branches) return;
   const interesting = state.solution.branches.filter((b) => Math.abs(b.flow_cfm) >= 8 && b.kind !== "bleed");
   interesting.slice(0, 14).forEach((b) => {
     const pos = branchAnchor(b);
