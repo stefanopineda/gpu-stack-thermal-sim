@@ -119,6 +119,7 @@ def apply_cell(
                 slot=str(slot),
                 card=proto.card,
                 fan_curve=fan_curve,
+                custom_curve=proto.custom_curve,
                 power_limit_w=proto.power_limit_w,
                 memory_clock_offset_mhz=proto.memory_clock_offset_mhz,
                 core_clock_offset_mhz=proto.core_clock_offset_mhz,
@@ -295,6 +296,14 @@ def apply_scenario_step(build: BuildCfg, step, library: Library | None = None) -
         for gpu in out.gpus:
             gpu.card = card.id
             gpu.power_limit_w = card.tbp_w
+    if getattr(step, "power_limit_w", None):
+        for gpu in out.gpus:
+            gpu.power_limit_w = float(step.power_limit_w)
+    if getattr(step, "fan_duty", None) is not None:
+        duty = float(step.fan_duty)
+        for gpu in out.gpus:
+            gpu.fan_curve = "custom"
+            gpu.custom_curve = [[0.0, duty], [100.0, duty]]
     return out
 
 

@@ -107,6 +107,7 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
                 f"{card_id} at {power} W, open air, stock curve: die {die:.2f} °C (target ~{target:.0f} ± 5)",
             )
         )
+    checks += anchor_c_checks(library)
     return {
         "pass": all(item["pass"] for item in checks),
         "checks": checks,
@@ -116,6 +117,42 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
         "anchor_b_unthrottled_c": b_unth,
         "shroud_flow_cfm": {"off": flow_off, "on": flow_on},
     }
+
+
+# Mike Bradley's published stack (anchor C): end cards only, °C.
+ANCHOR_C = {0.8: (49.0, 79.0), 1.0: (49.0, 69.0)}
+
+
+def anchor_c_checks(library=None) -> list[dict]:
+    """4× RTX PRO 6000 Workstation touching, 275 W, unified GPU fan duty.
+
+    Top card within ±5 °C of his reading, bottom within ±6 °C (his room
+    temperature is not published; the model assumes 25 °C), and the stack
+    must heat monotonically from the bottom up.
+    """
+    from gpusim.factors import apply_scenario_step
+    from gpusim.library import get_library
+    from gpusim.models import ScenarioStep
+
+    lib = library or get_library()
+    if "mike-bradley-powerhouse" not in lib.builds:
+        return []
+    out = []
+    for duty, (bottom, top) in ANCHOR_C.items():
+        step = ScenarioStep(id="c", title="c", talking_points=[], layout="keep", fan_duty=duty)
+        sol = solve(apply_scenario_step(lib.builds["mike-bradley-powerhouse"], step, lib), lib)
+        temps = [c.t_die_unthrottled_c for c in sol.cards]
+        rising = all(a > b for a, b in zip(temps, temps[1:]))
+        ok = abs(temps[0] - top) <= 5.0 and abs(temps[-1] - bottom) <= 6.0 and rising
+        out.append(
+            _check(
+                f"anchor_c_fans_{int(duty * 100)}",
+                ok,
+                f"Mike Bradley stack, fans {duty:.0%}: top→bottom {['%.1f' % t for t in temps]} °C "
+                f"(published top {top:.0f}, bottom {bottom:.0f}; rising bottom→top {rising})",
+            )
+        )
+    return out
 
 
 def bounds_markdown(report: dict, extra: list[dict] | None = None) -> str:

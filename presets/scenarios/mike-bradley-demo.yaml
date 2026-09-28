@@ -1,47 +1,39 @@
 _approximate: true
-_assumption: Illustrative mock — not a measurement or claim about anyone's real build.
-  Demo steps only.
-_source: SPEC.md revision 4 section 11
+_assumption: Demo steps on Mike Bradley's published build (used with his permission). Only
+  the end-card temperatures quoted as "his numbers" are measurements; the rest is the model.
+_source: https://x.com/MikeBradleyAI/status/2104206814577295513
 id: mike-bradley-demo
-title: Mike Bradley powerhouse (illustrative mock)
-illustrative_mock: true
+title: Mike Bradley's Powerhouse
+illustrative_mock: false
 base_build: mike-bradley-powerhouse
-disclaimer: Illustrative mock — not a measurement or claim about anyone's real build.
+disclaimer: 'Modelled from Mike Bradley''s public posts. His measured numbers: bottom 49 °C,
+  top 79 °C at ~80 % fans; top 69 °C at 100 %.'
 steps:
-- id: as-mocked
-  title: 9000D mock, shroud on, Custom Accelerated curve
+- id: as-built
+  title: As built — four Workstation cards touching, 275 W, fans ~80 %
   layout: keep
-  fan_curve: custom_accelerated
-  shroud: 'on'
-  pressure: standard
-  leakage: leaky
+  fan_duty: 0.8
+  advance_s: 20
+  talking_points:
+  - Four RTX PRO 6000 Workstation cards, no gap between them, capped at 275 W.
+  - These cards pull air from underneath and blow it out of the top, so the stack is four
+    fans in series. Each card breathes the one below it; the top card sees the hottest air.
+  - Model about 47 → 79 °C bottom to top. His posted numbers are 49 → 79 °C.
+- id: fans-100
+  title: GPU fans at 100 %
+  layout: keep
+  fan_duty: 1.0
   advance_s: 18
   talking_points:
-  - Illustrative mock — not a measurement or claim about anyone's real build.
-  - 'A 9000D with eight AF120 RGB ELITE front intakes, three RS120 side intakes, a
-    top 360 exhaust, an industrial shroud, three gapped Max-Q cards plus one vertical.
-    Hottest die about 75 °C.'
-  - Same physics as Stefano's case. Only the box and the fans changed.
-- id: shroud-off
-  title: Same mock, shroud removed
+  - Same stack, fans pinned to 100 %. More air through the column, less rise per card.
+  - Model about 45 → 70 °C. He posted 49 → 69 °C.
+- id: full-power
+  title: Full 600 W per card, fans 100 %
   layout: keep
-  fan_curve: custom_accelerated
-  shroud: 'off'
-  pressure: standard
-  leakage: leaky
-  advance_s: 16
+  fan_duty: 1.0
+  power_limit_w: 600
+  advance_s: 18
   talking_points:
-  - Pull the shroud off and the bracket outlets see the room again, plus a path back
-    into the case. With this much intake the change is small, about 0.3 °C.
-- id: packed
-  title: Mock cards close-packed
-  layout: close4
-  fan_curve: custom_accelerated
-  shroud: 'on'
-  pressure: standard
-  leakage: leaky
-  advance_s: 16
-  talking_points:
-  - Eight horizontal slots, four dual-slot cards, no empty slot left.
-  - Unthrottled about 85, 91, 91 and 75 °C; the middle two throttle. A strong shroud
-    and a 100 % curve do not invent an inlet gap.
+  - Lift the cap to the full 600 W. The heat per card more than doubles; the column cannot
+    carry it, and the upper cards reach the 90 °C cutoff and throttle.
+  - This is why he runs the stack at 275 W.

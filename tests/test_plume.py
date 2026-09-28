@@ -85,3 +85,22 @@ def test_three_flow_through_cards_heat_upward_and_throttle_cleanly():
     assert all(c.t_die_c <= 90.5 for c in sol.cards)
     assert sol.solve_time_s < 0.5
     _balanced(sol)
+
+
+def test_touching_flow_through_stack_matches_mike_bradleys_numbers():
+    """Anchor C: no runaway, heats bottom to top, ends near his published readings."""
+    from gpusim.bounds import anchor_c_checks
+
+    checks = anchor_c_checks(get_library())
+    assert len(checks) == 2
+    assert all(c["pass"] for c in checks), checks
+
+
+def test_touching_pair_uses_the_series_duct():
+    sol = _pair("rtx-5090-fe", 2)
+    stack = [b for b in sol.branches if b["kind"] == "stack"]
+    assert stack and stack[0]["flow_cfm"] > 20
+    upper, lower = sol.cards[0], sol.cards[1]
+    assert upper.t_die_unthrottled_c < 150
+    assert upper.t_die_unthrottled_c > lower.t_die_unthrottled_c
+    _balanced(sol)

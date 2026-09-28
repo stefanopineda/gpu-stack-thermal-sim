@@ -256,6 +256,10 @@ class ScenarioStep(_Base):
     fan_curve: str | None = None
     # Swap every card to this model (power limit follows the card's TBP).
     card: str | None = None
+    # Pin every GPU fan to one duty (0–1), e.g. a unified fan setting.
+    fan_duty: float | None = None
+    # Set every card's power limit, W.
+    power_limit_w: float | None = None
     advance_s: float = 18
 
     @field_validator("fan_curve", mode="before")

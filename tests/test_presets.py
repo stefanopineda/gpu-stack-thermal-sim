@@ -55,7 +55,10 @@ def test_library_loads_required_presets():
     assert lib.cases["meshify2xl"].vertical_slots == 3
     assert lib.cases["phanteks-enthoo-elite-server"].horizontal_slots == 12
     assert "meshify2xl-stefano" in lib.builds
-    assert lib.builds["mike-bradley-powerhouse"].illustrative_mock is True
+    mike = lib.builds["mike-bradley-powerhouse"]
+    assert {g.card for g in mike.gpus} == {"rtx-pro-6000-blackwell-workstation"}
+    assert {g.power_limit_w for g in mike.gpus} == {275}
+    assert "79 °C" in mike.notes  # his published top-card reading
     assert {"stefano-demo", "mike-bradley-demo"} <= set(lib.scenarios)
 
 

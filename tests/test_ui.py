@@ -20,7 +20,8 @@ def test_visualizer_smoke():
     scenario_ids = {s["id"] for s in presets["scenarios"]}
     assert scenario_ids >= {"stefano-demo", "mike-bradley-demo"}
     assert any(b["id"] == "meshify2xl-stefano" for b in presets["builds"])
-    assert any("mock" in (s.get("disclaimer") or s["title"]).lower() or s["illustrative_mock"] for s in presets["scenarios"])
+    mike = next(s for s in presets["scenarios"] if s["id"] == "mike-bradley-demo")
+    assert "Mike Bradley" in mike["title"] and "79 °C" in mike["disclaimer"]
 
     build = client.get("/api/build/meshify2xl-stefano").json()
     solved = client.post("/api/solve", json=build)
