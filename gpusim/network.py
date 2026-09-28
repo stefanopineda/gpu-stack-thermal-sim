@@ -11,6 +11,8 @@ Meshify-style layouts.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from gpusim.calib import (
@@ -53,6 +55,7 @@ ROLE = {
     "cpu-exit": "internal resistance: CPU cooler outlet → case",
     "bleed": "numerical bleed (regularisation, not a leak path)",
     "plume-ingest": "plume ingestion: lower card's exhaust into the upper card's intake",
+    "stack": "series duct: lower flow-through card's exhaust straight into the fans above",
 }
 
 
@@ -298,7 +301,34 @@ def build_network(
         above = gaps[gpu.id].get("above") or {}
         upper = above.get("neighbor")
         if upper and not gaps[gpu.id].get("vertical"):
-            pairs.append((gpu.id, upper, float(above["gap_mm"])))
+            gap_mm = float(above["gap_mm"])
+            pairs.append((gpu.id, upper, gap_mm))
+            # At a tight gap the backplate cutout breathes straight into the fan
+            # of the card above: the two coolers act as fans in series through a
+            # short duct. The duct area fades as the gap opens and the jet can
+            # spread into the zone instead (then the plume overlay takes over).
+            params = sample.get("cards", {}).get(cards[gpu.card].id) or {}
+            from gpusim.calib import card_tuning
+
+            params = params or card_tuning(gpu.card)
+            length = float(sample.get("stack_length_mm", 8.0))
+            area = float(params["exit_area_m2"]) * math.exp(-gap_mm / max(length, 0.5))
+            if area > 1e-6:
+                add(
+                    Branch(
+                        id=f"stack-{gpu.id}-{upper}",
+                        a=f"cex-{gpu.id}",
+                        b=f"cin-{upper}",
+                        k=orifice_k(area, rho_ref, float(sample.get("stack_cd", 0.7))),
+                        k_lin=1.0,
+                        rho=rho_for(f"cex-{gpu.id}"),
+                        kind="stack",
+                        label=(
+                            f"{gpu.id} exhaust straight into {upper}'s fans "
+                            f"(series duct, {gap_mm:.1f} mm gap)"
+                        ),
+                    )
+                )
 
     if build.buoyancy:
         _apply_buoyancy(branches, node_temp, t_ref, case)

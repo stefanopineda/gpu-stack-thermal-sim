@@ -20,6 +20,7 @@ GPU water blocks are out of scope (a water-cooled CPU is supported). Units are C
 - Tuned knobs are global / per card type in `gpusim/calib.py`. Never per sweep cell. Presets are YAML; every number needs a source or `approximate` plus an assumption (`gpusim/cite.py`).
 - `gpusim sweep` writes `results/<build>/hypothesis_auto.md`. The root `HYPOTHESIS.md` is curated; do not point the sweep at it.
 - Corsair 9000D ships with **no fans** (Corsair spec page); the template fills the 8×120 front (4 high × 2 wide) with AF120 RGB ELITE. Mike Bradley mock = `/?demo=mike-bradley`, always labelled "Illustrative mock — not a measurement or claim about anyone's real build."
+- His public 4× build (looked up 2026-09-28) is **not** that mock. It is four RTX PRO 6000 Blackwell **Workstation** flow-through cards, close-packed, 275 W cap, unified GPU fans, Corsair 9000D with Noctua 120s and an air-cooled Threadripper PRO 7965WX, PSU a SilverStone HELA 2500Rz (1650 W on 120 V). He published only the ends of the stack: at ~80% fans, bottom 49 °C and top 79 °C; at 100% fans, bottom 49 °C and top 69 °C. A same-day reply said 47 °C / 77 °C. Temps rise bottom to top. Middle-card numbers and the promised thermal study were not posted as of 2026-09-28 00:43 UTC. Do not treat the mock's Max-Q middle-hot result as his measurement. Sources: x.com/MikeBradleyAI/status/2104206814577295513, replies 2104213812274409748 and 2104370605890097235, YouTube `O_Gk9oatDhI` for the earlier 2× spaced burn (~90 °C at 600 W).
 
 ## Agent API (item 14)
 

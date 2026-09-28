@@ -110,6 +110,14 @@ GLOBAL = {
     # centimetres; 40 mm is the e-folding length assumed here. Approximate.
     "plume_phi_max": 0.85,
     "plume_length_mm": 40.0,
+    # Series duct between stacked flow-through cards (rev 4.1). The lower
+    # card's backplate cutout breathes straight into the fans above through
+    # area = cutout · exp(−gap / stack_length_mm). stack_cd lumps the losses of
+    # the cutout, the fin exit and the fan hub. Fit to Mike Bradley's published
+    # 4× RTX PRO 6000 Workstation stack (touching, 275 W): top card 79 °C at
+    # ~80 % fans, 69 °C at 100 %. Global, not per cell. See docs/CALIBRATION.md.
+    "stack_length_mm": 8.0,
+    "stack_cd": 0.25,
     # Tower CPU cooler fin stack, Pa/(m³/s)². ~20 Pa at 0.028 m³/s (60 CFM).
     # Approximate, typical of a dual-tower 140 mm heatsink.
     "cpu_heatsink_k": 2.5e4,
