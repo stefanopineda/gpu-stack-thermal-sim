@@ -246,6 +246,7 @@ mounts:
   x_mm: 698
   y_mm: 600
   z_mm: 150
+  pattern: 1x140
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -312,6 +313,28 @@ mounts:
   y_mm: 698
   z_mm: 150
   pattern: 3x140
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-120-1
+  panel: rear
+  size_mm: 120
+  x_mm: 698
+  y_mm: 600
+  z_mm: 88
+  pattern: 2x120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-120-2
+  panel: rear
+  size_mm: 120
+  x_mm: 698
+  y_mm: 600
+  z_mm: 219
+  pattern: 2x120
 leak_areas_m2:
   _approximate: true
   _assumption: Estimated mesh and seam areas for a super-tower airflow case.

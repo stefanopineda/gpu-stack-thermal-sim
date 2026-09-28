@@ -930,7 +930,15 @@ function renderReadout() {
   root.append(
     el("div", { class: "fine" }, "Hottest GPU"),
     el("div", { class: "stat-hot", style: `color:${tempColor(sol.hottest_die_c)}` }, fmt(sol.hottest_die_c)),
-    throttled ? el("div", { class: "throttle", tip: TIPS.unthrottled }, `THROTTLING · would be ${fmt(sol.hottest_unthrottled_c)} at full power`) : "",
+    throttled
+      ? el(
+          "div",
+          { class: "throttle", tip: TIPS.unthrottled },
+          sol.cards.some((c) => c.power_w < c.power_unthrottled_w - 1)
+            ? `THROTTLING · would be ${fmt(sol.hottest_unthrottled_c)} at full power`
+            : "At the throttle flag · clocks start to drop here, no power lost yet",
+        )
+      : "",
     el(
       "div",
       { class: "stats" },
@@ -956,7 +964,7 @@ function renderReadout() {
         { class: `gpu-line${isVertical(g.slot) ? " vertical" : ""}`, tip: `${card ? card.name : c.card}. Unthrottled ${fmt(c.t_die_unthrottled_c)}, memory ${fmt(c.t_mem_c)}, inlet air ${fmt(c.t_in_c)}, exhaust ${fmt(c.t_exh_c)}, ${c.power_w.toFixed(0)} W, gap ${c.gap_mm.toFixed(1)} mm.` },
         el("div", {}, el("b", {}, `GPU ${i + 1}`), el("span", { class: "where" }, `${where} · ${(card?.name || c.card).replace(/^NVIDIA (GeForce )?/, "").replace(/ \(\d+ W\)$/, "")} · ${c.power_w.toFixed(0)} W`)),
         el("div", { class: "t", style: `color:${tempColor(c.t_die_c)}` }, fmt(c.t_die_c)),
-        el("div", { class: "sub" }, `${c.flow_cfm.toFixed(0)} CFM · fan ${Math.round(c.duty * 100)} % · inlet ${fmt(c.t_in_c)}${c.throttle ? " · throttling" : ""}${from ? ` · breathes GPU ${from}'s exhaust` : ""}`),
+        el("div", { class: "sub" }, `${c.flow_cfm.toFixed(0)} CFM · fan ${Math.round(c.duty * 100)} % · inlet ${fmt(c.t_in_c)}${c.throttle ? (c.power_w < c.power_unthrottled_w - 1 ? " · throttling" : " · at throttle flag") : ""}${from ? ` · breathes GPU ${from}'s exhaust` : ""}`),
       ),
     );
   });

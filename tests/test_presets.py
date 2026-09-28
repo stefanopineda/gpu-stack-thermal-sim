@@ -101,3 +101,15 @@ def test_bare_number_without_citation_is_rejected():
     except CitationError:
         return
     raise AssertionError("uncited number should fail")
+
+
+def test_every_listed_fan_size_has_mounts():
+    """If a case says a face takes 120 or 140 mm fans, the picker must be able to offer them."""
+    import re
+
+    lib = load_library()
+    for case in lib.cases.values():
+        for face in ("front", "top", "rear", "bottom"):
+            listed = {int(size) for size in re.findall(r"(?:×|/)(120|140)\b", case.fan_support.get(face, ""))}
+            modelled = {m.size_mm for m in case.mounts if m.panel == face}
+            assert listed <= modelled, f"{case.id} {face}: lists {sorted(listed)} mm, mounts {sorted(modelled)} mm"

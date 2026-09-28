@@ -158,6 +158,7 @@ mounts:
   x_mm: 600
   y_mm: 495
   z_mm: 120
+  pattern: 1x140
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -168,6 +169,7 @@ mounts:
   x_mm: 200
   y_mm: 40
   z_mm: 100
+  pattern: 2x140
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -178,6 +180,7 @@ mounts:
   x_mm: 380
   y_mm: 40
   z_mm: 100
+  pattern: 2x140
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -266,6 +269,39 @@ mounts:
   y_mm: 566
   z_mm: 120
   pattern: 4x120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: rear-120-1
+  panel: rear
+  size_mm: 120
+  x_mm: 600
+  y_mm: 495
+  z_mm: 120
+  pattern: 1x120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: bottom-120-1
+  panel: bottom
+  size_mm: 120
+  x_mm: 200
+  y_mm: 0
+  z_mm: 100
+  pattern: 2x120
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: bottom-120-2
+  panel: bottom
+  size_mm: 120
+  x_mm: 360
+  y_mm: 0
+  z_mm: 100
+  pattern: 2x120
 leak_areas_m2:
   _approximate: true
   _assumption: Panel leakage areas estimated from a mesh front/top and a glass side,
