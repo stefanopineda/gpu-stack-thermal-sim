@@ -2,7 +2,7 @@ _approximate: true
 _assumption: Sample population so the case preset has a solvable saved build. Not
   someone's measured PC.
 id: phanteks-enthoo-sample
-name: phanteks-enthoo-elite-server sample
+name: Phanteks Enthoo Elite Server (12 slots) — template
 case: phanteks-enthoo-elite-server
 ambient_c: 25
 altitude_m: 0

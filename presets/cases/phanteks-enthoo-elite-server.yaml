@@ -37,7 +37,7 @@ slot_pitch_mm:
   approximate: false
   source: PCI Express Card Electromechanical Specification, slot pitch 0.800 in (20.32
     mm)
-top_slot_y_mm: 500
+top_slot_y_mm: 440
 vertical_positions: []
 airflow_layout: direct_front_to_gpu
 psu_shroud: false
@@ -79,8 +79,8 @@ mounts:
   id: front-1
   panel: front
   size_mm: 140
-  x_mm: 40
-  y_mm: 150
+  x_mm: 0
+  y_mm: 90
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -89,8 +89,8 @@ mounts:
   id: front-2
   panel: front
   size_mm: 140
-  x_mm: 40
-  y_mm: 290
+  x_mm: 0
+  y_mm: 230
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -99,8 +99,8 @@ mounts:
   id: front-3
   panel: front
   size_mm: 140
-  x_mm: 40
-  y_mm: 430
+  x_mm: 0
+  y_mm: 370
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -109,8 +109,8 @@ mounts:
   id: front-4
   panel: front
   size_mm: 140
-  x_mm: 40
-  y_mm: 540
+  x_mm: 0
+  y_mm: 510
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -120,7 +120,7 @@ mounts:
   panel: top
   size_mm: 140
   x_mm: 160
-  y_mm: 550
+  y_mm: 582
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -130,7 +130,7 @@ mounts:
   panel: top
   size_mm: 140
   x_mm: 310
-  y_mm: 550
+  y_mm: 582
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -140,7 +140,7 @@ mounts:
   panel: top
   size_mm: 140
   x_mm: 460
-  y_mm: 550
+  y_mm: 582
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -149,18 +149,8 @@ mounts:
   id: rear-1
   panel: rear
   size_mm: 140
-  x_mm: 680
-  y_mm: 420
-  z_mm: 130
-- _approximate: true
-  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
-    and the UI, not a factory drawing. Mount size is the published fan support for
-    that position.
-  id: rear-2
-  panel: rear
-  size_mm: 140
-  x_mm: 680
-  y_mm: 260
+  x_mm: 721
+  y_mm: 510
   z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -170,8 +160,8 @@ mounts:
   panel: bottom
   size_mm: 140
   x_mm: 180
-  y_mm: 50
-  z_mm: 110
+  y_mm: 0
+  z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -180,8 +170,8 @@ mounts:
   panel: bottom
   size_mm: 140
   x_mm: 330
-  y_mm: 50
-  z_mm: 110
+  y_mm: 0
+  z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -190,8 +180,8 @@ mounts:
   panel: bottom
   size_mm: 140
   x_mm: 480
-  y_mm: 50
-  z_mm: 110
+  y_mm: 0
+  z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -201,7 +191,7 @@ mounts:
   size_mm: 140
   x_mm: 250
   y_mm: 360
-  z_mm: 230
+  z_mm: 261
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -211,7 +201,7 @@ mounts:
   size_mm: 140
   x_mm: 410
   y_mm: 360
-  z_mm: 230
+  z_mm: 261
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -220,8 +210,8 @@ mounts:
   panel: mid
   size_mm: 140
   x_mm: 300
-  y_mm: 300
-  z_mm: 80
+  y_mm: 200
+  z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -230,8 +220,8 @@ mounts:
   panel: mid
   size_mm: 140
   x_mm: 300
-  y_mm: 300
-  z_mm: 80
+  y_mm: 340
+  z_mm: 130
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -240,8 +230,8 @@ mounts:
   panel: mid
   size_mm: 140
   x_mm: 300
-  y_mm: 300
-  z_mm: 80
+  y_mm: 480
+  z_mm: 130
 leak_areas_m2:
   _approximate: true
   _assumption: Estimated. The page does not publish filter free area.
@@ -258,6 +248,7 @@ dimension_note: phanteks.com lists '582 x 261 x 721 mm' with no axis labels (22.
   riser bracket, not extra rear slots, so vertical_slots is 0. The original Enthoo
   Elite (different chassis) is 10 slots; Enthoo Pro 2 Server V2 is 11. This preset
   is the 12-slot Enthoo Elite Server, as Stefano confirmed. The mount list is the
-  140 mm pattern (front 4, top 3, rear 2, bottom 3, side 2, midplate 3). The extra
-  120 mm-only left-side brackets are omitted from the schematic.
+  140 mm pattern (front 4, top 3, rear 1, bottom 3, side 2, midplate 3). Phanteks
+  lists rear 2×140; only one fits above the 12-slot bracket area in this schematic,
+  so rev 4 models one. The extra 120 mm-only left-side brackets are omitted.
 notes: Dual PSU support is real and not modelled as a second heat source.

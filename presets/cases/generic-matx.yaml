@@ -71,8 +71,8 @@ mounts:
   id: rear-1
   panel: rear
   size_mm: 120
-  x_mm: 370
-  y_mm: 240
+  x_mm: 400
+  y_mm: 360
   z_mm: 90
 leak_areas_m2:
   front: 0.012

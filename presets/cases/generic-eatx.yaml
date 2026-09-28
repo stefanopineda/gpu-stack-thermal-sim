@@ -104,8 +104,8 @@ mounts:
   id: rear-1
   panel: rear
   size_mm: 140
-  x_mm: 520
-  y_mm: 340
+  x_mm: 560
+  y_mm: 490
   z_mm: 120
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver

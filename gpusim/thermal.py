@@ -322,6 +322,9 @@ def solve_thermal(
                 "cooler": getattr(net, "cooler", {}).get(gpu_id, "blower"),
                 "t_zone_c": t_nodes.get("gpu", t_amb),
                 "t_inlet_c": t_in,
+                # The inlet temperature the heatsink balance below actually used
+                # (previous pass). T_die = this + q_channel·R_conv + P_die·R_tim.
+                "t_inlet_used_c": row["t_in"],
                 "inlet_heat_captured_w": heat_node.get(f"cin-{gpu_id}", 0.0),
                 "plume_from": plume["lower"] if plume else None,
                 "plume_phi": plume["phi"] if plume else 0.0,

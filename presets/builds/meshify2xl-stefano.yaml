@@ -1,6 +1,6 @@
 _source: SPEC.md revision 3 sections 1.2 and 14
 id: meshify2xl-stefano
-name: Stefano Meshify 2 XL — 4× RTX PRO 6000 Blackwell Max-Q
+name: "Stefano's Meshify 2 XL — 4× RTX PRO 6000 Max-Q"
 case: meshify2xl
 ambient_c:
   value: 25

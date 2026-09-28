@@ -9,141 +9,104 @@
 <body>
   <div id="start" class="start">
     <div class="start-card">
-      <p class="eyebrow">Air-cooled workstation model · Celsius · not CFD</p>
+      <p class="eyebrow">Air-cooled workstation model · Celsius · not CFD · rev 4</p>
       <h1>Build the case. Watch the heat.</h1>
-      <p class="lede">A live flow-and-thermal network for blower GPUs. GPU water blocks are out of scope — this tool will not pretend a block is an option.</p>
+      <p class="lede">A live flow-and-thermal network for multi-GPU towers: blowers and flow-through cards, fans on every face, the plume one card breathes from the next. GPU water blocks are out of scope.</p>
+      <h2 class="start-h">Quick start</h2>
       <div class="start-actions">
-        <button id="quick-meshify" class="primary">Quick start · Meshify 2 XL</button>
-        <button id="quick-9000" class="ghost">Quick start · Corsair 9000D</button>
-        <button id="quick-mock" class="ghost">Illustrative mock · Mike Bradley 9000D</button>
+        <button id="quick-meshify" class="primary" data-tip="Stefano's Fractal Meshify 2 XL: 3 Noctua 140 redux-1700 intakes, Arctic 360 top exhaust, rear shroud with 2× NF-A14 iPPC-3000, 4× RTX PRO 6000 Max-Q (slots 1/4/7 + vertical v2).">Quick start · Meshify 2 XL (Stefano)</button>
+        <button id="quick-9000" class="ghost" data-tip="Corsair 9000D RGB AIRFLOW template. The case ships with no fans; the template fills the 8×120 front array with AF120 RGB ELITE intakes.">Quick start · Corsair 9000D Airflow</button>
+      </div>
+      <h2 class="start-h">Start from a template</h2>
+      <div id="template-grid" class="template-grid"></div>
+      <h2 class="start-h">Build from scratch</h2>
+      <div class="start-actions">
+        <select id="scratch-case" data-tip="Case to start from. Every mount starts blanked, one GPU in slot 1, air-cooled CPU."></select>
         <button id="from-scratch" class="ghost">Build from scratch</button>
       </div>
-      <p class="fine">Quick start reaches a first die temperature in one solve. The Mike Bradley button is an illustrative mock — not a measurement or claim about anyone's real build. The Corsair button loads the plain 9000D sample.</p>
+      <p class="fine">Shareable demo: <a href="/?demo=mike-bradley">/?demo=mike-bradley</a> opens the Mike Bradley 9000D build — <b>Illustrative mock — not a measurement or claim about anyone's real build.</b></p>
+      <p class="fine">Agents: the same solver is at <a href="/docs">/docs</a> (POST /api/v1/simulate, /rank, /sweep).</p>
     </div>
   </div>
 
   <div id="app" class="app hidden">
     <header>
-      <div class="brand">GPUSIM <span id="build-name"></span></div>
+      <button id="home" class="brand" type="button" data-tip="Back to quick start and templates.">GPUSIM</button>
+      <span id="build-name" class="build-name"></span>
       <div id="mock-banner" class="mock hidden">Illustrative mock — not a measurement or claim about anyone's real build.</div>
       <div class="header-readout">
-        <span id="pressure-readout">case — Pa</span>
-        <span id="ambient-readout">25 °C</span>
+        <span id="hot-readout" data-tip="Hottest die (throttled equilibrium). Unthrottled value in brackets when a card throttles.">—</span>
+        <span id="pressure-readout" data-tip="">case — Pa</span>
+        <span id="ambient-readout" data-tip="">25 °C</span>
       </div>
       <div class="header-actions">
+        <div class="seg" role="group" data-tip="">
+          <button data-view="front34" class="on" type="button">¾ front</button>
+          <button data-view="side" type="button">Side</button>
+          <button data-view="rear34" type="button">¾ rear</button>
+        </div>
+        <div class="seg" role="group" id="net-seg">
+          <button data-net="off" class="on" type="button">Case</button>
+          <button data-net="split" type="button">Split</button>
+          <button data-net="full" type="button">Network</button>
+        </div>
+        <button id="opt-run" type="button">Optimize</button>
         <button id="unit-toggle" type="button">°F</button>
         <button id="compare-toggle" type="button">Compare</button>
         <button id="demo-toggle" type="button">Demo</button>
-        <button id="present-toggle" type="button">Presentation</button>
+        <button id="present-toggle" type="button">Present</button>
       </div>
     </header>
 
-    <div class="stage">
-      <div class="viewport">
+    <main class="layout">
+      <nav id="facebar" class="facebar" aria-label="Case faces">
+        <button data-face="front" type="button"><b>Front</b><span id="fb-front"></span></button>
+        <button data-face="top" type="button"><b>Top</b><span id="fb-top"></span></button>
+        <button data-face="rear" type="button"><b>Rear</b><span id="fb-rear"></span></button>
+        <button data-face="bottom" type="button"><b>Bottom</b><span id="fb-bottom"></span></button>
+        <button data-face="side" type="button"><b>Side</b><span id="fb-side"></span></button>
+        <button data-face="internals" type="button"><b>Internals</b><span id="fb-internals"></span></button>
+        <button data-face="gpus" type="button"><b>GPUs</b><span id="fb-gpus"></span></button>
+      </nav>
+      <section id="panel" class="panel"></section>
+
+      <div id="stage" class="stage net-off">
         <div id="demo-bar" class="demo-bar hidden">
-          <div class="demo-copy">
-            <strong id="demo-title"></strong>
-            <p id="demo-points"></p>
-          </div>
+          <div class="demo-copy"><strong id="demo-title"></strong><p id="demo-points"></p></div>
           <div class="demo-nav">
             <button id="demo-prev" type="button">Prev</button>
             <span id="demo-count"></span>
             <button id="demo-next" type="button">Next</button>
-            <label><input id="demo-auto" type="checkbox" /> auto</label>
+            <label class="check"><input id="demo-auto" type="checkbox" /> auto</label>
+            <button id="demo-close" type="button">Close</button>
           </div>
         </div>
-        <div class="scene-wrap">
-          <canvas id="scene"></canvas>
-          <div id="legend" class="legend">
-            <span><i class="swatch intake"></i>Intake</span>
-            <span><i class="swatch exhaust"></i>Exhaust</span>
-            <span><i class="swatch blank"></i>Empty / blanked</span>
+        <div class="views">
+          <div id="view3d" class="view3d">
+            <canvas id="scene"></canvas>
+            <div id="labels" class="labels"></div>
+            <div id="legend" class="legend">
+              <span data-tip=""><i class="swatch intake"></i>Intake</span>
+              <span data-tip=""><i class="swatch exhaust"></i>Exhaust</span>
+              <span data-tip=""><i class="swatch blank"></i>Blanked / empty</span>
+              <span data-tip=""><i class="swatch gpu"></i>GPU by die °C</span>
+            </div>
+            <div id="face-inset" class="face-inset"></div>
           </div>
-          <div id="labels" class="labels"></div>
+          <div id="netview" class="netview"></div>
         </div>
+        <section id="compare" class="compare hidden"></section>
       </div>
-      <aside id="readout"></aside>
-    </div>
 
-    <section id="compare" class="compare hidden"></section>
-
-    <section id="controls" class="controls">
-      <div class="control-col">
-        <label>Case
-          <select id="case-select"></select>
-        </label>
-        <label>Ambient °C
-          <input id="ambient" type="number" step="0.5" value="25" />
-        </label>
-        <label>Altitude m
-          <input id="altitude" type="number" step="50" value="0" />
-        </label>
-        <label>Obstruction
-          <select id="obstruction">
-            <option>low</option><option>medium</option><option>high</option>
-          </select>
-        </label>
-        <label>Cables
-          <select id="cables"><option>clean</option><option>cluttered</option></select>
-        </label>
-        <label>Drive cage
-          <select id="drive-cage"><option value="removed">removed</option><option value="present">present</option></select>
-        </label>
-        <label>Side panel
-          <select id="side-panel">
-            <option value="tempered_glass">tempered glass</option>
-            <option value="mesh">mesh</option>
-            <option value="removed">removed</option>
-          </select>
-        </label>
-        <label class="check"><input id="brackets" type="checkbox" checked /> Slot brackets removed</label>
-        <label class="check"><input id="buoyancy" type="checkbox" /> Buoyancy (stack effect)</label>
-      </div>
-      <div class="control-col" id="mount-editor">
-        <h2>Fans</h2>
-        <p class="fine">Click a mount. Add fan uses a generic of that size. The list is the library, filtered to 120 / 140 / 170 mm.</p>
-        <div id="mount-list"></div>
-      </div>
-      <div class="control-col">
-        <h2>Radiator</h2>
-        <label>Model <select id="rad-model"></select></label>
-        <label>Panel
-          <select id="rad-panel"><option>top</option><option>front</option><option>rear</option><option>side</option></select>
-        </label>
-        <label>Direction
-          <select id="rad-dir"><option>exhaust</option><option>intake</option></select>
-        </label>
-        <label>CPU heat W <input id="cpu-power" type="number" value="150" /></label>
-        <h2>Rear shroud</h2>
-        <label>Mode
-          <select id="shroud-mode"><option>off</option><option>on</option><option>passive</option></select>
-        </label>
-        <label>Fans <input id="shroud-count" type="number" min="0" max="4" value="2" /></label>
-        <label>Fan <select id="shroud-fan"></select></label>
-        <p class="fine">Shared plenum over the bracket outlets. Passive is the duct with the fans removed.</p>
-      </div>
-      <div class="control-col" id="gpu-editor">
-        <h2>GPUs</h2>
-        <div id="gpu-list"></div>
-        <button id="add-gpu" type="button">Add card</button>
-        <p class="fine">Power limit, clocks and undervolt are approximations. Drag a card in the view to another slot.</p>
-      </div>
-      <div class="control-col">
-        <h2>Seals and filters</h2>
-        <div id="seal-list"></div>
-        <div id="filter-list"></div>
-        <h2>Optimal air-cooled</h2>
-        <label>Cards <input id="opt-cards" type="number" min="1" max="8" value="4" /></label>
-        <button id="opt-run" type="button" class="primary">Find optimal</button>
-        <p id="opt-status" class="fine"></p>
-      </div>
-    </section>
+      <aside id="readout" class="readout"></aside>
+    </main>
     <footer>
       Air-cooled only. GPU water blocks are out of scope.
       Typical accuracy ±5–10 °C absolute; better for ranking configurations than for absolute temperatures.
-      Compact network model after Ellison, Idelchik and flow-network electronics cooling — not a CFD result.
+      Compact network model after Ellison, Idelchik and flow-network electronics cooling — not a CFD result. Celsius throughout.
     </footer>
   </div>
+  <div id="tip" class="tip" hidden></div>
   <script type="module" src="/static/app.js"></script>
 </body>
 </html>

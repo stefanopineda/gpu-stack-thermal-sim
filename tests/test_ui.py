@@ -11,7 +11,7 @@ def test_visualizer_smoke():
     assert "Quick start" in text
     assert "Demo" in text
     assert "Compare" in text
-    assert "Presentation" in text
+    assert "Present" in text
     assert "water" in text.lower()
     assert "Celsius" in text or "°C" in text
 
@@ -35,3 +35,22 @@ def test_visualizer_smoke():
         payload = step.json()
         assert payload["step"]["talking_points"]
         assert payload["solution"]["cards"]
+
+
+def test_visualizer_modules_and_rev4_payload():
+    client = TestClient(app)
+    for name in ("app.js", "scene.js", "network.js", "tips.js", "style.css", "vendor/three.module.js"):
+        res = client.get(f"/static/{name}")
+        assert res.status_code == 200, name
+        assert res.headers.get("cache-control") == "no-cache"
+    tips = client.get("/static/tips.js").text
+    assert "0 % open" in tips and "70 °C" in tips  # seal and custom-accelerated assumptions
+    presets = client.get("/api/presets").json()
+    assert {c["cooler"] for c in presets["cards"]} == {"blower", "flow_through"}
+    assert presets["seal_levels"][0]["level"] == 1
+    body = client.post("/api/solve", json=client.get("/api/build/corsair-9000d-sample").json()).json()
+    first = body["cards"][0]
+    assert first["thermal"]["r_conv_k_per_w"] > 0
+    assert any(b["kind"] == "sealed" for b in body["branches"])
+    front = [m for m in client.get("/api/build/corsair-9000d-sample").json()["mounts"] if m["panel"] == "front"]
+    assert len(front) == 8 and all(m["fan"] == "corsair-af120-rgb-elite" for m in front)

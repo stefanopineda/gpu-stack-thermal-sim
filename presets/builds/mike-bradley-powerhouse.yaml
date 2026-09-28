@@ -1,9 +1,9 @@
 _approximate: true
 _assumption: Illustrative mock — not a measurement or claim about anyone's real build.
-  A 9000D filled with Corsair fans, four Max-Q blowers (three gapped horizontal +
-  one vertical), a 360 mm top exhaust and a 2× iPPC shroud, using the aggressive GPU
-  fan curve.
-_source: SPEC.md revision 3 section 2.1
+  A 9000D filled with Corsair fans (8× AF120 RGB ELITE front, 3× RS120 side intake),
+  four Max-Q blowers (three gapped horizontal + one vertical), a 360 mm top exhaust
+  and a 2× iPPC shroud, using the custom accelerated GPU fan curve.
+_source: SPEC.md revision 4 section 2.1
 id: mike-bradley-powerhouse
 name: Mike Bradley powerhouse (illustrative mock)
 case: corsair-9000d
@@ -35,7 +35,7 @@ gpus:
   core_clock_offset_mhz: 0
   undervolt_mv: 0
 - id: gpu4
-  slot: v1
+  slot: 'v1'
   card: rtx-pro-6000-blackwell-maxq
   fan_curve: custom_accelerated
   power_limit_w: 300
@@ -45,22 +45,57 @@ gpus:
 mounts:
 - id: front-1
   panel: front
-  size_mm: 140
-  fan: corsair-af140-elite
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
   state: fan
   direction: intake
   duty: 1.0
 - id: front-2
   panel: front
-  size_mm: 140
-  fan: corsair-af140-elite
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
   state: fan
   direction: intake
   duty: 1.0
 - id: front-3
   panel: front
-  size_mm: 140
-  fan: corsair-af140-elite
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-4
+  panel: front
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-5
+  panel: front
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-6
+  panel: front
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-7
+  panel: front
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-8
+  panel: front
+  size_mm: 120
+  fan: corsair-af120-rgb-elite
   state: fan
   direction: intake
   duty: 1.0
@@ -94,22 +129,29 @@ mounts:
   duty: 1.0
 - id: top-1
   panel: top
-  size_mm: 140
+  size_mm: 120
   state: radiator
   direction: exhaust
-  duty: 1
+  duty: 1.0
 - id: top-2
   panel: top
-  size_mm: 140
+  size_mm: 120
   state: radiator
   direction: exhaust
-  duty: 1
+  duty: 1.0
 - id: top-3
   panel: top
-  size_mm: 140
+  size_mm: 120
   state: radiator
   direction: exhaust
-  duty: 1
+  duty: 1.0
+- id: top-4
+  panel: top
+  size_mm: 120
+  fan: corsair-rs120
+  state: fan
+  direction: exhaust
+  duty: 1.0
 radiator:
   model: generic-360
   panel: top

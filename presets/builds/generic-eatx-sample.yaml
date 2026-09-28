@@ -2,7 +2,7 @@ _approximate: true
 _assumption: Sample population so the case preset has a solvable saved build. Not
   someone's measured PC.
 id: generic-eatx-sample
-name: generic-eatx sample
+name: Generic E-ATX full tower — template
 case: generic-eatx
 ambient_c: 25
 altitude_m: 0

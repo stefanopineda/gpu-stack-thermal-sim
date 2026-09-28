@@ -40,6 +40,15 @@ app = FastAPI(title="gpusim", version=__version__, description=DESCRIPTION, open
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
+@app.middleware("http")
+async def _revalidate_static(request, call_next):
+    """Browsers revalidate the page and its modules, so a restarted server is never stale."""
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 class OptimizeRequest(BaseModel):
     cards: int = 4
     case: str = "meshify2xl"
@@ -81,6 +90,9 @@ def _case_public(case) -> dict:
         "fan_support": case.fan_support,
         "radiator_support": case.radiator_support,
         "side_panel": case.side_panel,
+        "psu_shroud": case.psu_shroud,
+        "psu_shroud_clearance_mm": case.psu_shroud_clearance_mm,
+        "airflow_layout": case.airflow_layout,
         "notes": case.notes,
         "dimension_note": case.dimension_note,
     }

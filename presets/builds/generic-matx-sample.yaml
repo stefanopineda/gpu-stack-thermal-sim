@@ -2,7 +2,7 @@ _approximate: true
 _assumption: Sample population so the case preset has a solvable saved build. Not
   someone's measured PC.
 id: generic-matx-sample
-name: generic-matx sample
+name: Generic mATX tower — template
 case: generic-matx
 ambient_c: 25
 altitude_m: 0

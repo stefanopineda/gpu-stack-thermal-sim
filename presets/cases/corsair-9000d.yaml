@@ -80,89 +80,89 @@ mounts:
     that position.
   id: front-1
   panel: front
-  size_mm: 140
-  x_mm: 50
-  y_mm: 200
-  z_mm: 150
+  size_mm: 120
+  x_mm: 0
+  y_mm: 175
+  z_mm: 88
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
   id: front-2
   panel: front
-  size_mm: 140
-  x_mm: 50
-  y_mm: 360
-  z_mm: 150
+  size_mm: 120
+  x_mm: 0
+  y_mm: 175
+  z_mm: 219
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
   id: front-3
   panel: front
-  size_mm: 140
-  x_mm: 50
-  y_mm: 520
-  z_mm: 150
+  size_mm: 120
+  x_mm: 0
+  y_mm: 300
+  z_mm: 88
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
-  id: front-120-1
+  id: front-4
   panel: front
   size_mm: 120
-  x_mm: 70
-  y_mm: 160
-  z_mm: 80
+  x_mm: 0
+  y_mm: 300
+  z_mm: 219
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
-  id: front-120-2
+  id: front-5
   panel: front
   size_mm: 120
-  x_mm: 70
-  y_mm: 250
-  z_mm: 80
+  x_mm: 0
+  y_mm: 425
+  z_mm: 88
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
-  id: front-120-3
+  id: front-6
   panel: front
   size_mm: 120
-  x_mm: 70
-  y_mm: 340
-  z_mm: 80
+  x_mm: 0
+  y_mm: 425
+  z_mm: 219
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
-  id: front-120-4
+  id: front-7
   panel: front
   size_mm: 120
-  x_mm: 70
-  y_mm: 430
-  z_mm: 80
+  x_mm: 0
+  y_mm: 550
+  z_mm: 88
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
-  id: front-120-5
+  id: front-8
   panel: front
   size_mm: 120
-  x_mm: 70
-  y_mm: 520
-  z_mm: 80
+  x_mm: 0
+  y_mm: 550
+  z_mm: 219
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
   id: top-1
   panel: top
-  size_mm: 140
-  x_mm: 180
-  y_mm: 660
+  size_mm: 120
+  x_mm: 190
+  y_mm: 698
   z_mm: 150
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -170,9 +170,9 @@ mounts:
     that position.
   id: top-2
   panel: top
-  size_mm: 140
-  x_mm: 340
-  y_mm: 660
+  size_mm: 120
+  x_mm: 315
+  y_mm: 698
   z_mm: 150
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -180,9 +180,19 @@ mounts:
     that position.
   id: top-3
   panel: top
-  size_mm: 140
-  x_mm: 500
-  y_mm: 660
+  size_mm: 120
+  x_mm: 440
+  y_mm: 698
+  z_mm: 150
+- _approximate: true
+  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
+    and the UI, not a factory drawing. Mount size is the published fan support for
+    that position.
+  id: top-4
+  panel: top
+  size_mm: 120
+  x_mm: 565
+  y_mm: 698
   z_mm: 150
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -193,7 +203,7 @@ mounts:
   size_mm: 120
   x_mm: 200
   y_mm: 400
-  z_mm: 280
+  z_mm: 307
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -201,9 +211,9 @@ mounts:
   id: side-2
   panel: side
   size_mm: 120
-  x_mm: 320
+  x_mm: 330
   y_mm: 400
-  z_mm: 280
+  z_mm: 307
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -211,9 +221,9 @@ mounts:
   id: side-3
   panel: side
   size_mm: 120
-  x_mm: 440
+  x_mm: 460
   y_mm: 400
-  z_mm: 280
+  z_mm: 307
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
@@ -221,19 +231,9 @@ mounts:
   id: rear-1
   panel: rear
   size_mm: 140
-  x_mm: 660
-  y_mm: 400
+  x_mm: 698
+  y_mm: 600
   z_mm: 150
-- _approximate: true
-  _assumption: Side-view coordinates and uncited areas are a schematic for the solver
-    and the UI, not a factory drawing. Mount size is the published fan support for
-    that position.
-  id: rear-2
-  panel: rear
-  size_mm: 120
-  x_mm: 660
-  y_mm: 250
-  z_mm: 80
 leak_areas_m2:
   _approximate: true
   _assumption: Estimated mesh and seam areas for a super-tower airflow case.
@@ -247,7 +247,11 @@ clearance_above_top_mm: 40
 dimension_note: 'Corsair lists height 698 mm, length 698 mm, width 307 mm. Expansion:
   ''8 Horizontal (or 4 Vertical) + 2 Vertical (For Secondary Motherboard)''. Modelled
   here as 8 horizontal + 2 vertical. Front/top 140 mm and 120 mm patterns are alternate
-  InfiniRail layouts; the mount list includes 3×140 plus extra 120 mm stations so
-  either pattern can be filled. Bottom has no fan or radiator support. PSU max length
-  225 mm. No fans are included with the case.'
+  InfiniRail layouts. Rev 4 models the front as the 8×120 pattern, 4 high × 2 wide
+  (Corsair: "dual 480mm radiators side-by-side"), and the rear as 1×140 (Corsair:
+  rear 2×120 or 1×140), and the top as one row of 4×120 (Corsair: top 8×120). Bottom has no fan or radiator support. PSU max length 225
+  mm. Corsair lists "Included Fans: No Fans Included"; the 9000D template populates
+  the front array with AF120 RGB ELITE as an assumption. The two extra vertical slots
+  are, per Corsair, for a secondary motherboard; the model uses them as vertical GPU
+  positions for convenience.'
 notes: Real case. The Mike Bradley build that uses it is a separate illustrative mock.
