@@ -49,12 +49,12 @@
     {
       "name": "anchor_c_fans_80",
       "pass": true,
-      "detail": "Mike Bradley stack, fans 80%: top\u2192bottom ['78.1', '67.1', '56.6', '46.7'] \u00b0C (published top 79, bottom 49; rising bottom\u2192top True)"
+      "detail": "Mike Bradley stack, fans 80%: top\u2192bottom ['77.9', '67.1', '56.6', '46.7'] \u00b0C (published top 79, bottom 49; rising bottom\u2192top True)"
     },
     {
       "name": "anchor_c_fans_100",
       "pass": true,
-      "detail": "Mike Bradley stack, fans 100%: top\u2192bottom ['69.4', '60.8', '52.4', '44.6'] \u00b0C (published top 69, bottom 49; rising bottom\u2192top True)"
+      "detail": "Mike Bradley stack, fans 100%: top\u2192bottom ['69.3', '60.7', '52.4', '44.5'] \u00b0C (published top 69, bottom 49; rising bottom\u2192top True)"
     },
     {
       "name": "cell:s-stacked__p-high__sh-off__l-sealed",

@@ -84,9 +84,10 @@ GLOBAL = {
     # Fraction of the open rear-slot area that still bypasses into the plenum
     # (empty brackets under the shroud). The rest is baffled by the shroud walls.
     "shroud_bypass_fraction": 0.04,
-    # Of the open rear-slot area with the shroud off, this fraction exchanges with the
-    # hot exhaust plume. The rest exchanges with room air. A real jet entrains ambient
-    # before any of it is pulled back in, so most of a large opening is not pure exhaust.
+    # Of the open rear-slot area with the shroud off, this fraction faces the hot
+    # exhaust plume; the rest faces room air. Flow through both is set by the
+    # solved pressure: it only comes back IN (re-ingestion) when the GPU zone is
+    # below room pressure. At positive case pressure both paths blow outward.
     "reingest_fraction": 0.22,
     # Bleed orifice on every node so the Jacobian stays nonsingular.
     # ~0.1 CFM at 100 Pa. Numerical regularisation, not a modelled leak path.
@@ -95,21 +96,18 @@ GLOBAL = {
     "nu_m": 0.60,
     # Drive cage parked in the front intake.
     "drive_cage_k": 6.0e4,
-    # PSU fan pulling from the chamber instead of the floor.
+    # PSU fan facing up, pulling case air through the PSU-shroud cut-outs:
+    # k multiplier on its path. Approximate.
     "psu_fan_up_k_mult": 1.45,
     # Direct front-to-GPU spill (Meshify) vs a mixed mid-tower.
     "spill_area_direct_m2": 0.045,
     "spill_area_mixed_m2": 0.012,
-    # Plume ingestion between stacked cards (rev 4 item 12). A card whose
-    # exhaust leaves upward (flow-through) sends a jet at the fan face of the
-    # card above. That card draws a fraction φ of its fan-side intake mass
-    # straight from the jet instead of from the mixed GPU zone:
-    #     φ(g) = plume_phi_max · exp(−g / plume_length_mm)
-    # g is the air gap between the two cards. Capped by the jet's own mass.
-    # A free jet from a ~10 cm slot spreads and entrains room air over a few
-    # centimetres; 40 mm is the e-folding length assumed here. Approximate.
-    "plume_phi_max": 0.85,
-    "plume_length_mm": 40.0,
+    # Plume ingestion between stacked cards (rev 4 item 12; rev 4.1 derives
+    # it from the solved flows, see thermal.plume_transfers). The only knob is
+    # the jet entrainment coefficient: zone air pulled into the jet per metre
+    # of travel, ṁ_e = α · ρ V_j · perimeter · g. α ≈ 0.05–0.1 for free jets
+    # and plumes (Morton, Taylor & Turner); 0.08 used. Approximate.
+    "plume_entrainment": 0.08,
     # Series duct between stacked flow-through cards (rev 4.1). The lower
     # card's backplate cutout breathes straight into the fans above through
     # area = cutout · exp(−gap / stack_length_mm). stack_cd lumps the losses of

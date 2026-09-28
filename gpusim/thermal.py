@@ -23,7 +23,6 @@ from dataclasses import dataclass
 import numpy as np
 
 from gpusim.flow import FlowSolution
-from gpusim.layout import plume_fraction
 from gpusim.network import AMB, Network
 from gpusim.physics import CP_AIR, air_conductivity, air_density, air_viscosity, fin_epsilon
 
@@ -58,13 +57,45 @@ class ThermalSolution:
     advection_residual: dict[str, float] | None = None
 
 
+def zone_sweep(net: Network, flow: FlowSolution) -> tuple[float, float]:
+    """Fresh air entering the GPU zone (m³/s) and the crossflow speed through
+    the card region (m/s): that flow over `net.sweep_area_m2`."""
+    q_in = 0.0
+    for br in net.branches:
+        if br.kind == "bleed":
+            continue
+        q = flow.flow_m3s.get(br.id, 0.0)
+        if br.b == "gpu" and q > 0 and not br.a.startswith(("cin-", "cex-")):
+            q_in += q
+        elif br.a == "gpu" and q < 0 and not br.b.startswith(("cin-", "cex-")):
+            q_in += -q
+    area = max(float(getattr(net, "sweep_area_m2", 0.05) or 0.05), 1e-3)
+    return q_in, q_in / area
+
+
 def plume_transfers(net: Network, flow: FlowSolution, sample: dict) -> list[dict]:
     """Mass the upper card draws straight out of the lower card's exhaust jet.
 
-    m_ing = min(φ(g) · ṁ_fan-side-inlet(upper), 0.98 · ṁ_up-exit(lower)).
+    Derived from the solved flows, not a fixed function of the gap:
+
+      V_j   = Q_jet / A_cutout                 jet speed leaving the backplate
+      U_c   = Q_zone_in / A_sweep              crossflow through the card region
+      s     = min(1, U_c · g / (V_j · L_f))    share of the jet the crossflow
+                                               carries past the fan region (L_f
+                                               long) while it crosses the gap g
+      e     = α · P · g / A_cutout             zone air the jet entrains on the
+                                               way (α ≈ 0.08, P = jet perimeter)
+      ṁ_arr = ṁ_jet · (1 − s)                  hot air that reaches the fans above
+      ṁ_ing = min(ṁ_in, ṁ_arr · (1 + e)) / (1 + e)
+
+    The upper fans take the arriving mixture first (the jet points at them) and
+    make up any shortfall with zone air. φ = ṁ_ing / ṁ_in is reported.
     """
-    phi_max = float(sample.get("plume_phi_max", 0.85))
-    length = float(sample.get("plume_length_mm", 40.0))
+    alpha = float(sample.get("plume_entrainment", 0.08))
+    sweep_scale = float(sample.get("plume_sweep_scale", 1.0))
+    q_zone, u_c = zone_sweep(net, flow)
+    u_c *= sweep_scale
+    geom = getattr(net, "plume_geom", {}) or {}
     out = []
     for lower, upper, gap_mm in getattr(net, "plume_pairs", []) or []:
         up = net.by_id(f"upexit-{lower}")
@@ -73,11 +104,19 @@ def plume_transfers(net: Network, flow: FlowSolution, sample: dict) -> list[dict
             continue
         m_up = up.rho * flow.flow_m3s.get(up.id, 0.0)
         m_in = inlet.rho * flow.flow_m3s.get(inlet.id, 0.0)
-        phi = plume_fraction(gap_mm, phi_max, length)
-        if m_up <= 0 or m_in <= 0 or phi <= 0:
+        cutout, width = geom.get(lower, (0.012, 0.22))
+        g = max(float(gap_mm), 0.0) / 1000.0
+        v_jet = (m_up / up.rho) / max(cutout, 1e-6) if m_up > 0 else 0.0
+        swept = min(1.0, u_c * g / max(v_jet * width, 1e-9)) if v_jet > 0 else 1.0
+        perimeter = 2.0 * (width + cutout / max(width, 1e-6))
+        entrained = alpha * perimeter * g / max(cutout, 1e-6)
+        arriving = max(m_up, 0.0) * (1.0 - swept)
+        if m_up <= 0 or m_in <= 0:
             m_ing = 0.0
         else:
-            m_ing = min(phi * m_in, 0.98 * m_up)
+            m_ing = min(m_in, arriving * (1.0 + entrained)) / (1.0 + entrained)
+            m_ing = min(m_ing, 0.98 * m_up)
+        phi = (m_ing / m_in) if m_in > 0 else 0.0
         out.append(
             {
                 "id": f"plume-{lower}-{upper}",
@@ -85,6 +124,10 @@ def plume_transfers(net: Network, flow: FlowSolution, sample: dict) -> list[dict
                 "upper": upper,
                 "gap_mm": gap_mm,
                 "phi": phi,
+                "jet_velocity_m_s": v_jet,
+                "crossflow_m_s": u_c,
+                "swept_fraction": swept,
+                "entrained_ratio": entrained,
                 "from_node": f"cex-{lower}",
                 "to_node": f"cin-{upper}",
                 "out_branch": up.id,
@@ -94,7 +137,7 @@ def plume_transfers(net: Network, flow: FlowSolution, sample: dict) -> list[dict
                 "displaced_from": inlet.a,
                 "displaced_to": up.b,
                 "mass_kg_s": m_ing,
-                "share_of_upper_intake": (m_ing / m_in) if m_in > 0 else 0.0,
+                "share_of_upper_intake": phi,
                 "share_of_lower_jet": (m_ing / m_up) if m_up > 0 else 0.0,
                 "rho": up.rho,
             }

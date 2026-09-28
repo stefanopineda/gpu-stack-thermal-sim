@@ -9,31 +9,31 @@ Monte Carlo sample count for the bands below: 200.
 
 ## 1. `s-gap1__p-standard__sh-off__l-sealed`
 
-Predicted unthrottled hottest die 86.4 °C (-22.5 °C vs stock). Throttled equilibrium 86.4 °C. Monte Carlo hottest-die band 78.0–100.1 °C.
+Predicted unthrottled hottest die 86.4 °C (-22.5 °C vs stock). Throttled equilibrium 86.4 °C. Monte Carlo hottest-die band 78.0–100.3 °C.
 
 Why it should move: Move cards apart by one slot. No parts. Tape panel gaps. Reversible, fiddly.
 
 ## 2. `s-gap1__p-standard__sh-on__l-leaky`
 
-Predicted unthrottled hottest die 84.2 °C (-24.6 °C vs stock). Throttled equilibrium 84.2 °C. Monte Carlo hottest-die band 76.1–97.6 °C.
+Predicted unthrottled hottest die 84.2 °C (-24.6 °C vs stock). Throttled equilibrium 84.2 °C. Monte Carlo hottest-die band 76.0–97.8 °C.
 
 Why it should move: Move cards apart by one slot. No parts. Fit the rear shroud and its two fans. Hardware already in hand.
 
 ## 3. `s-gap1__p-standard__sh-on__l-sealed`
 
-Predicted unthrottled hottest die 84.3 °C (-24.5 °C vs stock). Throttled equilibrium 84.3 °C. Monte Carlo hottest-die band 76.2–97.7 °C.
+Predicted unthrottled hottest die 84.3 °C (-24.5 °C vs stock). Throttled equilibrium 84.3 °C. Monte Carlo hottest-die band 76.0–97.9 °C.
 
 Why it should move: Move cards apart by one slot. No parts. Fit the rear shroud and its two fans. Hardware already in hand. Tape panel gaps. Reversible, fiddly.
 
 ## 4. `s-gap1__p-high__sh-on__l-leaky`
 
-Predicted unthrottled hottest die 84.7 °C (-24.1 °C vs stock). Throttled equilibrium 84.7 °C. Monte Carlo hottest-die band 76.5–98.1 °C.
+Predicted unthrottled hottest die 84.7 °C (-24.1 °C vs stock). Throttled equilibrium 84.7 °C. Monte Carlo hottest-die band 76.5–98.4 °C.
 
 Why it should move: Move cards apart by one slot. No parts. Fit the rear shroud and its two fans. Hardware already in hand. Flip the radiator and the rear fan to intake. A few screws.
 
 ## 5. `s-gap1__p-high__sh-on__l-sealed`
 
-Predicted unthrottled hottest die 85.5 °C (-23.3 °C vs stock). Throttled equilibrium 85.5 °C. Monte Carlo hottest-die band 77.3–99.2 °C.
+Predicted unthrottled hottest die 85.5 °C (-23.3 °C vs stock). Throttled equilibrium 85.5 °C. Monte Carlo hottest-die band 77.3–99.3 °C.
 
 Why it should move: Move cards apart by one slot. No parts. Fit the rear shroud and its two fans. Hardware already in hand. Flip the radiator and the rear fan to intake. A few screws. Tape panel gaps. Reversible, fiddly.
 

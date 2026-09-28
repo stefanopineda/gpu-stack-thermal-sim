@@ -449,3 +449,44 @@ labelled); objects explain themselves on hover. The view is mirrored so the fron
 through the glass, the motherboard is an ASUS Pro WS WRX90E-SAGE SE layout (EEB, sTR5, 8 DIMM, 7 PCIe
 x16), cards sit on its slot positions (slot 1 ≈ 158 mm below the board top), and vertical cards stand in
 their own positions next to the glass.
+
+### 16.1 Plume share derived from the solved flows (rev 4.1, second pass)
+
+The rev 4 plume share `φ = 0.85·exp(−gap/40 mm)` was a fixed function of the gap. It is replaced by a
+calculation from the flows the network already solves (`thermal.plume_transfers`):
+
+- jet speed `V_j = Q_up-exit / A_cutout` (lower card's exhaust through its backplate cutout);
+- crossflow `U_c = Q_fresh-into-GPU-zone / A_sweep`, `A_sweep` = case width × (slot stack height + 60 mm);
+- swept share `s = min(1, U_c·g / (V_j·L_f))`: how far the crossflow pushes the jet while it crosses the
+  gap `g`, relative to the fan region length `L_f`;
+- entrainment `e = α·P·g / A_cutout`, `α = 0.08` (free-jet entrainment coefficient, Morton–Taylor–Turner
+  order), `P` the jet perimeter;
+- `ṁ_ing = min(ṁ_in, ṁ_jet·(1 − s)·(1 + e)) / (1 + e)`, capped at 98 % of the jet; `φ = ṁ_ing / ṁ_in`.
+
+Result: in a normal case the crossflow (≈ 1.1 m/s in the Meshify) is about as fast as the jet (1.3–1.7 m/s),
+and over 2–6 cm it sweeps only 9–18 % of the jet away while entrainment dilutes it 8–23 %. Two 5090 FE
+cards: φ ≈ 0.62 / 0.66 / 0.64 at 1 / 2 / 3 empty slots, upper − lower +10.4 / +9.8 / +9.7 °C (+1.8 / +0.8 /
++0.5 without the plume). Stagnant case (front fans removed) → φ 0.65–0.72; 3× iPPC-3000 front → 0.54–0.59.
+Getting φ near 5 % at three slots would need ≈ 5.7 m/s of crossflow, or a baffle. So spacing flow-through
+cards helps mostly by giving each card a bigger inlet, not by diluting the plume; for the 3090 FE the
+upper − lower difference even grows slightly with spacing (+6.2 → +7.9 °C) while both cards get cooler.
+Monte Carlo varies `α` (lognormal σ 0.35) and the crossflow scale (σ 0.30). Anchor C is unchanged (top
+78.0 / 69.3 °C). The rev 4 "upper − lower shrinks with spacing" test is replaced by "φ falls as the case
+crossflow rises", which is what the physics actually implies.
+
+### 16.2 Assumption audit (rev 4.1)
+
+| Where | Was | Now |
+|---|---|---|
+| `layout._pair_gap` | Slot covers installed made the gap *between two cards* a `blocked_slot` (inlet area × 0.22) | Covers close the rear wall, not the inter-card gap; the fan breathes the gap from the front and glass side. `blocked_slot` only via an explicit `gap_override` (e.g. cables). |
+| `network.seal_level` | Slot covers had no effect on the rear slot openings | Covers installed → rear slot openings at seal level 4 or tighter. |
+| `network` PSU | `psu_fan` input and `psu_fan_up_k_mult` were never used | Fan up = exhaust from the GPU zone out the rear (generic 140 mm at 50 %, × 1.45 through the shroud cut-outs); fan down = outside air, no branch. |
+| Text: tooltip, demo, hypothesis, calib comment | "Open slots re-ingest the hot plume" stated unconditionally | The solver already sets that flow by pressure (−2.5 Pa: 5.9 CFM in; +7.7 Pa: 7.6 CFM out). Text now says re-ingestion only happens below room pressure. |
+| `thermal` plume | Fixed φ(gap) | Derived from flows (§16.1). |
+
+Known simplifications that remain, documented rather than changed: the GPU zone is one well-mixed air
+volume (no vertical stratification, so an upper card does not see warmer zone air unless the plume or a
+backplate hands it heat); `R_ext` (shroud/backplate to air) is a constant, not a function of the local air
+speed; backplate heat captured by a neighbour's inlet depends on the gap only; the blower bracket
+short-circuit always flows outward-to-zone because a blower outlet (~80 Pa) is far above any case pressure;
+buoyancy is a small optional bias.

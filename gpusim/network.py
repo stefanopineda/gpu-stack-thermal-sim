@@ -72,6 +72,9 @@ def seal_level(build: BuildCfg, name: str) -> int:
             level = 1
         elif build.side_panel == "mesh":
             level = min(level, 3)
+    if name == "rear_slots" and not build.brackets_removed:
+        # Slot covers installed: only the seams around them leak.
+        level = max(level, 4)
     return level
 
 
@@ -104,6 +107,10 @@ class Network:
         # (lower gpu, upper gpu, gap mm) pairs where the lower card's exhaust
         # jet points at the upper card's fan face.
         self.plume_pairs: list[tuple[str, str, float]] = []
+        # lower gpu → (backplate cutout m², flow-through region length m)
+        self.plume_geom: dict[str, tuple[float, float]] = {}
+        # Cross-section the zone's fresh air crosses on its way past the cards.
+        self.sweep_area_m2: float = 0.05
         self.cooler: dict[str, str] = {}
 
     def by_id(self, ident: str) -> Branch | None:
@@ -209,6 +216,7 @@ def build_network(
         )
 
     _add_rear_slots(build, case, rho_ref, seal_scale, shroud_on, sample, add)
+    _add_psu_fan(build, case, fans, rho_ref, rho_for, sample, add)
 
     cooler: dict[str, str] = {}
     for gpu in sort_gpus(build):
@@ -295,6 +303,7 @@ def build_network(
 
     # A flow-through card's jet points at the fan face of the card directly above.
     pairs = []
+    plume_geom: dict[str, tuple[float, float]] = {}
     for gpu in sort_gpus(build):
         if cooler.get(gpu.id) != "flow_through":
             continue
@@ -303,6 +312,9 @@ def build_network(
         if upper and not gaps[gpu.id].get("vertical"):
             gap_mm = float(above["gap_mm"])
             pairs.append((gpu.id, upper, gap_mm))
+            geom_params = sample.get("cards", {}).get(gpu.card) or {}
+            if geom_params:
+                plume_geom[gpu.id] = (float(geom_params["exit_area_m2"]), float(geom_params["exit_width_m"]))
             # At a tight gap the backplate cutout breathes straight into the fan
             # of the card above: the two coolers act as fans in series through a
             # short duct. The duct area fades as the gap opens and the jet can
@@ -336,6 +348,10 @@ def build_network(
     net = Network(branches, sorted(nodes), gaps, ordered)
     net.sealed = sealed
     net.plume_pairs = pairs
+    net.plume_geom = plume_geom
+    # Case width × the height of the slot stack (+60 mm): the window the zone's
+    # front-to-back air has to pass the cards through.
+    net.sweep_area_m2 = (case.width_mm / 1000.0) * ((case.horizontal_slots * case.slot_pitch_mm + 60.0) / 1000.0)
     net.cooler = cooler
     return net
 
@@ -694,6 +710,43 @@ def _add_spill(build, case, rho_ref, sample, add) -> None:
             rho=rho_ref,
             kind="spill",
             label="GPU zone to main case volume",
+        )
+    )
+
+
+def _add_psu_fan(build, case, fans, rho_ref, rho_for, sample, add) -> None:
+    """PSU fan facing up pulls case air through the PSU and out the rear.
+
+    Facing down it breathes through the floor filter from outside the case and
+    does not touch the case air, so there is no branch. Facing up it is an
+    exhaust fan from the GPU zone (open PSU) or from under the PSU shroud,
+    whose cut-outs add `psu_fan_up_k_mult` to the path. PSU fan: a generic
+    140 mm fan at 50 % speed, typical of a PSU under a few hundred watts of
+    loss. Approximate.
+    """
+    if build.psu_fan != "up" or "generic-140" not in fans:
+        return
+    fan = fans["generic-140"]
+    rpm = rpm_from_duty(fan.rpm_min, fan.rpm_max, float(sample.get("psu_fan_duty", 0.5)))
+    q, p, rpm, rpm_ref = _fan_qp(fan, rpm, 1, 1.0)
+    k = orifice_k(0.55 * 0.14 * 0.14, rho_ref, 0.6)
+    shrouded = case.psu_shroud and build.psu_location != "open"
+    if shrouded:
+        k *= float(sample.get("psu_fan_up_k_mult", 1.45))
+    add(
+        Branch(
+            id="psu-fan",
+            a="gpu",
+            b=AMB,
+            k=k,
+            k_lin=1.0,
+            rho=rho_for("gpu"),
+            kind="fan",
+            label=f"PSU fan facing up, exhausting out the rear{' through the PSU shroud' if shrouded else ''}",
+            q_tab=q,
+            p_tab=p,
+            rpm=rpm,
+            rpm_ref=rpm_ref,
         )
     )
 

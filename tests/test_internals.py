@@ -93,3 +93,39 @@ def test_obstruction_and_cables_raise_internal_k():
     assert abs(k_high / k_low - 6.0 * 2.0) < 1e-6
     lib = get_library()
     assert solve(high, lib, do_throttle=False).hottest_unthrottled > solve(low, lib, do_throttle=False).hottest_unthrottled
+
+
+def test_slot_covers_close_the_rear_not_the_gap_between_cards():
+    covered = _anchor_a()
+    covered.brackets_removed = False
+    open_ = _anchor_a()
+    lib = get_library()
+    from gpusim.layout import gap_table
+
+    gaps = gap_table(covered, lib.cases[covered.case], lib.cards)
+    assert all(side["state"] != "blocked_slot" for g in gaps.values() for side in g["sides"])
+    k_open = _net(open_).by_id("rear-slots").k
+    k_covered = _net(covered).by_id("rear-slots").k
+    assert k_covered > 20 * k_open  # covers leave only seams
+
+
+def test_rear_slot_flow_follows_case_pressure():
+    lib = get_library()
+    from gpusim.factors import apply_cell
+
+    for pressure, sign in (("standard", -1), ("high", 1)):
+        sol = solve(apply_cell(lib.builds["meshify2xl-stefano"], "gap1", pressure, "off", "leaky", library=lib), lib)
+        reingest = next(b for b in sol.branches if b["id"] == "rear-reingest")
+        assert (sol.pressures["gpu"] > 0) == (sign > 0)
+        assert reingest["flow_cfm"] * sign > 0  # out of the case only at positive pressure
+
+
+def test_psu_fan_up_is_an_exhaust_and_down_is_not():
+    down = _anchor_a()
+    up = down.model_copy(deep=True)
+    up.psu_fan = "up"
+    assert _net(down).by_id("psu-fan") is None
+    branch = _net(up).by_id("psu-fan")
+    assert branch is not None and branch.a == "gpu" and branch.b == "amb"
+    sol = solve(up, get_library())
+    assert next(b for b in sol.branches if b["id"] == "psu-fan")["flow_cfm"] > 0

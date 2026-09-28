@@ -94,16 +94,21 @@ gives 86 °C). His room temperature is not published; at 25 °C the model's bott
 than his. Case fans, CPU cooler and CPU load are assumptions (listed on the preset). The bounds check
 holds the top card to ± 5 °C, the bottom to ± 6 °C, and requires a monotonic rise.
 
-Spaced pairs barely move with the duct (two 5090 FE one slot apart: +8.5 °C top over bottom, was +7.9).
+Spaced pairs barely move with the duct. Anchor C after the plume re-derivation: top 78.0 / 69.3 °C.
 
-## Plume ingestion (rev 4, global)
+## Plume ingestion (rev 4.1: derived from the flows)
 
-`φ(g) = φ_max · exp(−g / L_plume)` with `φ_max = 0.85`, `L_plume = 40 mm`: the share of the upper card's
-fan-side intake taken straight from the lower flow-through card's jet, capped at 98 % of the jet mass.
-Not fitted — there is no stacked flow-through measurement to fit against. The e-folding length is the
-distance over which a ~10 cm slot jet entrains enough room air to lose most of its identity. The plume
-term is what makes the stack order matter: two 5090 FE cards one empty slot apart differ by +7.9 °C with
-it and +0.8 °C without it (full table in SPEC §6.3).
+Not fitted. The upper card's share of the lower card's jet follows from the solved jet speed, the case
+crossflow and a free-jet entrainment coefficient `α = 0.08` (SPEC §16.1). Two 5090 FE cards in the Meshify:
+
+| Empty slots | Gap | φ | Upper | Lower | Upper − lower | Without the plume |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 21.0 mm | 0.62 | 92.3 | 81.9 | +10.4 | +1.8 |
+| 2 | 41.3 mm | 0.66 | 88.6 | 78.8 | +9.8 | +0.8 |
+| 3 | 61.6 mm | 0.64 | 87.7 | 77.9 | +9.7 | +0.5 |
+
+Rev 4's fixed curve gave 0.50 / 0.30 / 0.18 and +8.5 / +4.9 / +3.6 °C: it overstated how much spacing
+dilutes the plume. Both cards still get cooler with spacing, through bigger inlets.
 
 ## Other rev 4 knobs (global, approximate)
 

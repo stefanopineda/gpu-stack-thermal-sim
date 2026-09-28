@@ -370,7 +370,7 @@ def solve(
     if any(t["mass_kg_s"] > 0 for t in thermal.transfers or []):
         notes.append(
             "Stacked flow-through cards: the upper card breathes part of the lower card's exhaust "
-            "(plume ingestion, φ(gap) = φ_max·exp(−gap/L))."
+            "(plume ingestion, derived from jet speed, case crossflow and entrainment)."
         )
     return Solution(
         build_id=build.id,
@@ -421,8 +421,8 @@ def sample_tuning(rng, build: BuildCfg, library: Library | None = None) -> dict:
         "ambient_offset": float(rng.normal(0.0, 0.8)),
         "ippc_p_scale": float(rng.uniform(ippc_lo, 1.0)),
         "recirc_area_m2": GLOBAL["recirc_area_m2"] * ln(0.25),
-        "plume_phi_max": float(rng.uniform(0.70, 0.95)),
-        "plume_length_mm": GLOBAL["plume_length_mm"] * ln(0.25),
+        "plume_entrainment": GLOBAL["plume_entrainment"] * ln(0.35),
+        "plume_sweep_scale": ln(0.30),
     }
 
 

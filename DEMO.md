@@ -40,8 +40,9 @@ about 26 CFM each. Nothing throttles. This is the measured anchor. Spacing did a
 Same layout, shroud on.
 
 Say: one plenum over every bracket, two industrial fans pulling on it, in series with the blowers. Hottest
-die 84.2 °C. Mean flow rises from 25.7 to 26.5 CFM. The larger effect is that exhaust is no longer pulled
-back in through the open slot mouths. The datasheet static pressure is 10.52 mmH₂O and the web page says
+die 84.2 °C. Mean flow rises from 25.7 to 26.5 CFM. The case sits a few pascals below room pressure here,
+so without the shroud some exhaust plume comes back in through the open slot mouths; the plenum stops that.
+At positive case pressure nothing comes back in, shroud or not. The datasheet static pressure is 10.52 mmH₂O and the web page says
 6.58; the model uses the datasheet and the Monte Carlo spans both.
 
 ### Positive pressure, taped

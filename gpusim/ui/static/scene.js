@@ -34,6 +34,9 @@ export class CaseScene {
     this.labelsEl = labelsEl;
     this.cb = callbacks;
     this.view = "front34";
+    this._setDir(VIEWS.front34);
+    this.zoom = 1;
+    this.orbit = null;
     this.ctx = null;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -54,7 +57,17 @@ export class CaseScene {
     this.labels = [];
     canvas.addEventListener("pointerdown", (ev) => this._down(ev));
     canvas.addEventListener("pointerup", (ev) => this._up(ev));
-    canvas.addEventListener("pointermove", (ev) => this._hover(ev));
+    canvas.addEventListener("pointermove", (ev) => (this.orbit ? this._orbitMove(ev) : this._hover(ev)));
+    canvas.addEventListener(
+      "wheel",
+      (ev) => {
+        ev.preventDefault();
+        this.zoom = Math.min(2.5, Math.max(0.35, this.zoom * Math.pow(1.0015, ev.deltaY)));
+        this._frame();
+      },
+      { passive: false },
+    );
+    canvas.addEventListener("dblclick", () => this.setView(this.view));
     canvas.addEventListener("pointerleave", () => this.cb.onHover?.(null));
     const loop = () => {
       this._resize();
@@ -66,8 +79,23 @@ export class CaseScene {
   }
 
   setView(name) {
-    if (VIEWS[name]) this.view = name;
+    if (VIEWS[name]) {
+      this.view = name;
+      this._setDir(VIEWS[name]);
+      this.zoom = 1;
+    }
     this._frame();
+  }
+
+  /* Camera direction as azimuth (around the vertical axis) and elevation. */
+  _setDir(v) {
+    const d = v.clone().normalize();
+    this.az = Math.atan2(d.x, d.z);
+    this.el = Math.asin(d.y);
+  }
+
+  _dir() {
+    return new THREE.Vector3(Math.sin(this.az) * Math.cos(this.el), Math.sin(this.el), Math.cos(this.az) * Math.cos(this.el));
   }
 
   update(ctx) {
@@ -622,13 +650,13 @@ export class CaseScene {
     const box = new THREE.Box3().setFromObject(this.root);
     if (box.isEmpty()) return;
     const sphere = box.getBoundingSphere(new THREE.Sphere());
-    const dir = VIEWS[this.view].clone().normalize();
+    const dir = this._dir();
     const vfov = (this.camera.fov * Math.PI) / 180;
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect);
     const fit = Math.min(vfov, hfov);
-    const dist = (sphere.radius * 1.02) / Math.sin(fit / 2);
+    const dist = ((sphere.radius * 1.02) / Math.sin(fit / 2)) * this.zoom;
     this.camera.position.copy(sphere.center.clone().add(dir.multiplyScalar(dist)));
-    this.camera.near = Math.max(dist - sphere.radius * 2, 0.01);
+    this.camera.near = Math.max(dist - sphere.radius * 2, 0.005);
     this.camera.far = dist + sphere.radius * 3;
     this.camera.lookAt(sphere.center);
     this.camera.updateProjectionMatrix();
@@ -719,9 +747,31 @@ export class CaseScene {
   _down(ev) {
     const data = this._pick(ev);
     this.drag = data ? { data, x: ev.clientX, y: ev.clientY } : null;
+    if (!data) {
+      // Empty space: drag to orbit the case.
+      this.orbit = { x: ev.clientX, y: ev.clientY, az: this.az, el: this.el };
+      try {
+        this.canvas.setPointerCapture(ev.pointerId);
+      } catch {
+        // synthetic events have no capturable pointer
+      }
+      this.canvas.style.cursor = "grabbing";
+    }
+  }
+
+  _orbitMove(ev) {
+    const o = this.orbit;
+    this.az = o.az - (ev.clientX - o.x) * 0.008;
+    this.el = Math.max(-1.3, Math.min(1.3, o.el + (ev.clientY - o.y) * 0.006));
+    this._frame();
   }
 
   _up(ev) {
+    if (this.orbit) {
+      this.orbit = null;
+      this.canvas.style.cursor = "";
+      return;
+    }
     const drag = this.drag;
     this.drag = null;
     if (!drag || !this.ctx) return;

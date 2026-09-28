@@ -2,7 +2,6 @@
 
 import pytest
 
-from gpusim.layout import plume_fraction
 from gpusim.library import get_library
 from gpusim.models import GpuCfg
 from gpusim.solve import solve
@@ -44,7 +43,7 @@ def test_upper_flow_through_card_runs_hotter_and_the_gap_closes_with_spacing(car
 
 def test_plume_term_is_what_makes_the_upper_card_hot():
     with_plume = _pair("rtx-5090-fe", 3)
-    without = _pair("rtx-5090-fe", 3, sample={"plume_phi_max": 0.0})
+    without = _pair("rtx-5090-fe", 3, sample={"plume_sweep_scale": 1e6})  # crossflow strips every jet
     d_with = with_plume.cards[0].t_die_unthrottled_c - with_plume.cards[1].t_die_unthrottled_c
     d_without = without.cards[0].t_die_unthrottled_c - without.cards[1].t_die_unthrottled_c
     assert d_with > d_without + 4.0
@@ -59,11 +58,34 @@ def test_ingested_mass_never_exceeds_the_jet():
     assert transfer["t_from_c"] > sol.cards[1].t_in_c
 
 
-def test_plume_fraction_falls_with_gap():
-    values = [plume_fraction(g, 0.85, 40.0) for g in (0.5, 21, 41, 62, 120)]
-    assert values == sorted(values, reverse=True)
-    assert values[0] <= 0.85
-    assert values[-1] < 0.05
+def _front_fans(build, fan):
+    for mount in build.mounts:
+        if mount.panel == "front":
+            mount.state, mount.fan = ("fan", fan) if fan else ("blanked", None)
+
+
+def test_plume_share_follows_the_crossflow():
+    """Stronger case crossflow sweeps more of the jet away; a stagnant gap keeps more."""
+    lib = get_library()
+    shares = []
+    for fan in (None, "noctua-140-redux-1700", "noctua-nf-a14-ippc-3000"):
+        build = lib.builds["meshify2xl-stefano"].model_copy(deep=True)
+        build.gpus = [
+            GpuCfg(id="gpu1", slot="1", card="rtx-5090-fe", power_limit_w=575),
+            GpuCfg(id="gpu2", slot="7", card="rtx-5090-fe", power_limit_w=575),
+        ]
+        build.shroud.mode = "off"
+        _front_fans(build, fan)
+        sol = solve(build, lib, do_throttle=False)
+        p = sol.plume[0]
+        assert 0 <= p["swept_fraction"] <= 1 and p["entrained_ratio"] > 0
+        assert p["share_of_lower_jet"] <= 0.98 + 1e-9
+        shares.append((p["crossflow_m_s"], p["share_of_upper_intake"]))
+        _balanced(sol)
+    speeds = [u for u, _ in shares]
+    phis = [f for _, f in shares]
+    assert speeds == sorted(speeds)
+    assert phis == sorted(phis, reverse=True)
 
 
 def test_blower_stack_has_no_plume_transfer():

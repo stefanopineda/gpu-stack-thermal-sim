@@ -43,12 +43,12 @@ def _pair_gap(upper_slot: int, upper_slots: int, upper_thickness: float, lower_s
     empty = max(empty, 0)
     slack = upper_slots * pitch - upper_thickness
     gap = empty * pitch + max(slack, 0.4)
-    if empty <= 0:
-        state = "no_slot"
-    elif brackets_removed:
-        state = "open_slot"
-    else:
-        state = "blocked_slot"
+    # A rear slot cover closes the opening in the rear wall, not the air gap
+    # between two cards: the fan face still breathes the gap from the front and
+    # the glass side. So covers do not change the inlet state (rev 4.1; rev 3–4
+    # wrongly marked a covered gap as blocked_slot). blocked_slot is kept for an
+    # explicit gap_override, e.g. cables stuffed between the cards.
+    state = "no_slot" if empty <= 0 else "open_slot"
     return float(gap), state
 
 
@@ -184,14 +184,6 @@ def exit_area_m2(gap_mm: float, exit_width_m: float, cutout_m2: float) -> float:
     """Flow-through exhaust leaving the backplate side into the gap above."""
     gap_m = max(float(gap_mm), 0.3) / 1000.0
     return float(min(max(exit_width_m * gap_m, 1e-8), max(cutout_m2, 1e-8)))
-
-
-def plume_fraction(gap_mm: float, phi_max: float, length_mm: float) -> float:
-    """Share of the upper card's fan-side intake drawn straight from the jet below."""
-    import math
-
-    g = max(float(gap_mm), 0.0)
-    return float(min(max(phi_max, 0.0), 0.98) * math.exp(-g / max(length_mm, 1.0)))
 
 
 def inlet_area_m2(gap_mm: float, state: str, inlet_width_m: float, eye_m2: float) -> float:

@@ -138,7 +138,7 @@ def presets():
         "seal_levels": simapi.seal_table(),
         "obstruction_k": OBSTRUCTION_K,
         "cable_k": CABLE_K,
-        "plume": {"phi_max": GLOBAL["plume_phi_max"], "length_mm": GLOBAL["plume_length_mm"]},
+        "plume": {"entrainment": GLOBAL["plume_entrainment"], "stack_cd": GLOBAL["stack_cd"], "stack_length_mm": GLOBAL["stack_length_mm"]},
         "radiators": [r.model_dump() for r in lib.radiators.values()],
         "cases": [_case_public(c) for c in lib.cases.values()],
         "builds": [

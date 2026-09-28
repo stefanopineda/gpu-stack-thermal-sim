@@ -170,6 +170,8 @@ function buildStartScreen() {
 
 async function loadBuild(id) {
   state.build = await (await fetch(`/api/build/${id}`)).json();
+  state.gaps = null;
+  state.notice = null;
   enterApp();
   await solveNow();
 }
@@ -204,6 +206,7 @@ function scratch(caseId) {
     notes: "",
   };
   state.face = "case";
+  state.gaps = null;
   enterApp();
   solveNow();
 }
@@ -309,7 +312,7 @@ function casePanel() {
         const next = caseOf();
         b.patterns = {};
         b.mounts = next.mounts.map((mt) => b.mounts.find((x) => x.id === mt.id) || { id: mt.id, panel: mt.panel, size_mm: mt.size_mm, fan: null, state: "blanked", direction: "intake", duty: 1 });
-        respace(1);
+        respace(currentGaps());
       },
     ),
   );
@@ -657,8 +660,17 @@ function gpusPanel() {
   count.value = b.gpus.length;
   count.onchange = () => {
     const n = Number(count.value);
+    const gaps = currentGaps();
     while (b.gpus.length > n) b.gpus.splice(b.gpus.indexOf(orderedGpus().at(-1)), 1);
-    while (b.gpus.length < n) if (!addGpu(false)) break;
+    while (b.gpus.length < n) {
+      let id = b.gpus.length + 1;
+      while (b.gpus.some((g) => g.id === `gpu${id}`)) id += 1;
+      const proto = b.gpus[0];
+      const gpu = gpuTemplate(`gpu${id}`, "99", proto?.card || "rtx-pro-6000-blackwell-maxq");
+      if (proto) Object.assign(gpu, { fan_curve: proto.fan_curve, custom_curve: proto.custom_curve, power_limit_w: proto.power_limit_w });
+      b.gpus.push(gpu);
+    }
+    respace(gaps);
     changed(true);
   };
   const spacing = el("select", { tip: TIPS.spacing }, [0, 1, 2, 3].map((g) => el("option", { value: g }, g === 0 ? "stacked (no gap)" : `${g} empty slot${g > 1 ? "s" : ""} between`)));
@@ -668,6 +680,9 @@ function gpusPanel() {
     changed(true);
   };
   out.push(el("div", { class: "row" }, el("label", {}, "How many", count), el("label", { tip: TIPS.spacing }, "Spacing", spacing)));
+  const vertical = orderedGpus().filter((g) => isVertical(g.slot)).length;
+  if (vertical) out.push(el("p", { class: "fine" }, `${vertical} card${vertical > 1 ? "s" : ""} on a vertical mount: ${vertical > 1 ? "they don't" : "it doesn't"} fit in the horizontal slots at this spacing.`));
+  if (state.notice) out.push(el("p", { class: "fine warn" }, state.notice));
   const curve = el("select", { tip: TIPS.curve }, [el("option", { value: "" }, "Mixed / custom — set each card below"), el("option", { value: "stock" }, "Stock"), el("option", { value: "custom_accelerated" }, "Custom Accelerated (0 % @ 25 °C → 100 % @ 70 °C)")]);
   const curves = new Set(b.gpus.map((g) => g.fan_curve));
   curve.value = curves.size === 1 && [...curves][0] !== "custom" ? [...curves][0] : "";
@@ -740,21 +755,45 @@ function gpusPanel() {
 
 /* Empty slots between the first two horizontal cards, as the spacing control reads it. */
 function currentGaps() {
+  if (state.gaps != null) return state.gaps;
   const horiz = orderedGpus().filter((g) => !isVertical(g.slot));
   if (horiz.length < 2) return 1;
   const w = cardOf(horiz[0].card)?.slots || 2;
   return Math.max(0, Math.min(3, Number(horiz[1].slot) - Number(horiz[0].slot) - w));
 }
 
+/* Put every card in a horizontal slot, top down with `gaps` empty slots
+ * between, while they fit. Only cards that do not fit go to a vertical mount
+ * (a card already on a vertical mount keeps it first). Returns cards that fit
+ * nowhere, which are removed. */
 function respace(gaps) {
+  state.gaps = gaps;
   const kase = caseOf();
-  const horiz = orderedGpus().filter((g) => !isVertical(g.slot));
+  const cards = orderedGpus();
+  const verticalPool = [
+    ...cards.filter((g) => isVertical(g.slot)).map((g) => g.slot),
+    ...kase.vertical_positions.map((v) => v.id),
+  ].filter((v, i, all) => all.indexOf(v) === i);
   let cursor = 1;
-  horiz.forEach((g) => {
+  const dropped = [];
+  cards.forEach((g) => {
     const width = cardOf(g.card)?.slots || 2;
-    if (cursor + width - 1 <= kase.horizontal_slots) g.slot = String(cursor);
-    cursor += width + gaps;
+    if (cursor + width - 1 <= kase.horizontal_slots) {
+      g.slot = String(cursor);
+      cursor += width + gaps;
+    } else if (verticalPool.length) {
+      g.slot = verticalPool.shift();
+    } else {
+      dropped.push(g);
+    }
   });
+  if (dropped.length) {
+    state.build.gpus = state.build.gpus.filter((g) => !dropped.includes(g));
+    state.notice = `${dropped.length} card${dropped.length > 1 ? "s" : ""} did not fit with that spacing and ${dropped.length > 1 ? "were" : "was"} removed.`;
+  } else {
+    state.notice = null;
+  }
+  return dropped;
 }
 
 function addGpu(solve = true) {

@@ -36,8 +36,9 @@ Confidence: high for the direction and for "this is the test that matters". Low 
 `s-gap1__p-standard__sh-on__l-leaky` — best cell in the factorial.
 
 Predicted hottest die 84.2 °C on every card. Nominal delta versus the gapped, shroud-off cell is −2.4 °C.
-Mean blower flow rises from 25.7 to 26.5 CFM; the plenum stops the exhaust being pulled back in the open
-slot mouths. Monte Carlo 76–98 °C fully overlaps the shroud-off band.
+Mean blower flow rises from 25.7 to 26.5 CFM. The case runs slightly below room pressure
+(about −3 Pa), so with the shroud off some exhaust plume comes back in through the open slot
+mouths; the plenum stops that. At positive case pressure there would be nothing to stop. Monte Carlo 76–98 °C fully overlaps the shroud-off band.
 
 The shroud does not rescue a stacked layout: stacked with the shroud on is still an unthrottled 104.2 °C
 (96.7, 104.2, 84.3, 83.7) and still throttles.

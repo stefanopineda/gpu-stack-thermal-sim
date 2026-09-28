@@ -40,13 +40,17 @@ export const TIPS = {
   cables:
     "Cable management. clean ×1.0, cluttered ×2.0 on the internal branches, and ×1.35 on every card inlet slit (bundles lying across the fans). Approximate.",
   psu: "PSU under a shroud (its own chamber) or open. With no shroud the lowest card's fan sees 1.8× more floor clearance.",
-  psuFan: "PSU fan facing down (breathes from outside through the floor) or up (pulls from the case).",
+  psuFan:
+    "PSU fan facing down breathes outside air through the floor and does not touch the case air. Facing up it becomes an exhaust fan " +
+    "pulling GPU-zone air out the rear (a generic 140 mm at 50 %, through the shroud cut-outs if shrouded). Approximate.",
   cage: "Drive cage in the front intake path adds 6e4 Pa/(m³/s)² in series with the front fans. Approximate.",
   side:
     "Side panel. Tempered glass or solid metal = seal level 5 (no leak, R = ∞). Mesh caps the level at 3 (45 %). Removed = level 1 (100 %).",
   brackets:
-    "Rear PCIe slot covers removed. Open slot mouths are a leak path at the rear, and with the shroud off part of them re-ingests the " +
-    "hot exhaust plume (22 % of the open area, global assumption).",
+    "Rear PCIe slot covers removed: the empty slot openings in the rear wall become a leak path (covers installed = seal level 4 or tighter). " +
+    "Flow through them follows the case pressure. Below room pressure, air comes IN, and with the shroud off part of that is the cards' hot " +
+    "exhaust plume (22 % of the open area faces the plume). At positive case pressure air blows OUT and nothing is re-ingested. " +
+    "Covers do not affect the gap between two cards; the fans breathe that from the front and the glass side.",
   shroud:
     "Rear exhaust shroud: a shared plenum over every GPU bracket outlet, outside the case. On = with its fans pulling suction in series " +
     "with the GPU blowers. Passive = the same duct with no fans. Off = bracket outlets see the room and a reingestion path.",
@@ -80,7 +84,9 @@ export const TIPS = {
   casePa: "Case static pressure relative to the room. Positive: more intake than exhaust, air leaks out. Negative: air leaks in through every gap.",
   network:
     "Resistor-network view. Layer 1 is the airflow network (pressure = voltage, flow = current). Layer 2 is each card's thermal network, driven by the flow solved in layer 1.",
-  view: "Camera: 3/4 front shows the front, top and glass side; 3/4 rear shows the rear and the shroud; side is square to the glass.",
+  view:
+    "Camera presets: ¾ front (front of the case on the right, as seen through the glass), side, ¾ rear. Drag empty space in the view to " +
+    "rotate, scroll to zoom, double-click to snap back.",
   optimize:
     "Search spacing, shroud, fan direction, sealing and GPU fan curve on the fast solver for this case and card count. Air-cooled only; water blocks are not candidates.",
   compare: "Freeze the current build as A, keep editing B, and see Δ per card.",

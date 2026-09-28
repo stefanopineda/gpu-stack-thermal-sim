@@ -13,8 +13,8 @@ Nominal solutions. Monte Carlo bands are a separate uncertainty, not these pass/
 | open_air_rtx-5090-fe | PASS | rtx-5090-fe at 575 W, open air, stock curve: die 75.91 °C (target ~76 ± 5) |
 | open_air_rtx-pro-6000-blackwell-workstation | PASS | rtx-pro-6000-blackwell-workstation at 600 W, open air, stock curve: die 76.35 °C (target ~76 ± 5) |
 | open_air_rtx-3090-fe | PASS | rtx-3090-fe at 350 W, open air, stock curve: die 68.04 °C (target ~68 ± 5) |
-| anchor_c_fans_80 | PASS | Mike Bradley stack, fans 80%: top→bottom ['78.1', '67.1', '56.6', '46.7'] °C (published top 79, bottom 49; rising bottom→top True) |
-| anchor_c_fans_100 | PASS | Mike Bradley stack, fans 100%: top→bottom ['69.4', '60.8', '52.4', '44.6'] °C (published top 69, bottom 49; rising bottom→top True) |
+| anchor_c_fans_80 | PASS | Mike Bradley stack, fans 80%: top→bottom ['77.9', '67.1', '56.6', '46.7'] °C (published top 79, bottom 49; rising bottom→top True) |
+| anchor_c_fans_100 | PASS | Mike Bradley stack, fans 100%: top→bottom ['69.3', '60.7', '52.4', '44.5'] °C (published top 69, bottom 49; rising bottom→top True) |
 | cell:s-stacked__p-high__sh-off__l-sealed | PASS | converged=True, residual=4.96e-08 kg/s, energy error=0.000% |
 | cell:s-stacked__p-high__sh-off__l-leaky | PASS | converged=True, residual=3.11e-08 kg/s, energy error=0.000% |
 | cell:s-stacked__p-high__sh-on__l-sealed | PASS | converged=True, residual=5.62e-09 kg/s, energy error=0.000% |

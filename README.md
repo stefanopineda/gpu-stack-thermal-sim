@@ -69,19 +69,25 @@ equilibrium. Both temperatures are reported.
 The fan face of every card points down, toward the floor. Blowers exhaust out
 the rear bracket. **Flow-through cards** exhaust up through the backplate into
 the gap above; that air rises into the main case volume, except the share the
-card above swallows (the plume term). That share is an explicit coupling term,
-not a resistor, because a resistor network would mix the jet with all the zone
-air: it reroutes `ṁ_ing = min(φ · ṁ_upper intake, 0.98 · ṁ_jet)` from the lower
-card's exhaust to the upper card's inlet and moves the displaced zone air the
-other way, so every node still balances and energy in equals enthalpy out.
+card above swallows (the plume term). That share is computed from the solved
+flows, not assumed: the jet speed out of the lower card's backplate, the case
+crossflow sweeping between the cards, and how much room air the jet entrains
+over the gap. It reroutes that mass from the lower card's exhaust to the upper
+card's inlet and moves the displaced zone air the other way, so every node
+still balances and energy in equals enthalpy out.
 
 Two 5090 FE cards in the Meshify, stock curve, unthrottled:
 
-| Empty slots between them | Gap | Upper | Lower | Upper − lower | Without the plume term |
-|---|---:|---:|---:|---:|---:|
-| 1 | 21.0 mm | 90.2 | 81.7 | +8.5 | +1.8 |
-| 2 | 41.3 mm | 83.8 | 78.9 | +4.9 | +0.7 |
-| 3 | 61.6 mm | 81.5 | 77.9 | +3.6 | +0.5 |
+| Empty slots between them | Gap | Plume share | Upper | Lower | Upper − lower | Without the plume term |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 21.0 mm | 62 % | 92.3 | 81.9 | +10.4 | +1.8 |
+| 2 | 41.3 mm | 66 % | 88.6 | 78.8 | +9.8 | +0.8 |
+| 3 | 61.6 mm | 64 % | 87.7 | 77.9 | +9.7 | +0.5 |
+
+Case crossflow (about 1 m/s) is too slow to strip a 1.3–1.7 m/s jet over a few
+centimetres, so spacing helps flow-through cards mainly through bigger inlets,
+not by diluting the plume. More front airflow lowers the share a little; a
+stagnant case raises it.
 
 When flow-through cards touch, the plume is not a side effect but the whole
 airflow: the lower card's backplate cutout breathes straight into the fans of

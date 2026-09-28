@@ -50,7 +50,8 @@ steps:
   - The shroud is a shared plenum over every bracket. Two industrial 140s pull on it,
     in series with the blowers.
   - Hottest die 84.2 °C. Mean blower flow rises from 25.7 to 26.5 CFM. The bigger effect
-    is that exhaust is no longer pulled back in through the open slot mouths.
+    is that the case sits slightly below room pressure here, so without the shroud some
+    exhaust plume comes back in through the open slot mouths; the plenum stops that.
 - id: high-pressure
   title: Positive pressure, interfaces taped
   layout: gap1_vertical
