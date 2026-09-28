@@ -208,3 +208,7 @@ body.present header { font-size: 18px; }
   .readout { display: none; }
   .header-actions .seg button { padding: 5px 6px; }
 }
+
+/* In split mode the case view is narrower; keep the face inset out of the way. */
+.stage.net-split .face-inset { padding: 4px 6px; font-size: 11px; max-width: 46%; }
+.stage.net-split .face-inset svg { max-height: 150px; width: auto; }
