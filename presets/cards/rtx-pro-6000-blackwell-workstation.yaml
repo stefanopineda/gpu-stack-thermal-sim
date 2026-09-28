@@ -1,0 +1,77 @@
+_source: https://www.nvidia.com/content/dam/en-zz/Solutions/data-center/rtx-pro-6000-blackwell-workstation-edition/workstation-blackwell-rtx-pro-6000-workstation-edition-nvidia-us-3519208-web.pdf
+id: rtx-pro-6000-blackwell-workstation
+name: NVIDIA RTX PRO 6000 Blackwell Workstation Edition (600 W)
+template: false
+tbp_w:
+  value: 600
+  approximate: false
+  source: https://www.nvidia.com/content/dam/en-zz/Solutions/data-center/rtx-pro-6000-blackwell-workstation-edition/workstation-blackwell-rtx-pro-6000-workstation-edition-nvidia-us-3519208-web.pdf
+slots:
+  value: 2
+  approximate: false
+  source: https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000/
+length_mm:
+  value: 304
+  approximate: false
+  source: https://www.storagereview.com/review/nvidia-rtx-pro-6000-workstation-gpu-review-blackwell-architecture-and-96-gb-for-pro-workflows
+height_mm:
+  value: 137
+  approximate: false
+  source: https://www.storagereview.com/review/nvidia-rtx-pro-6000-workstation-gpu-review-blackwell-architecture-and-96-gb-for-pro-workflows
+thickness_mm:
+  value: 40
+  approximate: false
+  source: https://www.storagereview.com/review/nvidia-rtx-pro-6000-workstation-gpu-review-blackwell-architecture-and-96-gb-for-pro-workflows
+blower: false
+cooler: flow_through
+inlet_faces: floor
+inlet_split:
+  value: 1.0
+  approximate: true
+  assumption: Both axial fans are on the fan face, which points at the floor in a tower.
+    All intake is on that face. The exhaust leaves up through the backplate side.
+throttle_c:
+  value: 88
+  approximate: true
+  assumption: NVIDIA does not print a slowdown temperature on the datasheet. Uses the
+    GeForce Blackwell figure (RTX 5090 max GPU temperature 90 °C) as the cutoff and
+    flags 2 °C below it.
+cutoff_c:
+  value: 90
+  approximate: true
+  assumption: Same shell and cooler as the RTX 5090 Founders Edition (Puget Systems
+    review); NVIDIA lists 90 °C max GPU temperature for the 5090.
+fan_curves:
+  _approximate: true
+  _assumption: 'NVIDIA does not publish the fan table. stock is shared with the RTX
+    5090 FE: about 52 % of an assumed 3000 RPM maximum near 75 °C, which is the
+    ~1570 RPM Gamers Nexus measured on the 5090 FE at steady state. A user report
+    (https://www.ovidiudan.com/2026/01/17/nvidia-rtx-pro-6000-blackwell-fan-control.html)
+    says the stock curve is slow to ramp under sustained load. custom_accelerated
+    is global (gpusim/calib.py).'
+  stock:
+  - - 30
+    - 0.30
+  - - 50
+    - 0.36
+  - - 65
+    - 0.45
+  - - 75
+    - 0.53
+  - - 82
+    - 0.62
+  - - 88
+    - 0.75
+  - - 95
+    - 0.9
+  - - 100
+    - 1.0
+notes: 'Datasheet: total board power 600 W; 5.4" H × 12" L, dual slot, extended height;
+  thermal solution "Double-flow-through". Two axial fans in a housing nearly identical
+  to the RTX 5090 FE (https://www.pugetsystems.com/labs/articles/nvidia-rtx-pro-6000-blackwell-workstation-content-creation-review/).
+  AEC Magazine: it "draws air in from beneath the card and vents it out of the top
+  ... hot air from one card can be pulled straight into the next"
+  (https://aecmag.com/workstations/review-nvidia-rtx-pro-blackwell-series-gpus/).
+  No published sustained-load die temperature was found. The open-air target is
+  the 5090 FE review figure plus the extra 25 W, and is approximate. Fan intercepts,
+  fin geometry and TIM are in gpusim/calib.py.'

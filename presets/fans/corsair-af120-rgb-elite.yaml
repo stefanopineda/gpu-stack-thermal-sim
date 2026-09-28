@@ -1,0 +1,39 @@
+_source: https://www.corsair.com/us/en/p/case-fans/co-9050153-ww/icue-af120-rgb-elite-120mm-pwm-fan-co-9050153-ww
+id: corsair-af120-rgb-elite
+name: Corsair iCUE AF120 RGB ELITE
+size_mm: 120
+thickness_mm: 25
+rpm_min: 550
+rpm_max: 2100
+airflow_m3h: 111.4
+airflow_cfm: 65.57
+static_pressure_mmh2o: 2.68
+noise_dba: 34.1
+approximate: false
+notes: 'Corsair spec page: 13.8–65.57 CFM, 0.17–2.68 mmH2O, 550–2100 RPM ±10 %, 5–34.1
+  dBA. Used to populate the Corsair 9000D RGB AIRFLOW template, which ships with no
+  fans. Corsair publishes only the two intercepts, so the curve between them is the
+  generic quadratic P = Pmax (1 − (Q/Qmax)²).'
+pq_points_m3h_mmh2o:
+  _approximate: true
+  _assumption: Corsair publishes only free-air flow and static pressure. The points
+    between are the generic quadratic fan curve, not a measured P–Q table.
+  value:
+  - - 0.0
+    - 2.68
+  - - 13.925
+    - 2.6381
+  - - 27.85
+    - 2.5125
+  - - 41.775
+    - 2.3031
+  - - 55.7
+    - 2.01
+  - - 69.625
+    - 1.6331
+  - - 83.55
+    - 1.1725
+  - - 97.475
+    - 0.6281
+  - - 111.4
+    - 0.0

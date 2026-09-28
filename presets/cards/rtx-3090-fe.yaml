@@ -1,0 +1,70 @@
+_source: https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090-3090ti/
+id: rtx-3090-fe
+name: NVIDIA GeForce RTX 3090 Founders Edition
+template: false
+tbp_w:
+  value: 350
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090-3090ti/
+slots:
+  value: 3
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090-3090ti/
+length_mm:
+  value: 313
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090-3090ti/
+height_mm:
+  value: 138
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090-3090ti/
+thickness_mm:
+  value: 58
+  approximate: true
+  assumption: NVIDIA lists 3-slot but no thickness. 58 mm is just under 3 × 20.32 mm.
+blower: false
+cooler: flow_through
+inlet_faces: floor
+inlet_split:
+  value: 1.0
+  approximate: true
+  assumption: Both fans draw from the fan face (floor). The PCB-side fan pushes out the
+    bracket; the rear fan pulls up through the fins. The split between bracket and
+    up-exit comes from the vent and cutout areas in gpusim/calib.py.
+throttle_c:
+  value: 91
+  approximate: true
+  assumption: Flag 2 °C under NVIDIA's 93 °C maximum GPU temperature.
+cutoff_c:
+  value: 93
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090-3090ti/
+fan_curves:
+  _approximate: true
+  _assumption: 'Not an NVIDIA table. About 37–39 % of an assumed 3000 RPM maximum at
+    65–67 °C, matching the ~1100 RPM (Tom''s Hardware) and ~1175 RPM (Legit Reviews)
+    measured at those temperatures.'
+  stock:
+  - - 30
+    - 0.30
+  - - 50
+    - 0.32
+  - - 65
+    - 0.37
+  - - 72
+    - 0.45
+  - - 80
+    - 0.58
+  - - 88
+    - 0.75
+  - - 93
+    - 0.9
+  - - 100
+    - 1.0
+notes: 'NVIDIA: 350 W, 313 × 138 mm, 3-slot, max GPU temperature 93 °C. Cooler: "The
+  left fan pushes air onto the baseplate and exhausts out the PCI-E slot (just like
+  a blower style cooler). The right fan pulls air through the finstack ... exhausted
+  right out the other side of the card" (https://www.tomshardware.com/news/a-closer-look-at-the-geforce-rtx-3080-rtx-3090-founders-edition-coolers).
+  Tom''s Hardware review (https://www.tomshardware.com/reviews/nvidia-geforce-rtx-3090-review/6):
+  tops out at 65 °C, fans ~1100 RPM, ~360 W. Legit Reviews open bench (https://www.legitreviews.com/nvidia-geforce-rtx-3090-founders-edition-review_222243/14):
+  ~67 °C, ~1175 RPM. Open-air target here is about 68 °C at 25 °C ambient.'

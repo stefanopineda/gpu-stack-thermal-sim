@@ -1,4 +1,6 @@
+from gpusim.calib import global_curve
 from gpusim.cite import CitationError, validate_citations
+from gpusim.models import GpuCfg
 from gpusim.library import load_library
 from gpusim.physics import duty_at
 
@@ -18,14 +20,27 @@ REQUIRED_FANS = [
     "generic-120",
     "generic-140",
     "generic-170",
+    "corsair-af120-rgb-elite",
 ]
+
+REQUIRED_CARDS = {
+    "rtx-pro-6000-blackwell-maxq": ("blower", 300, 2),
+    "rtx-pro-6000-blackwell-workstation": ("flow_through", 600, 2),
+    "rtx-5090-fe": ("flow_through", 575, 2),
+    "rtx-3090-fe": ("flow_through", 350, 3),
+    "custom-blower-300w": ("blower", 300, 2),
+}
 
 
 def test_library_loads_required_presets():
     lib = load_library()
     for fan_id in REQUIRED_FANS:
         assert fan_id in lib.fans
-    assert "rtx-pro-6000-blackwell-maxq" in lib.cards
+    for card_id, (cooler, watts, slots) in REQUIRED_CARDS.items():
+        card = lib.cards[card_id]
+        assert card.cooler == cooler, card_id
+        assert card.tbp_w == watts, card_id
+        assert card.slots == slots, card_id
     assert lib.cards["custom-blower-300w"].template is True
     for case_id in (
         "meshify2xl",
@@ -44,13 +59,22 @@ def test_library_loads_required_presets():
     assert {"stefano-demo", "mike-bradley-demo"} <= set(lib.scenarios)
 
 
-def test_stock_curve_caps_and_aggressive_reaches_full_duty():
+def test_stock_curve_caps_and_custom_accelerated_is_linear_25_to_70():
     lib = load_library()
     curves = lib.cards["rtx-pro-6000-blackwell-maxq"].fan_curves
     assert duty_at(curves["stock"], 90) == 0.70
     assert duty_at(curves["stock"], 100) == 0.70
-    assert duty_at(curves["maxq_aggressive"], 70) == 1.0
-    assert duty_at(curves["maxq_aggressive"], 60) < 1.0
+    accel = global_curve("custom_accelerated")
+    assert duty_at(accel, 25) == 0.0
+    assert duty_at(accel, 20) == 0.0
+    assert abs(duty_at(accel, 47.5) - 0.5) < 1e-9
+    assert duty_at(accel, 70) == 1.0
+    assert duty_at(accel, 90) == 1.0
+
+
+def test_maxq_aggressive_is_an_alias_of_custom_accelerated():
+    gpu = GpuCfg(id="g", slot="1", card="rtx-pro-6000-blackwell-maxq", fan_curve="maxq_aggressive")
+    assert gpu.fan_curve == "custom_accelerated"
 
 
 def test_scaled_140_redux_is_flagged_approximate():

@@ -1,0 +1,70 @@
+_source: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+id: rtx-5090-fe
+name: NVIDIA GeForce RTX 5090 Founders Edition
+template: false
+tbp_w:
+  value: 575
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+slots:
+  value: 2
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+length_mm:
+  value: 304
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+height_mm:
+  value: 137
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+thickness_mm:
+  value: 40
+  approximate: true
+  assumption: NVIDIA lists 2-slot but no thickness. 40 mm is the RTX PRO 6000 Workstation
+    shell, which Puget describes as nearly identical.
+blower: false
+cooler: flow_through
+inlet_faces: floor
+inlet_split:
+  value: 1.0
+  approximate: true
+  assumption: Both fans on the fan face, pointing at the floor. Exhaust leaves up through
+    the backplate side ("double flow through").
+throttle_c:
+  value: 88
+  approximate: true
+  assumption: Flag 2 °C under NVIDIA's 90 °C maximum GPU temperature.
+cutoff_c:
+  value: 90
+  approximate: false
+  source: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+fan_curves:
+  _approximate: true
+  _assumption: 'Not an NVIDIA table. About 52 % of an assumed 3000 RPM maximum near
+    75 °C, matching the ~1570 RPM Gamers Nexus measured at steady state
+    (https://gamersnexus.net/gpus/nvidia-geforce-rtx-5090-founders-edition-review-benchmarks-gaming-thermals-power).'
+  stock:
+  - - 30
+    - 0.30
+  - - 50
+    - 0.36
+  - - 65
+    - 0.45
+  - - 75
+    - 0.53
+  - - 82
+    - 0.62
+  - - 88
+    - 0.75
+  - - 95
+    - 0.9
+  - - 100
+    - 1.0
+notes: 'NVIDIA: 575 W total graphics power, 304 × 137 mm, 2-slot, "double flow through
+  Founders Edition design", max GPU temperature 90 °C. Gamers Nexus: about 72 °C at
+  steady state with 21–22 °C ambient, fans about 1570 RPM, memory 89–90 °C. Tom''s
+  Hardware (https://www.tomshardware.com/pc-components/gpus/nvidia-geforce-rtx-5090-review/8):
+  ~80 °C in Cyberpunk at 572 W, GDDR7 96 °C. The open-air target used here is about
+  76 °C at 25 °C ambient, between the two. Fan intercepts, fin geometry and TIM are
+  in gpusim/calib.py.'
