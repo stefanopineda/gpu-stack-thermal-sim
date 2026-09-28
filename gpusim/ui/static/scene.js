@@ -1,7 +1,10 @@
 /* 3D case view. Case frame in mm: x = depth (0 front → D rear), y = height
  * (0 floor → H top), z = width (0 motherboard tray → W glass side). The scene
- * works in metres. Fans are flat discs lying in the plane of their panel, so a
- * 3/4 camera shows them as ovals on the face they belong to. */
+ * works in metres. The root group is mirrored in x so that, looking through
+ * the glass, the front of the case is on the right and the rear I/O on the
+ * left — the way a real ATX board sits. Fans are flat discs lying in the plane
+ * of their panel, so a 3/4 camera shows them as ovals on their face. No text
+ * is drawn over the scene; hovering an object reports it instead. */
 import * as THREE from "./vendor/three.module.js";
 
 const COLORS = {
@@ -17,9 +20,9 @@ const COLORS = {
 };
 
 const VIEWS = {
-  front34: new THREE.Vector3(-0.62, 0.42, 1.0),
+  front34: new THREE.Vector3(0.62, 0.38, 1.0),
   side: new THREE.Vector3(0, 0.08, 1.0),
-  rear34: new THREE.Vector3(0.7, 0.4, 1.0),
+  rear34: new THREE.Vector3(-0.7, 0.4, 1.0),
 };
 
 const RADIATOR_PANELS = ["front", "top", "bottom"];
@@ -45,11 +48,14 @@ export class CaseScene {
     rim.position.set(3, 1, -2);
     this.scene.add(rim);
     this.root = new THREE.Group();
+    this.root.scale.x = -1; // front on the right as seen through the glass
     this.scene.add(this.root);
     this.drag = null;
     this.labels = [];
     canvas.addEventListener("pointerdown", (ev) => this._down(ev));
     canvas.addEventListener("pointerup", (ev) => this._up(ev));
+    canvas.addEventListener("pointermove", (ev) => this._hover(ev));
+    canvas.addEventListener("pointerleave", () => this.cb.onHover?.(null));
     const loop = () => {
       this._resize();
       this.renderer.render(this.scene, this.camera);
@@ -76,6 +82,7 @@ export class CaseScene {
     }
     this.labels = [];
     if (!ctx || !ctx.build || !ctx.kase) return;
+    this.root.position.x = m(ctx.kase.depth_mm);
     this._shell();
     this._internals();
     this._mounts();
@@ -140,44 +147,61 @@ export class CaseScene {
   _internals() {
     const { build, kase } = this.ctx;
     const { W, H, D } = this._dims();
-    // Motherboard on the tray (E-ATX-sized plate, clipped to the case).
-    const moboW = Math.min(0.305, D - 0.08);
-    const moboH = Math.min(0.33, H - 0.12);
-    const mobo = new THREE.Mesh(
-      new THREE.BoxGeometry(moboW, moboH, 0.004),
-      new THREE.MeshStandardMaterial({ color: COLORS.mobo, transparent: true, opacity: 0.6, roughness: 0.8 }),
-    );
-    mobo.position.set(D - 0.012 - moboW / 2, H - 0.03 - moboH / 2, 0.012);
-    this.root.add(mobo);
+    const board = this._board();
+    const add = (geo, mat, x, y, z, tip) => {
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.userData = { kind: "part", tip };
+      this.root.add(mesh);
+      return mesh;
+    };
+    const boardTip = "Motherboard: ASUS Pro WS WRX90E-SAGE SE layout (EEB 12 × 13 in, sTR5 socket, 8 DIMM slots, 7 PCIe 5.0 x16). Schematic, not a drawing.";
+    const bx = board.rear - board.depth / 2;
+    const by = board.top - board.height / 2;
+    add(new THREE.BoxGeometry(board.depth, board.height, 0.003), new THREE.MeshStandardMaterial({ color: 0x2c5a4c, roughness: 0.8, emissive: 0x0d2019 }), bx, by, 0.012, boardTip);
+    // sTR5 socket and retention frame.
+    const sx = board.rear - board.depth * 0.46;
+    const sy = board.top - 0.1;
+    add(new THREE.BoxGeometry(0.078, 0.078, 0.01), new THREE.MeshStandardMaterial({ color: 0xa9b0b5, metalness: 0.7, roughness: 0.35 }), sx, sy, 0.019, "sTR5 socket (Threadripper PRO)");
+    // Eight DIMM slots, four each side of the socket, running top to bottom.
+    const dimm = new THREE.MeshStandardMaterial({ color: 0x6b7178, roughness: 0.5, metalness: 0.3 });
+    for (let k = 0; k < 4; k += 1) {
+      for (const side of [-1, 1]) {
+        add(new THREE.BoxGeometry(0.006, 0.133, 0.03), dimm, sx + side * (0.058 + k * 0.0095), sy, 0.029, "DDR5 RDIMM slot (8 on WRX90E-SAGE SE)");
+      }
+    }
+    // VRM heatsinks above the socket and along the I/O edge.
+    const vrm = new THREE.MeshStandardMaterial({ color: 0x55504a, metalness: 0.5, roughness: 0.5 });
+    add(new THREE.BoxGeometry(0.15, 0.022, 0.028), vrm, sx, board.top - 0.02, 0.028, "VRM heatsink");
+    add(new THREE.BoxGeometry(0.03, 0.12, 0.03), vrm, board.rear - 0.03, board.top - 0.09, 0.03, "VRM heatsink / rear I/O shroud");
+    // Seven PCIe x16 slots, lined up with case slots 1–7.
+    const pcie = new THREE.MeshStandardMaterial({ color: 0xc9c2b6, roughness: 0.6 });
+    const slots = Math.min(7, kase.horizontal_slots);
+    for (let s = 1; s <= slots; s += 1) {
+      add(new THREE.BoxGeometry(0.089, 0.0075, 0.011), pcie, board.rear - 0.044 - 0.0445, this.slotY(s) + 0.004, 0.019, `PCIe 5.0 x16 slot ${s}`);
+    }
 
-    // CPU cooler.
+    // CPU cooler on the socket.
     const cpu = build.cpu || { cooling: "water", power_w: 150 };
-    const cx = D - 0.012 - moboW * 0.45;
-    const cy = H - 0.03 - moboH * 0.28;
     if (cpu.cooling === "air") {
-      const tower = new THREE.Mesh(
+      add(
         new THREE.BoxGeometry(0.11, 0.15, 0.15),
         new THREE.MeshStandardMaterial({ color: 0xb9c2c8, roughness: 0.35, metalness: 0.6 }),
+        sx, sy, 0.014 + 0.075,
+        `CPU tower cooler, ${Math.round(cpu.power_w)} W into the case air`,
       );
-      tower.position.set(cx, cy, 0.014 + 0.075);
-      this.root.add(tower);
-      this._fanDisc(new THREE.Vector3(cx - 0.055 - 0.013, cy, 0.089), new THREE.Vector3(-1, 0, 0), 0.07, "exhaust", {
-        kind: "cpu",
+      // Fan on the front face of the tower, blowing toward the rear.
+      this._fanDisc(new THREE.Vector3(sx - 0.055 - 0.008, sy, 0.089), new THREE.Vector3(-1, 0, 0), 0.07, "exhaust", {
+        kind: "part",
+        tip: "CPU cooler fan",
       });
-      this._label(new THREE.Vector3(cx, cy + 0.1, 0.09), `CPU tower · ${Math.round(cpu.power_w)} W`, "tag");
     } else {
-      const pump = new THREE.Mesh(
-        new THREE.BoxGeometry(0.07, 0.07, 0.03),
-        new THREE.MeshStandardMaterial({ color: 0x3a3632, roughness: 0.5 }),
-      );
-      pump.position.set(cx, cy, 0.03);
-      this.root.add(pump);
-      this._label(new THREE.Vector3(cx, cy + 0.06, 0.04), `CPU · AIO pump · ${Math.round(cpu.power_w)} W to radiator`, "tag");
+      add(new THREE.BoxGeometry(0.07, 0.07, 0.03), new THREE.MeshStandardMaterial({ color: 0x3a3632, roughness: 0.5 }), sx, sy, 0.035, `AIO pump on the CPU, ${Math.round(cpu.power_w)} W to the radiator`);
     }
 
     // PSU and its shroud, bottom rear.
     const n = kase.horizontal_slots;
-    const lowest = m(kase.top_slot_y_mm - n * kase.slot_pitch_mm);
+    const lowest = this.slotY(n) - m(kase.slot_pitch_mm);
     const shrouded = kase.psu_shroud && build.psu_location !== "open";
     const shroudTop = Math.max(0.1, Math.min(lowest - m(kase.psu_shroud_clearance_mm || 40), H * 0.36));
     if (shrouded) {
@@ -206,10 +230,25 @@ export class CaseScene {
       new THREE.Vector3(0, psuFanUp ? 1 : -1, 0),
       0.06,
       "blank",
-      { kind: "psu" },
+      { kind: "part", tip: `PSU, bottom rear${shrouded ? ", under the PSU shroud" : ""}, fan ${psuFanUp ? "up" : "down"}` },
       0.006,
     );
     this._label(new THREE.Vector3(D - 0.1, 0.13, W / 2), `PSU${shrouded ? " (shrouded)" : ""} · fan ${psuFanUp ? "up" : "down"}`, "tag");
+  }
+
+  /* ASUS Pro WS WRX90E-SAGE SE, EEB 12 × 13 in: schematic placement. */
+  _board() {
+    const { H, D } = this._dims();
+    const height = Math.min(0.305, H - 0.12);
+    const depth = Math.min(0.33, D - 0.08);
+    return { top: H - 0.03, height, depth, rear: D - 0.012 };
+  }
+
+  /* Slot 1 sits about 158 mm below the board's top edge (ATX slot positions). */
+  slotY(s) {
+    const k = this.ctx.kase;
+    const slot1 = Math.min(m(k.top_slot_y_mm), this._board().top - 0.158);
+    return slot1 - (s - 1) * m(k.slot_pitch_mm);
   }
 
   _face(panel, layout) {
@@ -309,31 +348,25 @@ export class CaseScene {
 
   _mounts() {
     const { build, kase, presets } = this.ctx;
-    const byId = Object.fromEntries(kase.mounts.map((l) => [l.id, l]));
-    const groups = {};
-    (build.mounts || []).forEach((mount) => {
-      const layout = byId[mount.id];
-      if (!layout || mount.state === "radiator") return;
+    const layouts = activeLayouts(kase, build.patterns);
+    const byMount = Object.fromEntries((build.mounts || []).map((mt) => [mt.id, mt]));
+    layouts.forEach((layout) => {
+      const mount = byMount[layout.id] || { id: layout.id, state: "blanked" };
+      if (mount.state === "radiator") return;
       const { pos, normal } = this._face(layout.panel, layout);
       const r = m(layout.size_mm) / 2;
       // Sit flush on the panel, the disc's thickness inside the case.
       const center = pos.clone().add(normal.clone().multiplyScalar(-0.007 + 0.002));
       const dir = mount.state === "fan" ? mount.direction : "blank";
-      const selected = this.ctx.selectedMount === mount.id;
-      const g = this._fanDisc(center, normal, r * 0.96, dir, { kind: "fan", id: mount.id, panel: layout.panel });
-      if (selected) g.scale.setScalar(1.08);
-      const key = layout.panel;
-      (groups[key] ||= []).push({ mount, layout, pos, normal });
-    });
-    Object.entries(groups).forEach(([panel, items]) => {
-      const fans = items.filter((i) => i.mount.state === "fan");
-      const text = faceFanLabel(panel, items.map((i) => i.mount), presets);
-      if (!text) return;
-      const anchor = new THREE.Vector3();
-      (fans.length ? fans : items).forEach((i) => anchor.add(i.pos));
-      anchor.multiplyScalar(1 / (fans.length || items.length));
-      anchor.add(items[0].normal.clone().multiplyScalar(0.06));
-      this._label(anchor, text, `tag face-tag face-${panel}`);
+      const fan = presets.fans.find((f) => f.id === mount.fan);
+      const tip =
+        mount.state === "fan"
+          ? `${cap(layout.panel)} fan: ${fan ? fan.name : mount.fan} · ${mount.direction} · ${Math.round((mount.duty ?? 1) * 100)} % speed`
+          : mount.state === "empty"
+            ? `${cap(layout.panel)} ${layout.size_mm} mm mount: open hole, no fan`
+            : `${cap(layout.panel)} ${layout.size_mm} mm mount: cover plate (plugged)`;
+      const g = this._fanDisc(center, normal, r * 0.96, dir, { kind: "fan", id: mount.id, panel: layout.panel, tip });
+      if (this.ctx.selectedMount === mount.id) g.scale.setScalar(1.08);
     });
   }
 
@@ -348,7 +381,7 @@ export class CaseScene {
     const t = m(model.thickness_mm);
     const len = m(model.length_mm);
     const wid = m(model.width_mm);
-    const onPanel = kase.mounts.filter((l) => l.panel === panel);
+    const onPanel = activeLayouts(kase, build.patterns).filter((l) => l.panel === panel);
     const radMounts = (build.mounts || []).filter((mt) => mt.state === "radiator" && onPanel.some((l) => l.id === mt.id));
     const layouts = (radMounts.length ? radMounts.map((mt) => onPanel.find((l) => l.id === mt.id)) : onPanel).filter(Boolean);
     const mean = (key) => layouts.reduce((s, l) => s + m(l[key]), 0) / Math.max(layouts.length, 1);
@@ -371,7 +404,7 @@ export class CaseScene {
     const geo = new THREE.BoxGeometry(...size);
     const slab = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this._finTexture(panel), roughness: 0.6, metalness: 0.3 }));
     slab.position.copy(pos);
-    slab.userData = { kind: "radiator" };
+    slab.userData = { kind: "radiator", tip: `Radiator: ${model.name}, ${rad.direction}, fans on its inner face` };
     this.root.add(slab);
     const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xe0a15a }));
     edge.position.copy(pos);
@@ -388,6 +421,7 @@ export class CaseScene {
       const c = pos.clone().add(along.clone().multiplyScalar(u * span)).add(inward.clone().multiplyScalar(faceOffset));
       this._fanDisc(c, inward.clone().multiplyScalar(-1), r * 0.95, rad.direction === "intake" ? "intake" : "exhaust", {
         kind: "radiator",
+        tip: `Radiator fan: ${fan ? fan.name : "fan"}, ${rad.direction}`,
       });
     }
     const labelAt = pos.clone().add(inward.clone().multiplyScalar(faceOffset + 0.05));
@@ -429,19 +463,24 @@ export class CaseScene {
     const Hc = m(card?.height_mm || 111);
     const slot = String(gpu.slot);
     if (slot.toLowerCase().startsWith("v")) {
-      const v = kase.vertical_positions.find((p) => p.id === slot);
-      if (!v) return null;
-      const z = Math.min(m(v.z_mm), W - T / 2 - 0.01);
+      const index = kase.vertical_positions.findIndex((p) => p.id === slot);
+      if (index < 0) return null;
+      // Vertical brackets sit side by side at the rear, next to the glass:
+      // v1 nearest the glass, one slot pitch apart. The card stands on edge
+      // beside the middle of the horizontal stack.
+      const z = W - 0.012 - T / 2 - index * m(kase.slot_pitch_mm);
+      const y = this.slotY(Math.min(4, kase.horizontal_slots)) - Hc / 2 + 0.03;
       return {
         vertical: true,
-        center: new THREE.Vector3(D - 0.012 - L / 2, m(v.y_mm), z),
+        center: new THREE.Vector3(D - 0.012 - L / 2, y, z),
         size: [L, Hc, T],
         fanNormal: new THREE.Vector3(0, 0, 1),
         exhaustNormal: new THREE.Vector3(0, 0, -1),
       };
     }
     const s = Number(slot);
-    const ySlot = m(kase.top_slot_y_mm - (s - 1) * kase.slot_pitch_mm);
+    // The card's PCB sits at the slot; the cooler hangs below it (fan face down).
+    const ySlot = this.slotY(s) + 0.008;
     return {
       vertical: false,
       center: new THREE.Vector3(D - 0.012 - L / 2, ySlot - T / 2, 0.02 + Hc / 2),
@@ -472,9 +511,16 @@ export class CaseScene {
         }),
       );
       mesh.position.copy(box.center);
-      mesh.userData = { kind: "gpu", id: gpu.id };
+      const order = this.ctx.order?.[gpu.id];
+      const where = box.vertical ? `vertical ${gpu.slot}` : `slot ${gpu.slot}`;
+      const tip = `GPU ${order ?? ""} · ${card ? card.name : gpu.card} · ${where}` +
+        (res ? ` · ${fmt(res.t_die_c)}${res.throttle ? " (throttling)" : ""} · ${res.flow_cfm.toFixed(0)} CFM` : "");
+      mesh.userData = { kind: "gpu", id: gpu.id, tip };
       this.root.add(mesh);
-      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x14120e }));
+      const edge = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: box.vertical ? 0xf3efe6 : 0x14120e }),
+      );
       edge.position.copy(box.center);
       this.root.add(edge);
       // Fan face: one blower eye, or two axial fans.
@@ -484,7 +530,7 @@ export class CaseScene {
       const fanCenters = through ? [-L / 2 + 0.07, L / 2 - 0.07] : [-L / 2 + 0.05];
       fanCenters.forEach((dx) => {
         const c = box.center.clone().add(new THREE.Vector3(dx, 0, 0)).add(box.fanNormal.clone().multiplyScalar(halfT + 0.002));
-        this._fanDisc(c, box.fanNormal, through ? 0.045 : 0.03, "gpu", { kind: "gpu", id: gpu.id });
+        this._fanDisc(c, box.fanNormal, through ? 0.045 : 0.03, "gpu", { kind: "gpu", id: gpu.id, tip });
       });
       // Flow-through exhaust plume above the card; stronger when the card above breathes it.
       if (through) {
@@ -521,8 +567,8 @@ export class CaseScene {
     const mode = build.shroud?.mode || "off";
     if (mode === "off") return;
     const { W, D } = this._dims();
-    const top = m(kase.top_slot_y_mm) + 0.02;
-    const bottom = m(kase.top_slot_y_mm - kase.horizontal_slots * kase.slot_pitch_mm) - 0.01;
+    const top = this.slotY(1) + 0.03;
+    const bottom = this.slotY(kase.horizontal_slots) - m(kase.slot_pitch_mm);
     const h = Math.max(top - bottom, 0.08);
     const depth = 0.07;
     const wid = Math.min(W * 0.8, 0.2);
@@ -548,6 +594,7 @@ export class CaseScene {
       const y = bottom + ((i + 0.5) / count) * h;
       this._fanDisc(new THREE.Vector3(D + depth - 0.006, y, box.position.z), new THREE.Vector3(1, 0, 0), r, "exhaust", {
         kind: "shroud",
+        tip: `Rear shroud fan: ${fan ? fan.name : "fan"}`,
       });
     }
     const label = mode === "on" ? `Rear shroud · ${count}× ${fan ? fan.name : "fan"}` : "Rear duct (passive)";
@@ -588,12 +635,14 @@ export class CaseScene {
   }
 
   project(v) {
-    const p = v.clone().project(this.camera);
+    this.root.updateMatrixWorld(true);
+    const p = v.clone().applyMatrix4(this.root.matrixWorld).project(this.camera);
     return { x: (p.x + 1) / 2, y: (1 - p.y) / 2, z: p.z };
   }
 
-  _label(pos, text, cls) {
-    this.labels.push({ pos, text, cls });
+  _label() {
+    // Text overlays were removed in rev 4.1: stats live in the side panel and
+    // details appear on hover.
   }
 
   _placeLabels() {
@@ -657,6 +706,16 @@ export class CaseScene {
     return hit ? hit.object.userData : null;
   }
 
+  _hover(ev) {
+    if (this.drag) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const pointer = new THREE.Vector2(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(pointer, this.camera);
+    const hit = ray.intersectObjects(this.root.children, true).find((h) => h.object.userData && h.object.userData.tip);
+    this.cb.onHover?.(hit ? hit.object.userData.tip : null, ev);
+  }
+
   _down(ev) {
     const data = this._pick(ev);
     this.drag = data ? { data, x: ev.clientX, y: ev.clientY } : null;
@@ -678,7 +737,7 @@ export class CaseScene {
     if (drag.data.kind === "fan") {
       let best = null;
       let bestD = 1e9;
-      this.ctx.kase.mounts.forEach((layout) => {
+      activeLayouts(this.ctx.kase, this.ctx.build.patterns).forEach((layout) => {
         const p = this.project(this._face(layout.panel, layout).pos);
         const d = (p.x - nx) ** 2 + (p.y - ny) ** 2;
         if (d < bestD) {
@@ -712,6 +771,31 @@ export class CaseScene {
   }
 }
 
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+
+/* Mounts that exist for the chosen fan pattern on each face (default: first). */
+export function activeLayouts(kase, patterns = {}) {
+  const options = {};
+  kase.mounts.forEach((l) => {
+    if (!l.pattern) return;
+    (options[l.panel] ||= []);
+    if (!options[l.panel].includes(l.pattern)) options[l.panel].push(l.pattern);
+  });
+  return kase.mounts.filter((l) => {
+    if (!l.pattern) return true;
+    const chosen = options[l.panel].includes(patterns?.[l.panel]) ? patterns[l.panel] : options[l.panel][0];
+    return l.pattern === chosen;
+  });
+}
+
+export function facePatterns(kase, panel) {
+  const out = [];
+  kase.mounts.forEach((l) => {
+    if (l.panel === panel && l.pattern && !out.includes(l.pattern)) out.push(l.pattern);
+  });
+  return out;
+}
+
 /* "Front ×8 · all Corsair AF120 RGB ELITE · 65.6 CFM · intake" when every fan
  * on a face matches; otherwise a short breakdown. */
 export function faceFanLabel(panel, mounts, presets) {
@@ -719,7 +803,7 @@ export function faceFanLabel(panel, mounts, presets) {
   const title = panel[0].toUpperCase() + panel.slice(1);
   if (!fans.length) {
     const blanks = mounts.filter((mt) => mt.state !== "radiator").length;
-    return blanks ? `${title}: ${blanks} empty / blanked` : "";
+    return blanks ? `${title}: ${blanks} cover plate${blanks > 1 ? "s" : ""}, no fans` : "";
   }
   const key = (mt) => `${mt.fan}|${mt.direction}|${Math.round((mt.duty ?? 1) * 100)}`;
   const groups = {};
@@ -733,7 +817,7 @@ export function faceFanLabel(panel, mounts, presets) {
   };
   const entries = Object.values(groups);
   const others = mounts.length - fans.length - mounts.filter((mt) => mt.state === "radiator").length;
-  const tail = others > 0 ? ` (+${others} blanked)` : "";
+  const tail = others > 0 ? ` (+${others} plugged)` : "";
   if (entries.length === 1) {
     const head = fans.length > 1 ? `${title} fans ×${fans.length}` : `${title} fan`;
     return `${head}: ${describe(entries[0][0], fans.length > 1)}${tail}`;

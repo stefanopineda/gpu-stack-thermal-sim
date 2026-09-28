@@ -9,23 +9,30 @@
 <body>
   <div id="start" class="start">
     <div class="start-card">
-      <p class="eyebrow">Air-cooled workstation model · Celsius · not CFD · rev 4</p>
+      <p class="eyebrow">Air-cooled multi-GPU workstation model · Celsius · not CFD</p>
       <h1>Build the case. Watch the heat.</h1>
-      <p class="lede">A live flow-and-thermal network for multi-GPU towers: blowers and flow-through cards, fans on every face, the plume one card breathes from the next. GPU water blocks are out of scope.</p>
-      <h2 class="start-h">Quick start</h2>
-      <div class="start-actions">
-        <button id="quick-meshify" class="primary" data-tip="Stefano's Fractal Meshify 2 XL: 3 Noctua 140 redux-1700 intakes, Arctic 360 top exhaust, rear shroud with 2× NF-A14 iPPC-3000, 4× RTX PRO 6000 Max-Q (slots 1/4/7 + vertical v2).">Quick start · Meshify 2 XL (Stefano)</button>
-        <button id="quick-9000" class="ghost" data-tip="Corsair 9000D RGB AIRFLOW template. The case ships with no fans; the template fills the 8×120 front array with AF120 RGB ELITE intakes.">Quick start · Corsair 9000D Airflow</button>
+      <p class="lede">Pick a machine to start from. Change anything after.</p>
+      <div class="quick">
+        <button id="quick-mike" class="quick-card" type="button">
+          <span class="q-kicker">Quick start</span>
+          <b id="quick-mike-name">Mike Bradley's Degen X Station</b>
+          <span>Corsair 9000D · 4× RTX PRO 6000 Workstation, stacked · 275 W</span>
+        </button>
+        <button id="quick-meshify" class="quick-card" type="button">
+          <span class="q-kicker">Quick start</span>
+          <b>Stefano's Meshify 2 XL</b>
+          <span>Fractal Meshify 2 XL · 4× RTX PRO 6000 Max-Q blowers · rear shroud</span>
+        </button>
       </div>
-      <h2 class="start-h">Start from a template</h2>
-      <div id="template-grid" class="template-grid"></div>
-      <h2 class="start-h">Build from scratch</h2>
-      <div class="start-actions">
-        <select id="scratch-case" data-tip="Case to start from. Every mount starts blanked, one GPU in slot 1, air-cooled CPU."></select>
-        <button id="from-scratch" class="ghost">Build from scratch</button>
-      </div>
-      <p class="fine">Shareable demo: <a href="/?demo=mike-bradley">/?demo=mike-bradley</a> opens the Mike Bradley 9000D build — <b>Illustrative mock — not a measurement or claim about anyone's real build.</b></p>
-      <p class="fine">Agents: the same solver is at <a href="/docs">/docs</a> (POST /api/v1/simulate, /rank, /sweep).</p>
+      <details class="more">
+        <summary>More: start from a template or build from scratch</summary>
+        <div id="template-grid" class="template-grid"></div>
+        <div class="start-actions">
+          <select id="scratch-case"></select>
+          <button id="from-scratch" class="ghost" type="button">Build from scratch</button>
+        </div>
+      </details>
+      <p class="fine">GPU water blocks are out of scope. Typical accuracy ±5–10 °C; trust the ranking more than the number. Agents: <a href="/docs">/docs</a>.</p>
     </div>
   </div>
 
@@ -60,6 +67,7 @@
 
     <main class="layout">
       <nav id="facebar" class="facebar" aria-label="Case faces">
+        <button data-face="case" type="button"><b>Case</b><span id="fb-case"></span></button>
         <button data-face="front" type="button"><b>Front</b><span id="fb-front"></span></button>
         <button data-face="top" type="button"><b>Top</b><span id="fb-top"></span></button>
         <button data-face="rear" type="button"><b>Rear</b><span id="fb-rear"></span></button>
@@ -84,11 +92,10 @@
         <div class="views">
           <div id="view3d" class="view3d">
             <canvas id="scene"></canvas>
-            <div id="labels" class="labels"></div>
             <div id="legend" class="legend">
               <span data-tip=""><i class="swatch intake"></i>Intake</span>
               <span data-tip=""><i class="swatch exhaust"></i>Exhaust</span>
-              <span data-tip=""><i class="swatch blank"></i>Blanked / empty</span>
+              <span data-tip=""><i class="swatch blank"></i>Cover plate</span>
               <span data-tip=""><i class="swatch gpu"></i>GPU by die °C</span>
             </div>
             <div id="face-inset" class="face-inset"></div>

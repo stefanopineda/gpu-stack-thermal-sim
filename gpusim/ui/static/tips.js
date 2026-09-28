@@ -10,15 +10,17 @@ export const SEAL_TEXT = {
 
 export const TIPS = {
   seal:
-    "Seal level of this interface, 1 = open … 5 = sealed. It sets the open-area fraction of the panel's geometric leak area, " +
+    "Seal level of the panel AROUND the fans (mesh, seams and gaps not covered by a fan), 1 = open … 5 = sealed. It does not block the fans " +
+    "themselves — that is what the dust filter and the fan choice set. It sets the open-area fraction of the panel's geometric leak area, " +
     "then an orifice loss k = ρ / (2 Cd² A²). 1 = 100 %, 2 = 70 %, 3 = 45 % (typical mesh + filter), 4 = 5 % (seams), " +
     "5 = 0 % (solid glass/metal or taped: no branch, R = ∞). Percentages are engineering assumptions; Monte Carlo varies them ±20 %.",
   filter:
     "Dust filter on this face's intakes. Adds a quadratic loss in series with each fan: fine ≈ 1.4e4, dense ≈ 4.0e4 Pa/(m³/s)² " +
     "(about 11 Pa and 31 Pa at a 140 mm fan's working flow). Approximate.",
   fanSelect:
-    "Fan on this mount. The list is the library filtered to this mount size, sorted by static pressure. Each fan's P–Q curve is " +
-    "scaled by the fan laws: Q ∝ RPM, P ∝ RPM². Empty = open hole (orifice). Blanked = cover plate (near-closed).",
+    "Fans for this face, grouped by size (a face that takes 140 mm or 120 mm fans lists both; picking the other size swaps the mount pattern). " +
+    "Each fan's pressure–flow curve is scaled by the fan laws, Q ∝ RPM and P ∝ RPM², and it works against the case pressure: a sealed, " +
+    "pressurised case moves less air per fan. Cover plate = plugged mount; open hole = no fan, no plate.",
   setAll: "Apply one fan model, direction and speed to every mount on this face.",
   direction: "Intake blows into the case; exhaust blows out. The fan is a pressure source in series with its own impedance.",
   duty: "Fan speed as a fraction of the fan's rated maximum RPM. Flow scales with speed, pressure with speed squared.",
@@ -71,7 +73,7 @@ export const TIPS = {
   spacing: "Re-slot the horizontal cards top-down with 0, 1, 2 or 3 empty slots between them. Vertical cards stay put.",
   legendIntake: "Blue: fan blowing into the case.",
   legendExhaust: "Red: fan blowing out of the case.",
-  legendBlank: "Grey: blanked mount (cover plate) or empty hole.",
+  legendBlank: "Grey ring: mount plugged with a cover plate (or an open hole with no fan).",
   legendGpu: "Cards are coloured by die temperature: blue ≤ 55 °C, green 75, amber 85, red ≥ 100.",
   unthrottled:
     "Unthrottled: the steady state if the card kept its full power. Throttled: power is cut until the die sits at the cutoff (90 °C Max-Q / 5090, 93 °C 3090). Both are reported.",

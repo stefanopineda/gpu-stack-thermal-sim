@@ -464,7 +464,7 @@ def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add, k_mult: float = 1.
 def _resolved_mounts(build: BuildCfg, case: CaseModel) -> list:
     by_id = {m.id: m for m in build.mounts}
     resolved = []
-    for layout in case.mounts:
+    for layout in case.active_mounts(build.patterns):
         if layout.id in by_id:
             mount = by_id[layout.id]
             if mount.size_mm <= 0:

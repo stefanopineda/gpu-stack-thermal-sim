@@ -18,7 +18,7 @@ Typical accuracy is about **±5–10 °C absolute**. Trust the ranking more than
 the number. A Monte Carlo band that overlaps a neighbour means the model cannot
 tell those two cells apart.
 
-This is revision 4 of the spec ([SPEC.md](SPEC.md)); the rev 4 plan is
+This is revision 4.1 of the spec ([SPEC.md](SPEC.md), §16 for 4.1); the rev 4 plan is
 [docs/REV4_PLAN.md](docs/REV4_PLAN.md).
 
 ## Build assumptions
@@ -79,9 +79,18 @@ Two 5090 FE cards in the Meshify, stock curve, unthrottled:
 
 | Empty slots between them | Gap | Upper | Lower | Upper − lower | Without the plume term |
 |---|---:|---:|---:|---:|---:|
-| 1 | 21.0 mm | 90.2 | 82.3 | +7.9 | +0.8 |
+| 1 | 21.0 mm | 90.2 | 81.7 | +8.5 | +1.8 |
 | 2 | 41.3 mm | 83.8 | 78.9 | +4.9 | +0.7 |
 | 3 | 61.6 mm | 81.5 | 77.9 | +3.6 | +0.5 |
+
+When flow-through cards touch, the plume is not a side effect but the whole
+airflow: the lower card's backplate cutout breathes straight into the fans of
+the card above, so the stack runs as fans in series through a short duct
+(area fading as `exp(−gap / 8 mm)`). That is calibrated to **Mike Bradley's
+Degen X Station** (4× RTX PRO 6000 Workstation touching, 275 W, unified GPU
+fans), which he published at 49 → 79 °C bottom to top with fans near 80 % and
+49 → 69 °C at 100 %. The model gives 46.7 → 78.1 °C and 44.6 → 69.4 °C
+(anchor C in [docs/CALIBRATION.md](docs/CALIBRATION.md)).
 
 A **CPU** is air- or water-cooled. Water: its heat rides the radiator's air
 stream. Air: a tower cooler branch (fan plus fin stack) pulls case air through
@@ -154,25 +163,31 @@ uv run gpusim ui
 under `gpusim/ui/static/vendor` (the ES module, no CDN). Static files are served
 `no-cache`, so a restarted server is never stale in the browser.
 
-- **Start screen.** Quick start (Stefano's Meshify 2 XL, Corsair 9000D Airflow),
-  **start from a template** (9000D Airflow, Meshify 2 XL, generic ATX, mATX,
-  E-ATX, Phanteks Enthoo Elite Server), or build from scratch in any case.
-- **Left bar.** Front, Top, Rear, Bottom, Side, Internals, GPUs. One panel at a
-  time: a face shows its mounts (fan, direction, speed, "Set all"), seal level
-  with its meaning, dust filter, radiator (front, top or bottom), and on the
-  rear the brackets and the shroud. Internals holds the case, the CPU (watts,
+- **Start screen.** Two quick starts — Mike Bradley's Degen X Station (Corsair
+  9000D, four stacked RTX PRO 6000 Workstation cards) and Stefano's Meshify 2
+  XL. Templates (9000D, generic ATX / mATX / E-ATX, Phanteks Enthoo Elite
+  Server) and build-from-scratch sit behind "More".
+- **Left bar.** Case, Front, Top, Rear, Bottom, Side, Internals, GPUs. One panel
+  at a time, simple first: a face shows one fan picker grouped by 140 mm /
+  120 mm (picking the other size swaps the mount pattern) and an intake /
+  exhaust toggle; per-fan choices, seal level and dust filter are behind
+  expanders. Plugged mounts are "cover plate". The rear adds the shroud; front,
+  top and bottom can hold the radiator. Internals holds the case, the CPU (watts,
   air or water, tower fan), obstruction, cables, drive cage, PSU, seams and the
   environment. GPUs holds card model (blower or flow-through), slot, power
   limit, **Stock / Custom Accelerated / Custom** fan curve, clock and voltage
   approximations, and spacing buttons.
-- **3D case.** Fans lie flat on their face, so the ¾ camera shows them as ovals
-  on the front, top, rear, bottom or glass side (blue intake, red exhaust, grey
-  blanked). Cards sit at the rear wall, coloured by die temperature, with their
-  own fans on the fan face and a plume cone on flow-through cards. The PSU is
-  bottom-rear under its shroud; the radiator sits against its panel with its
-  fans on it; the shroud hangs off the rear. Camera: ¾ front, side, ¾ rear.
-  Identical fans on one face collapse to one label. A face inset draws the
-  selected face head-on, scaled so every fan is visible.
+- **3D case.** No text over the case. Seen through the glass, the front is on
+  the right and the motherboard (an ASUS Pro WS WRX90E-SAGE SE layout: sTR5,
+  eight DIMMs, seven PCIe x16) is at the back. Fans lie flat on their face, so
+  the ¾ camera shows them as ovals (blue intake, red exhaust, grey cover plate).
+  Cards sit on the board's slot positions, coloured by die temperature; vertical
+  cards stand in their own spots by the glass. PSU bottom-rear, radiator against
+  its panel with its fans on it, shroud off the rear. Hover anything for what it
+  is. A face inset draws the selected face head-on with every fan visible.
+- **Stats column.** Hottest GPU, case pressure, fresh air in, heat, then GPU 1…n
+  in order (vertical cards last, labelled), with CFM, fan %, inlet air, power and
+  which card's exhaust it breathes.
 - **Network view** (Split or Network). Layer 1 is the airflow network with
   labelled seal resistances (∞ for glass or metal), fan impedances, inter-card
   slot resistances, fin channels, brackets and plume branches, plus node
@@ -182,9 +197,9 @@ under `gpusim/ui/static/vendor` (the ES module, no CDN). Static files are served
   assumption behind it.
 - Compare, Demo (arrow keys, auto), Present (hides controls for OBS),
   Optimize, °F.
-- **Shareable demo:** `/?demo=mike-bradley` opens the Mike Bradley 9000D build.
-  It is labelled everywhere: *Illustrative mock — not a measurement or claim
-  about anyone's real build.* Other URL parameters: `?template=<build id>`,
+- **Shareable demo:** `/?demo=mike-bradley` walks Mike Bradley's Degen X
+  Station (his published build, used with his permission; only his end-card
+  temperatures are measurements). Other URL parameters: `?start=mike|meshify`, `?template=<build id>`,
   `?start=meshify|9000`, `?demo=stefano`, `?net=split|full`,
   `?view=front34|side|rear34`, `?present=1`.
 

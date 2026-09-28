@@ -62,6 +62,13 @@
             "title": "Filters",
             "type": "object"
           },
+          "patterns": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Patterns",
+            "type": "object"
+          },
           "obstruction": {
             "default": "low",
             "title": "Obstruction",
@@ -756,6 +763,13 @@
               "type": "string"
             },
             "title": "Filters",
+            "type": "object"
+          },
+          "patterns": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Patterns",
             "type": "object"
           },
           "obstruction": {
@@ -1506,6 +1520,13 @@
               "type": "string"
             },
             "title": "Filters",
+            "type": "object"
+          },
+          "patterns": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Patterns",
             "type": "object"
           },
           "obstruction": {

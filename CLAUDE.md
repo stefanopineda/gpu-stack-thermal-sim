@@ -5,7 +5,7 @@ GPU water blocks are out of scope (a water-cooled CPU is supported). Units are C
 
 ## What matters
 
-- `SPEC.md` is **revision 4** (Stefano's 16-item rev 4 brief; plan in `docs/REV4_PLAN.md`, item map in SPEC §15). Implement that, don't renegotiate it.
+- `SPEC.md` is **revision 4.1** (§16 = rev 4.1 review changes) (Stefano's 16-item rev 4 brief; plan in `docs/REV4_PLAN.md`, item map in SPEC §15). Implement that, don't renegotiate it.
 - Default build id: `meshify2xl-stefano` (Meshify 2 XL, 3×140 Noctua redux-1700 front intake, 1× rear exhaust assumed, Arctic 360 top exhaust, CPU water 150 W, 4× RTX PRO 6000 Blackwell Max-Q, slots 1/4/7 + vertical v2, shroud on with 2× NF-A14 iPPC-3000, leaky, stock GPU curve).
 - The factorial **stock** cell is stacked, shroud off, standard, leaky. It is reported as its own row even though it matches one cell.
 - **Seal levels are reversed in rev 4: 1 = fully open (100 %) … 5 = sealed (0 %, no branch, R = ∞)**; 2 = 70 %, 3 = 45 %, 4 = 5 %. Default side = 5. Leaky = front 3, top 3, bottom 4, side 5, seams 4, rear_slots 3. Sealed = 4/4/5/5/5/5.
@@ -19,7 +19,10 @@ GPU water blocks are out of scope (a water-cooled CPU is supported). Units are C
 - The blower fan face points **down**. Gaps come from the slot map for every card. No lowest-card bypass branch.
 - Tuned knobs are global / per card type in `gpusim/calib.py`. Never per sweep cell. Presets are YAML; every number needs a source or `approximate` plus an assumption (`gpusim/cite.py`).
 - `gpusim sweep` writes `results/<build>/hypothesis_auto.md`. The root `HYPOTHESIS.md` is curated; do not point the sweep at it.
-- Corsair 9000D ships with **no fans** (Corsair spec page); the template fills the 8×120 front (4 high × 2 wide) with AF120 RGB ELITE. Mike Bradley mock = `/?demo=mike-bradley`, always labelled "Illustrative mock — not a measurement or claim about anyone's real build."
+- Corsair 9000D ships with **no fans** (Corsair spec page); the template fills the 8×120 front (4 high × 2 wide) with AF120 RGB ELITE.
+- `mike-bradley-powerhouse` is now Mike Bradley's real published build, named **"Degen X Station"** (not "Dengen"; verified via Grok on X 2026-09-28), used with his permission per Stefano. It is **anchor C** (`bounds.anchor_c_checks`): top 78.1 / 69.4 °C vs his 79 / 69 at 80 / 100 % fans. `/?demo=mike-bradley`.
+- Touching flow-through cards are coupled by a series duct `stack-*` (`stack_cd = 0.25`, `stack_length_mm = 8`) — without it they run away. Faces can have fan patterns (`MountLayout.pattern`, `BuildCfg.patterns`).
+- X is not reachable with WebFetch (402/451). Use Grok Build headless: `~/.grok/bin/grok -p "…"` (read-only prompt) for X lookups.
 - His public 4× build (looked up 2026-09-28) is **not** that mock. It is four RTX PRO 6000 Blackwell **Workstation** flow-through cards, close-packed, 275 W cap, unified GPU fans, Corsair 9000D with Noctua 120s and an air-cooled Threadripper PRO 7965WX, PSU a SilverStone HELA 2500Rz (1650 W on 120 V). He published only the ends of the stack: at ~80% fans, bottom 49 °C and top 79 °C; at 100% fans, bottom 49 °C and top 69 °C. A same-day reply said 47 °C / 77 °C. Temps rise bottom to top. Middle-card numbers and the promised thermal study were not posted as of 2026-09-28 00:43 UTC. Do not treat the mock's Max-Q middle-hot result as his measurement. Sources: x.com/MikeBradleyAI/status/2104206814577295513, replies 2104213812274409748 and 2104370605890097235, YouTube `O_Gk9oatDhI` for the earlier 2× spaced burn (~90 °C at 600 W).
 
 ## Agent API (item 14)

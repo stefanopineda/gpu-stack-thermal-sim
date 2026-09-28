@@ -74,6 +74,28 @@ so the 5090 FE memory lands near the ~90 °C Gamers Nexus reports.
 With Custom Accelerated the same open-air cards run 65.6 (5090 FE), 66.1 (PRO 6000 WS) and 58.1 °C
 (3090 FE). These are checked in `bounds_check` as `open_air_<card>` with a ±5 °C band.
 
+## Anchor C — Mike Bradley's Degen X Station (rev 4.1)
+
+Four RTX PRO 6000 Workstation cards touching (slots 1/3/5/7 on an ASUS WRX90E-SAGE SE), 275 W caps,
+unified GPU fans, Corsair 9000D, air-cooled Threadripper PRO 7965WX. His posts
+(https://x.com/MikeBradleyAI/status/2104206814577295513 and replies 2104213812274409748,
+2104370605890097235) give only the end cards:
+
+| GPU fans | His bottom / top | Model bottom → top |
+|---|---|---|
+| ~80 % | 49 / 79 °C (later "like 47 / 77") | 46.7, 56.6, 67.1, 78.1 |
+| 100 % | 49 / 69 °C | 44.6, 52.4, 60.8, 69.4 |
+
+Before rev 4.1 the model starved the upper three cards (2.5 CFM) and ran away past 290 °C, because the
+only way into a card was a 0.6 mm slit from the zone. The fix is a series duct from each flow-through
+card's backplate cutout into the fans above, area `cutout · exp(−gap / 8 mm)`. Its lumped discharge
+coefficient was the only number fit to this anchor: `stack_cd = 0.25` (0.35 gives a 69 °C top card, 0.18
+gives 86 °C). His room temperature is not published; at 25 °C the model's bottom card is 2–4 °C cooler
+than his. Case fans, CPU cooler and CPU load are assumptions (listed on the preset). The bounds check
+holds the top card to ± 5 °C, the bottom to ± 6 °C, and requires a monotonic rise.
+
+Spaced pairs barely move with the duct (two 5090 FE one slot apart: +8.5 °C top over bottom, was +7.9).
+
 ## Plume ingestion (rev 4, global)
 
 `φ(g) = φ_max · exp(−g / L_plume)` with `φ_max = 0.85`, `L_plume = 40 mm`: the share of the upper card's

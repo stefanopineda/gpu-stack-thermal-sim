@@ -1,15 +1,19 @@
-_source: 'Mike Bradley (@MikeBradleyAI) public posts on X, recorded 2026-09-28:
-  https://x.com/MikeBradleyAI/status/2104206814577295513 and replies 2104213812274409748,
-  2104370605890097235. Not re-opened in the session that wrote this file (X was not reachable).'
+_source: 'Mike Bradley (@MikeBradleyAI) on X, thread of 27–28 Sep 2026, verified 2026-09-28:
+  https://x.com/MikeBradleyAI/status/2104206814577295513 (name, 275 W caps, unified GPU fans,
+  49/79 °C at ~80 % fans, 49/69 °C at 100 %), /2104213812274409748 (30 °C / 20 °C bottom→top
+  deltas), /2104370605890097235 (~47/77 °C), /2104240193746411821 (Corsair 9000D),
+  /2104211631840366794 (ASUS WRX90E-SAGE SE, Threadripper PRO 7965WX, 256 GB DDR5),
+  /2104245770236891473 (100 % air cooled), /2104231647415513225 (SilverStone HELA 2500Rz),
+  /2104220179706307060 (PSU left in the intake airstream), /2090383241823834192 (all
+  Noctua fans).'
 _approximate: true
-_assumption: 'Modelled from Mike Bradley''s public build posts, used with his permission
-  (per Stefano). Published: Corsair 9000D, 4× RTX PRO 6000 Blackwell Workstation Edition
-  close-packed, 275 W cap, unified GPU fans, Noctua 120 mm case fans, air-cooled Threadripper
-  PRO 7965WX, SilverStone HELA 2500Rz. Not published, assumed here: the Noctua model and
-  count (8 front intake + 4 top exhaust NF-P12 redux-1700, a 140 mm rear exhaust), the CPU
-  load (250 W), slots 1/3/5/7, and a 25 °C room.'
+_assumption: 'Modelled from Mike Bradley''s public posts, used with his permission (per
+  Stefano). Not published, assumed here: the Noctua fan models, count and positions (8 front
+  intake + 4 top exhaust NF-P12 redux-1700, a 140 mm rear exhaust), the CPU cooler (air
+  tower, two 140 mm fans) and its load (250 W), card spacing (slots 1/3/5/7, touching — the
+  only way four dual-slot cards fit a 7-slot WRX90E), and a 25 °C room.'
 id: mike-bradley-powerhouse
-name: Mike Bradley's Powerhouse — 4× RTX PRO 6000 Workstation
+name: Mike Bradley's Degen X Station — 4× RTX PRO 6000 Workstation
 case: corsair-9000d
 ambient_c: 25
 altitude_m: 0
@@ -207,7 +211,7 @@ filters:
   top: fine
 obstruction: low
 cables: clean
-psu_location: bottom_shroud
+psu_location: open
 psu_fan: down
 drive_cage: removed
 side_panel: tempered_glass

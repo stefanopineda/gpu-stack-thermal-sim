@@ -466,6 +466,13 @@
             "type": "object",
             "title": "Filters"
           },
+          "patterns": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Patterns"
+          },
           "obstruction": {
             "type": "string",
             "title": "Obstruction",

@@ -91,6 +91,9 @@ class MountLayout(_Base):
     x_mm: float = 0
     y_mm: float = 0
     z_mm: float = 0
+    # Alternative fan patterns on one face (e.g. "3x140" or "4x120"). A build
+    # uses one pattern per face; mounts of the other pattern do not exist.
+    pattern: str | None = None
 
 
 class VerticalPos(_Base):
@@ -132,6 +135,29 @@ class CaseModel(_Base):
     vertical_inlet_gap_mm: float = 28.0
     notes: str = ""
     dimension_note: str = ""
+
+    def face_patterns(self, panel: str) -> list[str]:
+        seen: list[str] = []
+        for m in self.mounts:
+            if m.panel == panel and m.pattern and m.pattern not in seen:
+                seen.append(m.pattern)
+        return seen
+
+    def active_mounts(self, patterns: dict[str, str] | None = None) -> list[MountLayout]:
+        """Mounts that exist for the chosen pattern on each face (default: the first)."""
+        patterns = patterns or {}
+        out = []
+        for m in self.mounts:
+            if m.pattern is None:
+                out.append(m)
+                continue
+            options = self.face_patterns(m.panel)
+            chosen = patterns.get(m.panel)
+            if chosen not in options:
+                chosen = options[0]
+            if m.pattern == chosen:
+                out.append(m)
+        return out
 
 
 class GpuCfg(_Base):
@@ -213,6 +239,8 @@ class BuildCfg(_Base):
     shroud: ShroudCfg = Field(default_factory=ShroudCfg)
     seals: dict[str, int] = Field(default_factory=dict)
     filters: dict[str, str] = Field(default_factory=dict)
+    # Face → fan pattern, when the case offers more than one (see MountLayout).
+    patterns: dict[str, str] = Field(default_factory=dict)
     obstruction: str = "low"
     cables: str = "clean"
     psu_location: str = "bottom_shroud"

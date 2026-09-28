@@ -47,6 +47,16 @@
       "detail": "rtx-3090-fe at 350 W, open air, stock curve: die 68.04 \u00b0C (target ~68 \u00b1 5)"
     },
     {
+      "name": "anchor_c_fans_80",
+      "pass": true,
+      "detail": "Mike Bradley stack, fans 80%: top\u2192bottom ['78.1', '67.1', '56.6', '46.7'] \u00b0C (published top 79, bottom 49; rising bottom\u2192top True)"
+    },
+    {
+      "name": "anchor_c_fans_100",
+      "pass": true,
+      "detail": "Mike Bradley stack, fans 100%: top\u2192bottom ['69.4', '60.8', '52.4', '44.6'] \u00b0C (published top 69, bottom 49; rising bottom\u2192top True)"
+    },
+    {
       "name": "cell:s-stacked__p-high__sh-off__l-sealed",
       "pass": true,
       "detail": "converged=True, residual=4.96e-08 kg/s, energy error=0.000%"

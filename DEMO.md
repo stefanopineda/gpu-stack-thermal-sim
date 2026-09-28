@@ -76,24 +76,22 @@ Say: the search tried 48 air-cooled layouts on the Max-Q. The winner is gaps, ve
 normal fan directions, Custom Accelerated, 75.4 °C (Monte Carlo 68–88 °C). Water blocks were not in the
 search.
 
-## 2. Mike Bradley powerhouse (illustrative mock, `?demo=mike-bradley`)
+## 2. Mike Bradley's Degen X Station (`?demo=mike-bradley`)
 
-Read the banner out loud: *Illustrative mock — not a measurement or claim about anyone's real build.* The
-link is shareable. Quick start has a separate button for the plain Corsair 9000D template.
+His public build, used with his permission: Corsair 9000D, four RTX PRO 6000 Workstation cards touching,
+275 W caps, unified GPU fans, air-cooled Threadripper PRO. Only the end-card temperatures he posted are
+measurements; case fans and CPU load are assumptions on the preset.
 
-### As mocked
+### As built, fans ~80 %
 
-A 9000D with eight AF120 RGB ELITE front intakes (the case ships with no fans; the front takes 8×120, four
-high and two wide — click Front to see all eight in the face inset), three RS120 side intakes, a top 360
-exhaust, a 2× iPPC shroud, three gapped Max-Q cards plus one vertical, Custom Accelerated. Hottest die about
-75.2 °C. Same solver as the Meshify; only the box and the fans changed.
+Say: these cards pull air from underneath and push it out of the top, so four touching cards are four fans
+in series. Each card breathes the one below it. Model 47 → 79 °C bottom to top; he posted 49 → 79 °C.
 
-### Shroud off
+### Fans at 100 %
 
-Pull the shroud. Hottest die about 75.5 °C. With this much intake the shroud buys very little.
+Say: more air through the column, less rise per card. Model 45 → 70 °C; he posted 49 → 69 °C.
 
-### Close-packed
+### Full 600 W per card
 
-Eight horizontal slots, four dual-slot cards, no empty slot, Custom Accelerated still on. Unthrottled about
-85.1, 91.0, 90.9 and 75.2 °C; the middle two throttle. A strong shroud and a 100 % curve do not invent an
-inlet gap.
+Say: lift the cap and the column cannot carry it; the top two cards reach the cutoff and throttle. That is
+why he runs 275 W.

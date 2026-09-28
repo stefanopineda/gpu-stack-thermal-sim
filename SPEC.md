@@ -1,4 +1,4 @@
-# SPEC — gpu-stack-thermal-sim (revision 4)
+# SPEC — gpu-stack-thermal-sim (revision 4.1)
 
 An open-source Python tool that simulates airflow and temperatures inside multi-GPU AI workstations using a
 **coupled flow-resistance network + thermal-resistance network** (compact model / thermal–electrical
@@ -412,3 +412,40 @@ Rev 4 decisions made without further questions, all documented as assumptions:
 | 14 agent API | §12 |
 | 15 quick start, templates, mock demo URL | §2.1, §11 |
 | 16 airflow-first scope | scope paragraph, §2.3 |
+
+---
+
+## 16. Revision 4.1 (review feedback, 2026-09-28)
+
+**Physics.**
+- **Series duct between stacked flow-through cards.** A resistor from the zone into a 0.6 mm slit made
+  touching flow-through cards starve and run away (> 290 °C). In reality the lower card's backplate cutout
+  breathes straight into the fans above, so a touching stack is fans in series. New branch
+  `stack-<lower>-<upper>`: `cex(lower) → cin(upper)`, area `cutout · exp(−gap / 8 mm)`, lumped
+  `C_d = 0.25` (cutout, fin exit, fan hub). It fades out as the gap opens; the plume overlay (§6.3) still
+  handles the mixing at larger gaps. Global knobs `stack_length_mm`, `stack_cd`.
+- **Calibration anchor C — Mike Bradley's "Degen X Station"** (public posts, used with his permission):
+  4× RTX PRO 6000 Workstation, touching (slots 1/3/5/7 — the only fit on a 7-slot WRX90E-SAGE SE),
+  275 W caps, unified GPU fans. Published: bottom 49 °C / top 79 °C at ~80 % fans, 49 / 69 °C at 100 %.
+  Model: 46.7 → 78.1 °C and 44.6 → 69.4 °C, rising card by card. Check: top ± 5 °C, bottom ± 6 °C (his
+  room temperature is not published), monotonic rise. `stack_cd` was fit to it; nothing else moved.
+- **Case pressure and fan flow** (question from review): every case fan is a pressure source on its P–Q
+  curve in series with its mount, and the case volume and GPU zone are pressure nodes, so a sealed or
+  pressurised case moves less air per fan (Meshify front trio: 143–179 CFM across the seal settings). The
+  seal slider is the panel *around* the fans; it does not block the fans. For blower cards the case air
+  barely matters as long as intake exceeds the cards' own ~100 CFM: removing every case fan raises the
+  hottest Max-Q by only ~5 °C, because the blowers ventilate the case themselves.
+
+**Data.** Faces can offer alternative fan patterns (`MountLayout.pattern`, `BuildCfg.patterns`): Meshify
+front/top 3×140 or 4×120, 9000D front 8×120 or 3×140, top 4×120 or 3×140. The Mike Bradley preset is his
+published build (not the rev 4 Max-Q mock). Scenario steps can pin `fan_duty` and `power_limit_w`.
+
+**UI.** Start screen is a funnel: two quick starts (Mike Bradley's Degen X Station, Stefano's Meshify 2 XL),
+templates and scratch behind "More". Left bar starts with **Case**. Each face shows one fan picker with 140
+mm / 120 mm option groups (picking the other size swaps the pattern), plus "set fans one by one", seal and
+filter behind expanders. "Blanked" is "cover plate (plugged)". No text over the 3D view: stats sit in the
+right column (hottest GPU, case pressure, fresh air, heat, then GPU 1…n with vertical cards last and
+labelled); objects explain themselves on hover. The view is mirrored so the front is on the right as seen
+through the glass, the motherboard is an ASUS Pro WS WRX90E-SAGE SE layout (EEB, sTR5, 8 DIMM, 7 PCIe
+x16), cards sit on its slot positions (slot 1 ≈ 158 mm below the board top), and vertical cards stand in
+their own positions next to the glass.
