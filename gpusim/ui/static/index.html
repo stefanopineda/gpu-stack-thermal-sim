@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>gpusim — air-cooled multi-GPU</title>
   <link rel="stylesheet" href="/static/style.css" />
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
   <div id="start" class="start">
@@ -15,10 +14,11 @@
       <p class="lede">A live flow-and-thermal network for blower GPUs. GPU water blocks are out of scope — this tool will not pretend a block is an option.</p>
       <div class="start-actions">
         <button id="quick-meshify" class="primary">Quick start · Meshify 2 XL</button>
-        <button id="quick-9000" class="ghost">Quick start · 9000D mock</button>
+        <button id="quick-9000" class="ghost">Quick start · Corsair 9000D</button>
+        <button id="quick-mock" class="ghost">Illustrative mock · Mike Bradley 9000D</button>
         <button id="from-scratch" class="ghost">Build from scratch</button>
       </div>
-      <p class="fine">Quick start reaches a first die temperature in one solve. The 9000D layout is an illustrative mock — not a measurement or claim about anyone's real build.</p>
+      <p class="fine">Quick start reaches a first die temperature in one solve. The Mike Bradley button is an illustrative mock — not a measurement or claim about anyone's real build. The Corsair button loads the plain 9000D sample.</p>
     </div>
   </div>
 
@@ -41,6 +41,11 @@
     <div class="stage">
       <div class="viewport">
         <canvas id="scene"></canvas>
+        <div id="legend" class="legend">
+          <span><i class="swatch intake"></i>Intake</span>
+          <span><i class="swatch exhaust"></i>Exhaust</span>
+          <span><i class="swatch blank"></i>Empty / blanked</span>
+        </div>
         <div id="labels" class="labels"></div>
         <div id="demo-bar" class="demo-bar hidden">
           <div>
@@ -137,6 +142,6 @@
       Compact network model after Ellison, Idelchik and flow-network electronics cooling — not a CFD result.
     </footer>
   </div>
-  <script src="/static/app.js"></script>
+  <script type="module" src="/static/app.js"></script>
 </body>
 </html>

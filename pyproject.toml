@@ -34,7 +34,7 @@ build-backend = "setuptools.build_meta"
 include = ["gpusim*"]
 
 [tool.setuptools.package-data]
-gpusim = ["ui/static/*"]
+gpusim = ["ui/static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

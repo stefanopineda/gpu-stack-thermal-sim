@@ -1,4 +1,5 @@
-/* gpusim visualizer. Solver stays on the server. */
+/* gpusim visualizer. Solver stays on the server. three.js is vendored. */
+import * as THREE from "./vendor/three.module.js";
 const state = {
   presets: null,
   build: null,
@@ -44,8 +45,13 @@ async function boot() {
   const shroudFans = state.presets.fans.filter((f) => f.size_mm === 140);
   fillSelect($("shroud-fan"), shroudFans, (f) => [f.id, f.name]);
   $("quick-meshify").onclick = () => quick("meshify2xl-stefano");
-  $("quick-9000").onclick = () => quick("mike-bradley-powerhouse");
+  $("quick-9000").onclick = () => quick("corsair-9000d-sample");
+  $("quick-mock").onclick = () => quick("mike-bradley-powerhouse");
   $("from-scratch").onclick = () => scratch();
+  const start = new URLSearchParams(location.search).get("start");
+  if (start === "meshify") quick("meshify2xl-stefano");
+  else if (start === "9000") quick("corsair-9000d-sample");
+  else if (start === "mock") quick("mike-bradley-powerhouse");
   $("unit-toggle").onclick = () => {
     state.unitF = !state.unitF;
     $("unit-toggle").textContent = state.unitF ? "°C" : "°F";
@@ -438,8 +444,7 @@ function ensureScene() {
     const w = canvas.clientWidth || canvas.parentElement.clientWidth;
     const h = canvas.clientHeight || 520;
     renderer.setSize(w, h, false);
-    camera.aspect = w / Math.max(h, 1);
-    camera.updateProjectionMatrix();
+    frameCamera();
   }
   resize();
   window.addEventListener("resize", resize);
@@ -560,10 +565,38 @@ function draw3d() {
   root.add(shell);
   const edges = new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(d, h, w)),
-    new THREE.LineBasicMaterial({ color: 0x6b5e50 }),
+    new THREE.LineBasicMaterial({ color: 0xf0e2cf }),
   );
   edges.position.copy(shell.position);
   root.add(edges);
+  const shroudH = Math.min(0.16, h * 0.28);
+  const psu = new THREE.Mesh(
+    new THREE.BoxGeometry(d * 0.92, shroudH, w * 0.7),
+    new THREE.MeshStandardMaterial({ color: 0x3a332b, roughness: 0.8 }),
+  );
+  psu.position.set(d * 0.48, shroudH / 2, w * 0.38);
+  root.add(psu);
+  if (state.build.radiator && state.build.radiator.model) {
+    const rad = new THREE.Mesh(
+      new THREE.BoxGeometry(0.40, 0.04, 0.13),
+      new THREE.MeshStandardMaterial({ color: 0x8d6a45, roughness: 0.5 }),
+    );
+    const along = state.build.radiator.panel === "front" ? 0.06 : d * 0.45;
+    const up = state.build.radiator.panel === "front" ? h * 0.45 : h - 0.03;
+    rad.position.set(along, up, w * 0.45);
+    root.add(rad);
+  }
+  if (state.build.shroud && state.build.shroud.mode !== "off") {
+    const duct = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, h * 0.42, 0.04),
+      new THREE.MeshStandardMaterial({
+        color: state.build.shroud.mode === "on" ? 0xe24b3b : 0x8d877e,
+        roughness: 0.45,
+      }),
+    );
+    duct.position.set(d + 0.03, h * 0.42, w * 0.5);
+    root.add(duct);
+  }
   state.build.mounts.forEach((m) => {
     const layout = kase.mounts.find((x) => x.id === m.id);
     if (!layout) return;
@@ -590,8 +623,31 @@ function draw3d() {
     mesh.userData = { id: card.id, kind: "gpu" };
     root.add(mesh);
   });
-  camera.position.set(d * 0.45, h * 0.55, w + d * 0.85);
-  camera.lookAt(d * 0.5, h * 0.45, w * 0.4);
+  frameCamera();
+}
+
+function frameCamera() {
+  if (!state.scene || !state.build) return;
+  const { camera, root } = state.scene;
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  if (box.isEmpty()) return;
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const canvas = $("scene");
+  const aspect = (canvas.clientWidth || 1920) / Math.max(canvas.clientHeight || 1080, 1);
+  camera.aspect = aspect;
+  camera.fov = 32;
+  // Fans, the top radiator and the rear duct sit outside the case shell.
+  // Fit that whole box at its near face so the closest corners stay on screen.
+  const margin = 1.36;
+  const fov = (camera.fov * Math.PI) / 180;
+  const distY = (size.y * margin) / 2 / Math.tan(fov / 2);
+  const distX = (size.x * margin) / 2 / (Math.tan(fov / 2) * aspect);
+  const distNear = Math.max(distY, distX);
+  camera.position.set(center.x, center.y, box.max.z + distNear);
+  camera.lookAt(center.x, center.y, center.z);
+  camera.updateProjectionMatrix();
 }
 
 function drawLabels() {
