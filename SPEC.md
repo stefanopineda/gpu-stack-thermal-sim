@@ -43,7 +43,7 @@ TIM resistance, die→heatsink and memory→heatsink resistances, memory power s
 (default 88 °C, configurable ~87–90 °C), shroud/backplate area for adjacent-card preheating, fan inlet area
 and position. Each value carries a `source:` or `assumption:` note.
 
-Also ship a generic **`custom-blower-300w`** card template (clearly labelled as a template) so users can add
+Also include a generic **`custom-blower-300w`** card template (clearly labelled as a template) so users can add
 other blower cards. No other named card models are required.
 
 ### 1.2 Stefano's own build (default configuration)
