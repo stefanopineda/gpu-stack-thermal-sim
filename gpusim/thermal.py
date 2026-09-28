@@ -178,27 +178,37 @@ def solve_thermal(
             }
             if blower is not None:
                 heat_branch[blower.id] = q_channel
-        # Backplate → neighbour inlet, remainder → GPU-zone air (or this exhaust
-        # in open air, so the joules still leave with the stream).
-        for idx, gpu_id in enumerate(net.ordered_ids):
+        # External heat leaves through the fan face (down) and the backplate (up).
+        # A tight gap returns a share of that heat into the inlet that breathes it.
+        # The rest warms the GPU zone. Nothing here is reserved for the lowest card.
+        for gpu_id in net.ordered_ids:
             gap = net.gaps[gpu_id]
             q_ext = per[gpu_id]["q_ext"]
-            downstream = None
-            if idx + 1 < len(net.ordered_ids):
-                nxt = net.ordered_ids[idx + 1]
-                if net.gaps[nxt].get("upstream") == gpu_id:
-                    downstream = nxt
+            gpu = next(g for g in build.gpus if g.id == gpu_id)
+            g0 = params_by_card[gpu.card]["capture_g0_mm"]
+            if build.open_air or "gpu" not in net.nodes or q_ext == 0:
+                dest = f"cex-{gpu_id}"
+                heat_node[dest] = heat_node.get(dest, 0.0) + q_ext
+                continue
             captured = 0.0
-            if downstream is not None and q_ext > 0:
-                g0 = params_by_card[next(g.card for g in build.gpus if g.id == gpu_id)]["capture_g0_mm"]
-                frac = 1.0 / (1.0 + net.gaps[downstream]["gap_mm"] / max(g0, 0.5))
-                captured = q_ext * frac
-                heat_node[f"cin-{downstream}"] = heat_node.get(f"cin-{downstream}", 0.0) + captured
+            for side in gap.get("sides") or []:
+                share = max(q_ext, 0.0) * float(side["fraction"])
+                frac = 1.0 / (1.0 + float(side["gap_mm"]) / max(g0, 0.5))
+                portion = share * frac
+                if portion <= 0:
+                    continue
+                if side["name"] == "fan":
+                    # The fan inhales this gap, including heat off its own shroud.
+                    target = f"cin-{gpu_id}"
+                elif side.get("neighbor"):
+                    # Backplate faces the card above; that card's fan draws the same gap.
+                    target = f"cin-{side['neighbor']}"
+                else:
+                    continue
+                heat_node[target] = heat_node.get(target, 0.0) + portion
+                captured += portion
             rest = q_ext - captured
-            if build.open_air or "gpu" not in net.nodes:
-                heat_node[f"cex-{gpu_id}"] = heat_node.get(f"cex-{gpu_id}", 0.0) + rest
-            else:
-                heat_node["gpu"] = heat_node.get("gpu", 0.0) + rest
+            heat_node["gpu"] = heat_node.get("gpu", 0.0) + rest
         t_nodes = _linear_temperatures(net, flow, heat_branch, heat_node, t_amb)
         last_cards = []
         for gpu_id in net.ordered_ids:

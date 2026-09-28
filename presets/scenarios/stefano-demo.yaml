@@ -17,12 +17,16 @@ steps:
   fan_curve: stock
   advance_s: 22
   talking_points:
-  - Four dual-slot blowers in adjacent slots. Each inlet faces the previous card's
-    backplate with only a few millimetres of gap.
+  - Four dual-slot blowers in adjacent slots. The fan face points down, so each
+    card inhales the gap below it. Between cards that gap is only a few millimetres.
+    The bottom card's fan faces the PSU-shroud clearance instead. A smaller opening
+    on the backplate side faces the card above, or the CPU clearance on the top card.
   - The stock blower curve is already at its ~70% duty cap, so the cards cannot spin
     harder as they heat up.
-  - Middle cards are starved and preheated. The unthrottled die prediction crosses
-    the 90 °C cutoff and the throttle flag comes on.
+  - Middle cards are starved on both faces. Unthrottled dies are about 101, 109, 109
+    and 87 °C, top to bottom, with the middle two near 14 CFM. The three that cross
+    90 °C get the throttle flag. The bottom card's fan sees about 40 mm of PSU clearance
+    and stays near 25 CFM.
 - id: anchor-a
   title: Gaps plus a vertical card, shroud off (anchor A)
   layout: gap1_vertical
@@ -32,12 +36,12 @@ steps:
   fan_curve: stock
   advance_s: 22
   talking_points:
-  - One empty slot between horizontal cards, brackets removed, so each blower sees
-    an open slot instead of a backplate.
+  - One empty slot between horizontal cards, brackets removed, so the downward fan
+    face sees an open slot instead of the next card's backplate.
   - The fourth card moves to a vertical slot off to the side and stops sharing the
     stack's inlet gap.
-  - Front intake on the Meshify is aimed straight at the GPUs. Hottest die settles
-    near the measured 86 °C, and nothing is throttling.
+  - Front intake on the Meshify is aimed straight at the GPUs. Hottest die is 86.5 °C.
+    All four cards sit within 0.2 °C of that, about 26 CFM, and nothing is throttling.
 - id: shroud-on
   title: Rear shroud with 2× NF-A14 iPPC-3000
   layout: gap1_vertical
@@ -49,8 +53,8 @@ steps:
   talking_points:
   - The shroud is a shared plenum over every bracket. Two industrial 140s pull on
     that plenum, in series with the blowers.
-  - Outlet pressure at each card drops, so blower flow rises. Exhaust is ducted out
-    instead of drifting back in the rear slots.
+  - Hottest die is 84.3 °C. Mean blower flow rises from about 25.7 CFM to 26.5 CFM.
+    Exhaust is ducted out instead of drifting back in the rear slots.
   - Empty slot mouths still bypass some air into the plenum. That parallel path is
     why the shroud helps, but does not multiply flow by the fan's free-air CFM.
 - id: high-pressure
@@ -66,8 +70,8 @@ steps:
     tape-and-foam levels.
   - The only real exhaust path left is the blowers plus the shroud. Case pressure
     goes positive, which cuts recirculation.
-  - The radiator now preheats the intake with CPU heat. That is the trade against
-    the gain in blower flow.
+  - The radiator now preheats the intake with CPU heat. Hottest die is 85.7 °C at
+    about +18 Pa, a bit warmer than leaving the fans as exhaust with the shroud on.
 - id: aggressive-curve
   title: maxq_aggressive blower curve
   layout: gap1_vertical
@@ -81,8 +85,8 @@ steps:
     duty.
   - 'Affinity laws: flow scales with RPM, pressure with RPM squared, so the fin channel
     gets both more mass and more ability to push it.'
-  - On a single card in open air this is what keeps the die under about 75 °C. In
-    the case it still helps, on top of spacing and the shroud.
+  - Hottest die is 75.5 °C, about 37 CFM. Open air on the same curve is 73.4 °C,
+    against 82.8 °C with the stock cap.
 - id: optimal
   title: Optimal air-cooled search
   layout: optimal

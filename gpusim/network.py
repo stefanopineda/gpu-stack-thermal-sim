@@ -15,7 +15,7 @@ import numpy as np
 
 from gpusim.calib import CABLE_K, FILTER_K_AT_REF, OBSTRUCTION_K, SEAL_CD, SEAL_OPEN_FRACTION
 from gpusim.flow import Branch
-from gpusim.layout import gap_table, inlet_area_m2, is_vertical, sort_gpus
+from gpusim.layout import gap_table, inlet_area_m2, sort_gpus
 from gpusim.models import BuildCfg, CaseModel
 from gpusim.physics import air_density, fan_tables, orifice_k, quadratic_curve, rpm_from_duty, scale_parallel
 
@@ -147,39 +147,8 @@ def build_network(
 
             params = card_tuning(gpu.card)
         gap = gaps[gpu.id]
-        area = inlet_area_m2(
-            gap["gap_mm"], gap["state"], params["inlet_width_m"], params["inlet_eye_m2"]
-        )
-        feed = "gpu"
-        add(
-            Branch(
-                id=f"gap-{gpu.id}",
-                a=feed,
-                b=f"cin-{gpu.id}",
-                k=orifice_k(area, rho_ref, 0.62),
-                k_lin=2.0,
-                rho=rho_for(feed),
-                kind="gap",
-                label=f"{gpu.id} inlet slit ({gap['state']}, {gap['gap_mm']:.1f} mm)",
-            )
-        )
         bleed(f"cin-{gpu.id}")
-        if gap["lowest"] and not gap["vertical"]:
-            bypass = float(sample.get("bottom_bypass_m2", 1.15e-3))
-            if build.psu_location == "open":
-                bypass = float(sample.get("bottom_bypass_open_psu_m2", bypass * 1.8))
-            add(
-                Branch(
-                    id=f"bypass-{gpu.id}",
-                    a="gpu",
-                    b=f"cin-{gpu.id}",
-                    k=orifice_k(bypass, rho_ref, 0.7),
-                    k_lin=1.0,
-                    rho=rho_for("gpu"),
-                    kind="bypass",
-                    label=f"{gpu.id} PSU-shroud bypass into the lowest inlet",
-                )
-            )
+        _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add)
         q, p, rpm, rpm_ref = _blower_qp(params, duties.get(gpu.id, 0.7))
         add(
             Branch(
@@ -290,12 +259,48 @@ def _open_air(build, cards, duties, sample, rho_ref, add, bleed, nodes, branches
         gaps[gpu.id] = {
             "gap_mm": 80.0,
             "state": "open_slot",
-            "upstream": None,
-            "lowest": False,
             "vertical": False,
+            "inlet_faces": "both",
+            "sides": [
+                {
+                    "name": "fan",
+                    "gap_mm": 80.0,
+                    "state": "open_slot",
+                    "fraction": 1.0,
+                    "neighbor": None,
+                }
+            ],
         }
         ordered.append(gpu.id)
     return Network(branches, sorted(nodes), gaps, ordered)
+
+
+def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add) -> None:
+    """One orifice per inlet face. Area is the slot-map slit, capped by that face's share of the eye."""
+    eye = float(params["inlet_eye_m2"])
+    width = float(params["inlet_width_m"])
+    sides = gap.get("sides") or []
+    if not sides:
+        sides = [{"name": "fan", "gap_mm": gap["gap_mm"], "state": gap["state"], "fraction": 1.0, "neighbor": None}]
+    for side in sides:
+        share = eye * float(side["fraction"])
+        area = inlet_area_m2(side["gap_mm"], side["state"], width, share)
+        neighbor = side.get("neighbor") or "open"
+        add(
+            Branch(
+                id=f"gap-{gpu.id}-{side['name']}",
+                a="gpu",
+                b=f"cin-{gpu.id}",
+                k=orifice_k(area, rho_ref, 0.62),
+                k_lin=2.0,
+                rho=rho_for("gpu"),
+                kind="gap",
+                label=(
+                    f"{gpu.id} {side['name']} inlet ({side['state']}, "
+                    f"{side['gap_mm']:.1f} mm, toward {neighbor})"
+                ),
+            )
+        )
 
 
 def _resolved_mounts(build: BuildCfg, case: CaseModel) -> list:
@@ -498,7 +503,7 @@ def _add_rear_slots(build, case, rho_ref, seal_scale, shroud_on, sample, add) ->
     n_slots = case.horizontal_slots + case.vertical_slots
     geometric = n_slots * case.rear_slot_area_m2
     if shroud_on:
-        frac = float(sample.get("shroud_bypass_fraction", 0.55))
+        frac = float(sample.get("shroud_bypass_fraction", 0.04))
         # Tape still closes holes the shroud would otherwise inhale.
         area, cd = _seal_area(build, "rear_slots", geometric, seal_scale)
         area = max(area, geometric * frac * min(seal_scale, 1.0) * 0.15)

@@ -149,7 +149,7 @@ by default. Position front/top and direction intake/exhaust are user-flippable.
 
 | Factor | Level A | Level B |
 |---|---|---|
-| **spacing** | `stacked`: the 3 horizontal cards in adjacent dual-slot positions, no free slot between them (card N's blower inlet faces card N-1's backplate) | `gap1`: one empty slot between each pair of horizontal cards (the Meshify 2 XL has 9 horizontal slots) |
+| **spacing** | `stacked`: the 3 horizontal cards in adjacent dual-slot positions, no free slot between them (the blower fan face points down at the next card; the lowest card's fan face points at the PSU-shroud clearance) | `gap1`: one empty slot between each pair of horizontal cards (the Meshify 2 XL has 9 horizontal slots) |
 | **pressure** | `high` (positive): all case fans intake, case interfaces sealed (foil tape), radiator as intake, the **only** exhaust path is through the GPU blowers (rear brackets, plus the shroud when on) | `standard`: front intake, Arctic 360 radiator top exhaust plus rear exhaust fan (if mounted) |
 | **shroud** | rear exhaust shroud `off` | rear exhaust shroud `on` with its fans (default 2x NF-A14 industrialPPC-3000) |
 | **leakage** | `sealed` (seal level 1–2 on panels and rear slot openings) | `leaky` (realistic stock: seal level 3–4) |
@@ -188,9 +188,12 @@ on, active or passive), radiator, each fan mount, PSU chamber (if shrouded), lea
 - **Recirculation**: blower exhaust partially re-ingested (through rear leakage/slot covers/nearby intakes)
   when case pressure is negative and there is no shroud/duct — modelled as a pressure-dependent recirculation branch
   and mixing fraction.
-- **Adjacent-card preheating**: card N's inlet air is a mix of GPU-zone air and air heated by card N-1's
-  backplate/shroud; when `stacked` the inlet gap is small (see §6), raising intake resistance.
-  Card numbering: card 1 = closest to the CPU (top slot), card 4 = lowest. Document this.
+- **Adjacent-card preheating**: in a tower the blower fan face points down, toward the floor. Card N's
+  main inlet therefore sees the gap below it (card N+1's backplate, or the PSU-shroud clearance when
+  nothing is below). A smaller backplate-side / end opening, when the card preset says the inlet is
+  split, sees the gap above (card N-1, or the CPU-area clearance on the top card). When `stacked` the
+  downward gap is only a few millimetres (see §6), so intake resistance rises. Card numbering: card 1 =
+  closest to the CPU (top slot), card 4 = lowest. Document this.
 - Air density from ideal gas with temperature and **altitude**; conserve mass flow, not volumetric flow.
 - Optional buoyancy (stack effect), off by default.
 
@@ -213,9 +216,11 @@ Dust filter density per intake (none / fine / dense) adds a separate resistance.
 ## 6. GPU layout and inter-card airflow (critical)
 
 - **Explicit slot map**: which expansion slots (horizontal and vertical) hold which card, and whether each
-  slot bracket/cover is present or removed; the solver derives gap geometry around each
-  card: card-to-card gap, card-to-PSU-shroud gap (lowest card), card-to-side-panel clearance, card-to-bottom
-  fan distance.
+  slot bracket/cover is present or removed. The blower fan face points down. The solver derives the gap
+  on each inlet face from that map, for every card the same way: the fan side sees the card below, empty
+  slots, or the PSU-shroud clearance when nothing is below; the backplate / end side sees the card above
+  or the CPU-area clearance. Also card-to-side-panel clearance and card-to-bottom fan distance. The
+  lowest card is not a special bypass.
 - The space next to each card's blower inlet has one of three **slot gap states**:
   1. `open_slot` — empty PCIe slot, low resistance, good flow;
   2. `blocked_slot` — slot cover/blocker or cable obstruction present, reduced flow;
@@ -301,8 +306,9 @@ recommendation**: sort by hottest die (ascending), tie-break by mean die tempera
 - **Rendering**: **3D side-view** case rendering in the browser (e.g. three.js; solver stays in Python behind
   a local API). Colour-coded, stream-readable: distinct colours for **intake** fans, **exhaust** fans, and
   **blanked/empty** mounts (e.g. blue / red / grey), GPUs coloured by die temperature.
-- **Onboarding**: start screen with **Quick start** (templates: Corsair 9000D, Meshify 2 XL — Stefano's build)
-  vs **Build from scratch**. Quick start reaches a first thermal number in **under one minute**.
+- **Onboarding**: start screen with **Quick start** (templates: Corsair 9000D plain sample, Meshify 2 XL —
+  Stefano's build) vs **Build from scratch**. The Mike Bradley 9000D build is a separate button, labelled
+  as an illustrative mock. Quick start reaches a first thermal number in **under one minute**.
 - **Fan placement**: click any mount (front/top/rear/bottom/side) to place a fan; **one-click flip
   intake/exhaust**; "Add fan" defaults to a generic case fan of the mount's size, then a dropdown of the top
   ~10 common fans **filtered by size (120/140/170 mm)** showing static pressure, RPM and CFM.

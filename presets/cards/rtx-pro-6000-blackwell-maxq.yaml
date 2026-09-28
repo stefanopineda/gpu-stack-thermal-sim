@@ -20,6 +20,14 @@ thickness_mm:
   approximate: false
   source: https://www.elsa-jp.co.jp/wp-content/uploads/2025/03/Datasheet_NVIDIA_RTX_PRO_6000_Blackwell_Max-Q_Workstation_Edition.pdf
 blower: true
+inlet_faces: both
+inlet_split:
+  value: 0.75
+  approximate: true
+  assumption: 'In a standard ATX tower the blower fan face points down toward
+    the case floor. NVIDIA does not publish how the Max-Q inlet is split. 0.75 of
+    the eye is the fan face; 0.25 is a smaller backplate-side/end opening. The gaps
+    those faces see come from the slot map. This is not a per-cell fit.'
 throttle_c:
   value: 88
   approximate: true

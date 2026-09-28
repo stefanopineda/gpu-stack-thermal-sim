@@ -11,6 +11,12 @@ length_mm: 267
 height_mm: 111
 thickness_mm: 37
 blower: true
+inlet_faces: both
+inlet_split:
+  value: 0.75
+  approximate: true
+  assumption: Template copies the Max-Q assumption. Fan face points at the floor;
+    0.25 of the eye is a backplate-side/end opening. Not a measured inlet.
 throttle_c: 88
 cutoff_c: 90
 fan_curves:

@@ -63,9 +63,6 @@ GLOBAL = {
     # Direct front-to-GPU spill (Meshify) vs a mixed mid-tower.
     "spill_area_direct_m2": 0.045,
     "spill_area_mixed_m2": 0.012,
-    # Lowest-card bypass from the GPU zone around the PSU shroud lip.
-    "bottom_bypass_m2": 1.15e-3,
-    "bottom_bypass_open_psu_m2": 2.2e-3,
 }
 
 # Per card type. Overridden nowhere by cell index.

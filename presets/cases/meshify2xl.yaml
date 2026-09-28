@@ -183,6 +183,17 @@ leak_areas_m2:
   seams: 0.012
 rear_slot_area_m2: 0.00145
 clearance_above_top_mm: 34
+psu_shroud_clearance_mm:
+  value: 40
+  approximate: true
+  assumption: 'Fractal does not publish the gap from the lowest slot to the PSU
+    shroud. 40 mm is a schematic floor clearance. The lowest card''s fan, which
+    faces the floor, sees this distance; it is not a separate bypass branch.'
+vertical_inlet_gap_mm:
+  value: 28
+  approximate: true
+  assumption: 'The Meshify vertical slots sit off to the side of the horizontal
+    stack. 28 mm is an open side clearance for both faces of that card.'
 dimension_note: 'Fractal lists product dimensions 600 × 240 × 566 mm as L × W × H,
   i.e. depth × width × height. The current product page states expansion slots as
   9; the product sheet and the dark-TG page (https://www.fractal-design.com/products/cases/meshify/meshify-2-xl-dark-tempered-glass/dark-tempered-glass/)

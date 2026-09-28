@@ -40,6 +40,10 @@ class CardModel(_Base):
     throttle_c: float = 88.0
     cutoff_c: float = 90.0
     fan_curves: dict[str, list[list[float]]]
+    # floor: fan face toward the PSU. cpu: fan face toward the CPU.
+    # both: fan face toward the floor plus a backplate/end opening (inlet_split).
+    inlet_faces: str = "both"
+    inlet_split: float = 0.75
     notes: str = ""
 
 
@@ -100,6 +104,9 @@ class CaseModel(_Base):
     leak_areas_m2: dict[str, float]
     rear_slot_area_m2: float = 0.0015
     clearance_above_top_mm: float = 30.0
+    # Open distance from the bottom of the lowest occupied slot to the PSU shroud.
+    psu_shroud_clearance_mm: float = 40.0
+    vertical_inlet_gap_mm: float = 28.0
     notes: str = ""
     dimension_note: str = ""
 

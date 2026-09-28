@@ -341,7 +341,6 @@ def sample_tuning(rng, build: BuildCfg) -> dict:
         "ambient_offset": float(rng.normal(0.0, 0.8)),
         "ippc_p_scale": float(rng.uniform(ippc_lo, 1.0)),
         "recirc_area_m2": GLOBAL["recirc_area_m2"] * ln(0.25),
-        "bottom_bypass_m2": GLOBAL["bottom_bypass_m2"] * ln(0.20),
     }
 
 
