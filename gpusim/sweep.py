@@ -240,7 +240,7 @@ def run_sweep(
     report["pass"] = report["pass"] and all(item["pass"] for item in extra)
     (out / "bounds_check.json").write_text(json.dumps({"summary": report["pass"], "checks": report["checks"] + extra}, indent=2))
     (out / "bounds_check.md").write_text(bounds_markdown(report, extra))
-    write_plots(frame, solutions.get("stock") or next(iter(solutions.values())), plot_root, build)
+    write_plots(frame, plot_root, build, lib)
     if write_hypothesis_to:
         write_hypothesis(frame, Path(write_hypothesis_to), mc)
     if not report["pass"]:
