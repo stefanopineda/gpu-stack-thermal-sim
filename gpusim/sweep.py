@@ -185,15 +185,34 @@ def write_hypothesis(frame: pd.DataFrame, path: Path, mc: int) -> None:
     path.write_text("\n".join(lines))
 
 
+def resolve_plots_dir(out_dir: str | Path, plots_dir: str | Path | None) -> Path:
+    """Default plots/<build> only when --out is the default results directory.
+
+    A custom --out keeps the charts under that tree so a hand-written
+    HYPOTHESIS.md at the repo root is not the only thing a sweep can clobber,
+    and so plots travel with the tables.
+    """
+    if plots_dir is not None:
+        return Path(plots_dir)
+    out = Path(out_dir)
+    try:
+        default = out.resolve() == Path("results").resolve()
+    except OSError:
+        default = out == Path("results")
+    if default:
+        return Path("plots")
+    return out / "plots"
+
+
 def run_sweep(
     build: BuildCfg | None = None,
     build_id: str = "meshify2xl-stefano",
     mc: int = 200,
     out_dir: str | Path = "results",
-    plots_dir: str | Path = "plots",
+    plots_dir: str | Path | None = None,
     seed: int = 12345,
     library: Library | None = None,
-    write_hypothesis_to: str | Path | None = "HYPOTHESIS.md",
+    write_hypothesis_to: str | Path | None = None,
 ) -> pd.DataFrame:
     lib = library or get_library()
     build = build or lib.builds[build_id]
@@ -215,7 +234,7 @@ def run_sweep(
 
     frame = pd.DataFrame(rows)
     out = Path(out_dir) / build.id
-    plot_root = Path(plots_dir) / build.id
+    plot_root = resolve_plots_dir(out_dir, plots_dir) / build.id
     out.mkdir(parents=True, exist_ok=True)
     plot_root.mkdir(parents=True, exist_ok=True)
     frame.to_csv(out / "results.csv", index=False)
@@ -241,8 +260,10 @@ def run_sweep(
     (out / "bounds_check.json").write_text(json.dumps({"summary": report["pass"], "checks": report["checks"] + extra}, indent=2))
     (out / "bounds_check.md").write_text(bounds_markdown(report, extra))
     write_plots(frame, plot_root, build, lib)
-    if write_hypothesis_to:
-        write_hypothesis(frame, Path(write_hypothesis_to), mc)
+    # The curated HYPOTHESIS.md at the repo root is hand-written. The sweep
+    # only emits a generated sibling next to the tables.
+    auto_path = Path(write_hypothesis_to) if write_hypothesis_to else out / "hypothesis_auto.md"
+    write_hypothesis(frame, auto_path, mc)
     if not report["pass"]:
         failed = [c["name"] for c in report["checks"] + extra if not c["pass"]]
         # Loud, but the files are still written so the miss is inspectable.

@@ -51,17 +51,22 @@ def sweep(
     build: str = typer.Option("meshify2xl-stefano", help="Build id in presets/builds"),
     mc: int = typer.Option(200, help="Monte Carlo samples per cell. 0 skips uncertainty."),
     out: Path = typer.Option(Path("results"), help="Directory for tables and the bounds check"),
-    plots: Path = typer.Option(Path("plots"), help="Directory for PNG charts"),
+    plots: Path | None = typer.Option(
+        None,
+        help="PNG directory. Default is plots/ when --out is results, otherwise <out>/plots.",
+    ),
 ) -> None:
     """Run the 16-cell factorial, the stock row, and the open-air reference."""
-    from gpusim.sweep import run_sweep
+    from gpusim.sweep import resolve_plots_dir, run_sweep
 
-    frame = run_sweep(build_id=build, mc=mc, out_dir=out, plots_dir=plots)
+    plot_root = resolve_plots_dir(out, plots)
+    frame = run_sweep(build_id=build, mc=mc, out_dir=out, plots_dir=plot_root)
     ranked = frame[frame["config"] != "open-air"].sort_values(
         ["hottest_die_c", "hottest_unthrottled_c", "mean_die_c"]
     )
     typer.echo(ranked[["config", "hottest_die_c", "hottest_unthrottled_c", "mean_die_c", "case_pressure_pa"]].to_string(index=False))
     typer.echo(f"Wrote {out / build}")
+    typer.echo(f"Plots in {plot_root / build}")
 
 
 @app.command()
@@ -155,6 +160,30 @@ def calibrate(
     typer.echo(fitted["note"])
 
 
+def _port_is_free(host: str, port: int) -> bool:
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
+def choose_port(host: str, requested: int) -> tuple[int, bool]:
+    """Use the requested port, or the next free one. The bool is True if we moved."""
+    if _port_is_free(host, requested):
+        return requested, False
+    for port in range(requested + 1, requested + 30):
+        if _port_is_free(host, port):
+            return port, True
+    raise typer.BadParameter(
+        f"Port {requested} is busy and nothing is free through {requested + 29}."
+    )
+
+
 @app.command()
 def ui(
     host: str = typer.Option("127.0.0.1"),
@@ -169,11 +198,14 @@ def ui(
 
     from gpusim.ui.app import app as fastapi_app
 
-    url = f"http://{host}:{port}"
+    chosen, moved = choose_port(host, port)
+    if moved:
+        typer.echo(f"Port {port} is busy. Using {chosen}.")
+    url = f"http://{host}:{chosen}"
+    typer.echo(f"gpusim ui at {url}")
     if open_browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
-    typer.echo(f"gpusim ui at {url}")
-    uvicorn.run(fastapi_app, host=host, port=port, log_level="info")
+    uvicorn.run(fastapi_app, host=host, port=chosen, log_level="info")
 
 
 def main() -> None:
