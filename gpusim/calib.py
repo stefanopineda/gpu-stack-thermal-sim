@@ -15,24 +15,61 @@ per card *type*. See docs/CALIBRATION.md.
 
 Blower P–Q, fin geometry, TIM and the Nusselt coefficient are not published
 for this card. They are labelled approximations. The stock duty cap (~70%)
-and the aggressive curve (100% by 70 °C) follow SPEC rev 3, not an NVIDIA table.
+follows SPEC rev 3 and the custom_accelerated curve (0 % at 25 °C → 100 % at
+70 °C) follows the rev 4 brief. Neither is an NVIDIA table.
+
+Rev 4 adds flow-through cards (RTX PRO 6000 Blackwell Workstation Edition,
+RTX 5090 FE, RTX 3090 FE). Their blocks are per card type and set only
+against a single-card open-air review temperature; they were not used to
+move the Max-Q anchors.
 """
 
 from __future__ import annotations
 
-# Seal step → open-area fraction of the geometric interface, and the orifice
-# discharge coefficient used with that opening. This map is an engineering
-# assumption (foil tape → bare mesh), covered by the Monte Carlo seal scale.
-SEAL_OPEN_FRACTION = {1: 0.002, 2: 0.012, 3: 0.07, 4: 0.28, 5: 0.92}
-SEAL_CD = {1: 0.60, 2: 0.62, 3: 0.65, 4: 0.70, 5: 0.80}
+# Seal level → open-area fraction of an interface's geometric area, and the
+# orifice discharge coefficient for that opening. Rev 4 direction: 1 is open,
+# 5 is sealed (rev 3 was the reverse). Concrete percentages:
+#   1 fully open (panel off, no filter)                       100 %
+#   2 open grille / missing slot covers / bare coarse mesh      70 %
+#   3 typical mesh panel with a dust filter                     45 %
+#   4 restricted: seams, small gaps, vents in a solid panel      5 %
+#   5 sealed: solid glass or metal, taped                         0 %  (no branch, R = ∞)
+# The percentages are engineering assumptions, covered by the Monte Carlo
+# seal-area scale. The geometric areas live on each case preset.
+SEAL_OPEN_FRACTION = {1: 1.00, 2: 0.70, 3: 0.45, 4: 0.05, 5: 0.0}
+SEAL_CD = {1: 0.80, 2: 0.72, 3: 0.65, 4: 0.62, 5: 0.60}
+SEAL_NAMES = {
+    1: "fully open",
+    2: "open grille / missing covers",
+    3: "typical mesh + filter",
+    4: "restricted (seams, small gaps)",
+    5: "sealed (solid glass / metal, taped)",
+}
+# Used when a build does not list an interface. Side 5 = solid glass or metal.
+DEFAULT_SEALS = {"front": 3, "top": 3, "bottom": 4, "side": 5, "seams": 4, "rear_slots": 3}
 
-# Extra resistance multipliers. Dimensionless, approximate.
-OBSTRUCTION_K = {"low": 1.0, "medium": 2.2, "high": 5.5}
-CABLE_K = {"clean": 1.0, "cluttered": 2.4}
+# Internal resistance multipliers. They multiply k (ΔP = k Q|Q|) on the
+# internal branches: GPU zone → main case volume, and the CPU cooler exit.
+# low: open interior, drive cages out, nothing between the front fans and the
+# cards. medium: a drive cage or a big tower cooler shadowing part of the path.
+# high: cages, cables and brackets in the way. Approximate, not measured.
+OBSTRUCTION_K = {"low": 1.0, "medium": 2.5, "high": 6.0}
+# clean: cables routed behind the tray. cluttered: bundles in the GPU zone.
+CABLE_K = {"clean": 1.0, "cluttered": 2.0}
+# Cables in the GPU zone also lie across card inlet slits. k multiplier on
+# every card inlet branch. Approximate.
+CABLE_INLET_K = {"clean": 1.0, "cluttered": 1.35}
 FILTER_K_AT_REF = {  # Pa / (m³/s)² added on an intake, ~ at 140 mm fan flow
     "none": 0.0,
     "fine": 1.4e4,
     "dense": 4.0e4,
+}
+
+# GPU fan curves that are not per card. Duty is a fraction of max fan RPM.
+# custom_accelerated: off at 25 °C, linear to 100 % at 70 °C (rev 4 brief).
+# It replaces rev 3's `maxq_aggressive`, which is accepted as an alias.
+GLOBAL_FAN_CURVES = {
+    "custom_accelerated": [[25.0, 0.0], [70.0, 1.0]],
 }
 
 # Shared model knobs (not per card).
@@ -63,6 +100,22 @@ GLOBAL = {
     # Direct front-to-GPU spill (Meshify) vs a mixed mid-tower.
     "spill_area_direct_m2": 0.045,
     "spill_area_mixed_m2": 0.012,
+    # Plume ingestion between stacked cards (rev 4 item 12). A card whose
+    # exhaust leaves upward (flow-through) sends a jet at the fan face of the
+    # card above. That card draws a fraction φ of its fan-side intake mass
+    # straight from the jet instead of from the mixed GPU zone:
+    #     φ(g) = plume_phi_max · exp(−g / plume_length_mm)
+    # g is the air gap between the two cards. Capped by the jet's own mass.
+    # A free jet from a ~10 cm slot spreads and entrains room air over a few
+    # centimetres; 40 mm is the e-folding length assumed here. Approximate.
+    "plume_phi_max": 0.85,
+    "plume_length_mm": 40.0,
+    # Tower CPU cooler fin stack, Pa/(m³/s)². ~20 Pa at 0.028 m³/s (60 CFM).
+    # Approximate, typical of a dual-tower 140 mm heatsink.
+    "cpu_heatsink_k": 2.5e4,
+    # Cooler outlet back into the case volume (the air spreads out behind the
+    # tower). Divided by the internal k multipliers above.
+    "cpu_exit_area_m2": 0.03,
 }
 
 # Per card type. Overridden nowhere by cell index.
@@ -111,6 +164,84 @@ CARD = {
         "core_ref_mhz": 2000.0,
         "memory_ref_mhz": 1750.0,
     },
+    # Flow-through (axial) cards. Same field meanings as the blowers, plus the
+    # exhaust that leaves up through the backplate side:
+    #   exit_width_m  width of the flow-through region, × the gap above = slit
+    #   exit_area_m2  the backplate cutout itself (ceiling on that slit)
+    # Fan intercepts, fin geometry and TIM are not published. They are set so
+    # one card in open air, stock curve, lands on a review temperature (see
+    # docs/CALIBRATION.md). They do not touch the Max-Q anchors.
+    # PRO 6000 Workstation and 5090 FE share the cooler (Puget: "housing nearly
+    # identical"), so they share every cooler number. Only the fit to the 5090
+    # FE review temperature set fin_area; no PRO 6000 load temperature exists.
+    "rtx-pro-6000-blackwell-workstation": {
+        "qmax_m3s": 0.062,  # two axial fans, ~130 CFM free air at 100 %
+        "pmax_pa": 95.0,
+        "rpm_max": 3000.0,
+        "rpm_min": 0.0,
+        "r_tim": 0.032,
+        "r_mem": 0.42,
+        "mem_share": 0.14,  # 96 GB GDDR7, both sides of the board
+        "dh_m": 0.0022,
+        "fin_area_m2": 0.80,
+        "channel_area_m2": 0.0105,
+        "channel_k": 2.2e4,
+        "r_ext": 2.4,
+        "capture_g0_mm": 9.0,
+        "inlet_width_m": 0.24,
+        "inlet_eye_m2": 0.019,
+        "exit_width_m": 0.22,
+        "exit_area_m2": 0.012,
+        "bracket_vent_m2": 0.0009,
+        "core_ref_mhz": 2617.0,
+        "memory_ref_mhz": 1750.0,
+    },
+    "rtx-5090-fe": {
+        "qmax_m3s": 0.062,
+        "pmax_pa": 95.0,
+        "rpm_max": 3000.0,
+        "rpm_min": 0.0,
+        "r_tim": 0.032,
+        "r_mem": 0.50,
+        "mem_share": 0.10,  # 32 GB GDDR7
+        "dh_m": 0.0022,
+        "fin_area_m2": 0.80,
+        "channel_area_m2": 0.0105,
+        "channel_k": 2.2e4,
+        "r_ext": 2.4,
+        "capture_g0_mm": 9.0,
+        "inlet_width_m": 0.24,
+        "inlet_eye_m2": 0.019,
+        "exit_width_m": 0.22,
+        "exit_area_m2": 0.012,
+        "bracket_vent_m2": 0.0009,
+        "core_ref_mhz": 2407.0,
+        "memory_ref_mhz": 1750.0,
+    },
+    "rtx-3090-fe": {
+        # One fan on the PCB side pushes through fins and out the bracket; the
+        # rear fan pulls through a fin stack past the short PCB and exhausts up.
+        "qmax_m3s": 0.058,
+        "pmax_pa": 85.0,
+        "rpm_max": 3000.0,
+        "rpm_min": 0.0,
+        "r_tim": 0.050,
+        "r_mem": 0.45,
+        "mem_share": 0.18,  # 24 GB GDDR6X, both sides of the board
+        "dh_m": 0.0022,
+        "fin_area_m2": 0.83,
+        "channel_area_m2": 0.0100,
+        "channel_k": 2.6e4,
+        "r_ext": 2.4,
+        "capture_g0_mm": 9.0,
+        "inlet_width_m": 0.24,
+        "inlet_eye_m2": 0.019,
+        "exit_width_m": 0.11,
+        "exit_area_m2": 0.006,
+        "bracket_vent_m2": 0.0016,
+        "core_ref_mhz": 1695.0,
+        "memory_ref_mhz": 1219.0,
+    },
 }
 
 
@@ -121,6 +252,11 @@ def card_tuning(card_id: str) -> dict:
             "Add one to gpusim/calib.py (global, not per sweep cell)."
         )
     return dict(CARD[card_id])
+
+
+def global_curve(name: str) -> list[list[float]] | None:
+    curve = GLOBAL_FAN_CURVES.get(name)
+    return [list(p) for p in curve] if curve else None
 
 
 def merged_global(overrides: dict | None = None) -> dict:

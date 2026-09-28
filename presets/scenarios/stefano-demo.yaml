@@ -73,12 +73,12 @@ steps:
   - The radiator now preheats the intake with CPU heat. Hottest die is 85.7 °C at
     about +18 Pa, a bit warmer than leaving the fans as exhaust with the shroud on.
 - id: aggressive-curve
-  title: maxq_aggressive blower curve
+  title: Custom Accelerated blower curve (0 % at 25 °C → 100 % at 70 °C)
   layout: gap1_vertical
   pressure: standard
   shroud: 'on'
   leakage: leaky
-  fan_curve: maxq_aggressive
+  fan_curve: custom_accelerated
   advance_s: 18
   talking_points:
   - The GPU fans are allowed to reach 100% duty by 70 °C instead of capping near 70%
@@ -93,7 +93,7 @@ steps:
   pressure: standard
   shroud: 'on'
   leakage: leaky
-  fan_curve: maxq_aggressive
+  fan_curve: custom_accelerated
   advance_s: 24
   talking_points:
   - The optimizer searches fan direction, shroud, spacing and the GPU fan curve on

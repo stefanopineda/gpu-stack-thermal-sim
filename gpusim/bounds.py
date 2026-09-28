@@ -12,13 +12,21 @@ from gpusim.models import BuildCfg
 from gpusim.solve import Solution, solve
 
 
+# Review-derived open-air targets at 25 °C ambient (see card presets).
+FLOW_THROUGH_OPEN_AIR = {
+    "rtx-5090-fe": (76.0, 575),
+    "rtx-pro-6000-blackwell-workstation": (76.0, 600),
+    "rtx-3090-fe": (68.0, 350),
+}
+
+
 def _check(name: str, ok: bool, detail: str) -> dict:
     return {"name": name, "pass": bool(ok), "detail": detail}
 
 
 def evaluate_bounds(build: BuildCfg, library=None) -> dict:
     open_air = solve(open_air_build(), library)
-    aggressive = solve(open_air_build(fan_curve="maxq_aggressive"), library)
+    aggressive = solve(open_air_build(fan_curve="custom_accelerated"), library)
     anchor_a = solve(
         apply_cell(build, "gap1", "standard", "off", "leaky", library=library),
         library,
@@ -75,9 +83,9 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
             "(indexes 1 and 2 are the middle cards)",
         ),
         _check(
-            "maxq_aggressive_open_air",
+            "custom_accelerated_open_air",
             aggr_die < 75.0,
-            f"aggressive curve, open air, die {aggr_die:.2f} °C (under ~75)",
+            f"custom accelerated curve (0 % at 25 °C → 100 % at 70 °C), open air, die {aggr_die:.2f} °C (under ~75)",
         ),
         _check(
             "shroud_raises_flow",
@@ -85,6 +93,20 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
             f"mean blower flow {flow_off:.2f} CFM shroud off → {flow_on:.2f} CFM shroud on",
         ),
     ]
+    # Flow-through cards: one card in open air, stock curve, against the review
+    # temperature each block was set to (docs/CALIBRATION.md). ±5 °C.
+    for card_id, (target, power) in FLOW_THROUGH_OPEN_AIR.items():
+        if library is not None and card_id not in library.cards:
+            continue
+        sol = solve(open_air_build(card=card_id, power_w=power), library)
+        die = sol.cards[0].t_die_unthrottled_c
+        checks.append(
+            _check(
+                f"open_air_{card_id}",
+                abs(die - target) <= 5.0,
+                f"{card_id} at {power} W, open air, stock curve: die {die:.2f} °C (target ~{target:.0f} ± 5)",
+            )
+        )
     return {
         "pass": all(item["pass"] for item in checks),
         "checks": checks,

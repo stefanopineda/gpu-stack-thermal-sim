@@ -50,22 +50,26 @@ radiator:
   panel: top
   direction: exhaust
   arrangement: push
-  cpu_power_w: 120
   fan: generic-120
   fan_count: 3
   fan_duty: 1.0
+cpu:
+  power_w: 120
+  cooling: water
 shroud:
   mode: 'off'
   fan: noctua-nf-a14-ippc-3000
   count: 2
   duty: 1
 seals:
-  front: 4
-  top: 4
-  bottom: 3
-  side: 2
-  seams: 3
-  rear_slots: 4
+  # Rev 4 scale: 1 fully open (100 %), 2 open grille / missing covers (70 %),
+  # 3 typical mesh + filter (45 %), 4 restricted seams (5 %), 5 sealed (0 %).
+  front: 3
+  top: 3
+  bottom: 4
+  side: 5
+  seams: 4
+  rear_slots: 3
 filters:
   front: fine
 obstruction: medium

@@ -5,6 +5,14 @@ into the fin channel (ε-NTU) and, in parallel, off the shroud and backplate.
 Backplate heat captured by the next card's inlet is what preheats a stacked
 neighbour. Everything electrical ends up in the air so the enthalpy balance
 can be checked.
+
+Air temperatures come from an upwind advection balance on the solved flow
+field: every node mixes the streams that flow into it. Rev 4 adds a plume
+ingestion overlay. When a flow-through card's exhaust jet points at the fan
+face of the card above, a fraction φ(gap) of that card's fan-side intake is
+taken straight from the jet instead of from the mixed GPU zone. The same mass
+is removed from the jet's stream into the zone and from the zone's stream into
+the upper inlet, so every node still balances and no energy is created.
 """
 
 from __future__ import annotations
@@ -14,6 +22,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from gpusim.flow import FlowSolution
+from gpusim.layout import plume_fraction
 from gpusim.network import AMB, Network
 from gpusim.physics import CP_AIR, air_conductivity, air_density, air_viscosity, fin_epsilon
 
@@ -34,6 +43,7 @@ class ThermalCard:
     duty: float
     gap_mm: float
     gap_state: str
+    detail: dict | None = None
 
 
 @dataclass
@@ -43,9 +53,84 @@ class ThermalSolution:
     heat_w: float
     enthalpy_w: float
     energy_error: float
+    transfers: list[dict] | None = None
+    advection_residual: dict[str, float] | None = None
 
 
-def _linear_temperatures(net: Network, flow: FlowSolution, heat_branch, heat_node, t_amb: float):
+def plume_transfers(net: Network, flow: FlowSolution, sample: dict) -> list[dict]:
+    """Mass the upper card draws straight out of the lower card's exhaust jet.
+
+    m_ing = min(φ(g) · ṁ_fan-side-inlet(upper), 0.98 · ṁ_up-exit(lower)).
+    """
+    phi_max = float(sample.get("plume_phi_max", 0.85))
+    length = float(sample.get("plume_length_mm", 40.0))
+    out = []
+    for lower, upper, gap_mm in getattr(net, "plume_pairs", []) or []:
+        up = net.by_id(f"upexit-{lower}")
+        inlet = net.by_id(f"gap-{upper}-fan")
+        if up is None or inlet is None:
+            continue
+        m_up = up.rho * flow.flow_m3s.get(up.id, 0.0)
+        m_in = inlet.rho * flow.flow_m3s.get(inlet.id, 0.0)
+        phi = plume_fraction(gap_mm, phi_max, length)
+        if m_up <= 0 or m_in <= 0 or phi <= 0:
+            m_ing = 0.0
+        else:
+            m_ing = min(phi * m_in, 0.98 * m_up)
+        out.append(
+            {
+                "id": f"plume-{lower}-{upper}",
+                "lower": lower,
+                "upper": upper,
+                "gap_mm": gap_mm,
+                "phi": phi,
+                "from_node": f"cex-{lower}",
+                "to_node": f"cin-{upper}",
+                "out_branch": up.id,
+                "in_branch": inlet.id,
+                "mass_kg_s": m_ing,
+                "share_of_upper_intake": (m_ing / m_in) if m_in > 0 else 0.0,
+                "share_of_lower_jet": (m_ing / m_up) if m_up > 0 else 0.0,
+                "rho": up.rho,
+            }
+        )
+    return out
+
+
+def _streams(net: Network, flow: FlowSolution, transfers) -> list[tuple[str, str, float, str | None]]:
+    """(upstream, downstream, mass kg/s, branch id) with the plume overlay applied."""
+    cut: dict[str, float] = {}
+    for t in transfers or []:
+        cut[t["out_branch"]] = cut.get(t["out_branch"], 0.0) + t["mass_kg_s"]
+        cut[t["in_branch"]] = cut.get(t["in_branch"], 0.0) + t["mass_kg_s"]
+    out = []
+    for br in net.branches:
+        q = flow.flow_m3s.get(br.id, 0.0)
+        if abs(q) < 1e-14:
+            continue
+        mass = abs(br.rho * q)
+        if br.id in cut and q > 0:
+            mass = max(mass - cut[br.id], 0.0)
+        up, down = (br.a, br.b) if q >= 0 else (br.b, br.a)
+        out.append((up, down, mass, br.id))
+    for t in transfers or []:
+        if t["mass_kg_s"] > 0:
+            out.append((t["from_node"], t["to_node"], t["mass_kg_s"], None))
+    return out
+
+
+def advection_residual(net: Network, flow: FlowSolution, transfers) -> dict[str, float]:
+    """Mass in minus mass out at every internal node, overlay included."""
+    res = {n: 0.0 for n in net.nodes if n != AMB}
+    for up, down, mass, _ in _streams(net, flow, transfers):
+        if down in res:
+            res[down] += mass
+        if up in res:
+            res[up] -= mass
+    return res
+
+
+def _linear_temperatures(net: Network, flow: FlowSolution, heat_branch, heat_node, t_amb: float, transfers=None):
     unknowns = [n for n in net.nodes if n != AMB]
     index = {n: i for i, n in enumerate(unknowns)}
     n = len(unknowns)
@@ -56,15 +141,7 @@ def _linear_temperatures(net: Network, flow: FlowSolution, heat_branch, heat_nod
     for i in range(n):
         matrix[i, i] += 1e-8
         rhs[i] += 1e-8 * t_amb
-    for br in net.branches:
-        q = flow.flow_m3s.get(br.id, 0.0)
-        if abs(q) < 1e-14:
-            continue
-        mass = abs(br.rho * q)
-        if q >= 0:
-            up, down = br.a, br.b
-        else:
-            up, down = br.b, br.a
+    for up, down, mass, bid in _streams(net, flow, transfers):
         if down == AMB:
             continue
         j = index[down]
@@ -73,8 +150,8 @@ def _linear_temperatures(net: Network, flow: FlowSolution, heat_branch, heat_nod
             rhs[j] += mass * t_amb
         else:
             matrix[j, index[up]] -= mass
-        if down != AMB:
-            rhs[j] += heat_branch.get(br.id, 0.0) / CP_AIR
+        if bid is not None:
+            rhs[j] += heat_branch.get(bid, 0.0) / CP_AIR
     for node, watts in heat_node.items():
         if node in index:
             rhs[index[node]] += watts / CP_AIR
@@ -122,10 +199,14 @@ def solve_thermal(
     heat_branch: dict[str, float] = {}
     heat_node: dict[str, float] = {}
 
-    cpu = 0.0
-    if build.radiator and build.radiator.model:
-        cpu = float(build.radiator.cpu_power_w)
-    heat_branch_cpu = {"radiator": cpu} if cpu else {}
+    heat_branch_cpu: dict[str, float] = {}
+    cpu_w = float(build.cpu.power_w) if not build.open_air else 0.0
+    if cpu_w > 0:
+        if build.cpu.cooling == "air" and net.by_id("cpu-cooler") is not None:
+            heat_branch_cpu["cpu-cooler"] = cpu_w
+        elif net.by_id("radiator") is not None:
+            heat_branch_cpu["radiator"] = cpu_w
+    transfers = [] if build.open_air else plume_transfers(net, flow, sample)
 
     for _ in range(4):
         heat_branch = dict(heat_branch_cpu)
@@ -159,6 +240,7 @@ def solve_thermal(
                 t_sink = t_nodes.get("gpu", t_amb)
             r_ext = max(params["r_ext"], 0.05)
             cond = g_conv + 1.0 / r_ext
+            t_sink_used = t_sink
             t_hs = (p_tot + g_conv * t_in + t_sink / r_ext) / cond
             q_ext = (t_hs - t_sink) / r_ext
             q_ext = float(np.clip(q_ext, -0.1 * p_tot, p_tot))
@@ -175,6 +257,12 @@ def solve_thermal(
                 "q_vol": max(q_vol, 0.0),
                 "t_die": t_hs + p_die * params["r_tim"],
                 "t_mem": t_hs + p_mem * params["r_mem"],
+                "eps": eps,
+                "g_conv": g_conv,
+                "r_ext": r_ext,
+                "r_tim": params["r_tim"],
+                "r_mem": params["r_mem"],
+                "t_sink": t_sink_used,
             }
             if blower is not None:
                 heat_branch[blower.id] = q_channel
@@ -209,7 +297,7 @@ def solve_thermal(
                 captured += portion
             rest = q_ext - captured
             heat_node["gpu"] = heat_node.get("gpu", 0.0) + rest
-        t_nodes = _linear_temperatures(net, flow, heat_branch, heat_node, t_amb)
+        t_nodes = _linear_temperatures(net, flow, heat_branch, heat_node, t_amb, transfers)
         last_cards = []
         for gpu_id in net.ordered_ids:
             row = per[gpu_id]
@@ -222,6 +310,32 @@ def solve_thermal(
             params = params_by_card[gpu.card]
             # Keep the heatsink solved above; shift die with the inlet movement
             # already included in t_hs from this iteration's t_in (previous pass).
+            plume = next((t for t in transfers if t["upper"] == gpu_id), None)
+            detail = {
+                "cooler": getattr(net, "cooler", {}).get(gpu_id, "blower"),
+                "t_zone_c": t_nodes.get("gpu", t_amb),
+                "t_inlet_c": t_in,
+                "inlet_heat_captured_w": heat_node.get(f"cin-{gpu_id}", 0.0),
+                "plume_from": plume["lower"] if plume else None,
+                "plume_phi": plume["phi"] if plume else 0.0,
+                "plume_share_of_intake": plume["share_of_upper_intake"] if plume else 0.0,
+                "plume_source_temp_c": t_nodes.get(plume["from_node"], t_amb) if plume else None,
+                "mass_kg_s": row["mass"],
+                "epsilon": row["eps"],
+                "g_conv_w_per_k": row["g_conv"],
+                "r_conv_k_per_w": (1.0 / row["g_conv"]) if row["g_conv"] > 1e-9 else None,
+                "r_ext_k_per_w": row["r_ext"],
+                "t_ext_sink_c": row["t_sink"],
+                "q_channel_w": row["q_channel"],
+                "q_ext_w": row["q_ext"],
+                "t_heatsink_c": row["t_hs"],
+                "r_tim_k_per_w": row["r_tim"],
+                "p_die_w": row["p_die"],
+                "p_mem_w": row["p_mem"],
+                "r_mem_k_per_w": row["r_mem"],
+                "t_die_c": row["t_die"],
+                "t_exhaust_c": t_ex,
+            }
             last_cards.append(
                 ThermalCard(
                     gpu_id=gpu_id,
@@ -238,10 +352,12 @@ def solve_thermal(
                     duty=duties.get(gpu_id, 0.0),
                     gap_mm=gap["gap_mm"],
                     gap_state=gap["state"],
+                    detail=detail,
                 )
             )
 
     heat = float(sum(heat_branch.values()) + sum(heat_node.values()))
     enthalpy = _enthalpy(net, flow, heat_branch, t_nodes, t_amb)
     error = abs(heat - enthalpy) / max(heat, 1.0)
-    return ThermalSolution(last_cards, t_nodes, heat, enthalpy, error)
+    residual = advection_residual(net, flow, transfers)
+    return ThermalSolution(last_cards, t_nodes, heat, enthalpy, error, transfers, residual)

@@ -72,27 +72,21 @@ def apply_pressure(build: BuildCfg, mode: str) -> None:
         build.radiator.direction = "intake" if mode == "high" else "exhaust"
 
 
+# Seal levels, rev 4 direction (1 open … 5 sealed; see calib.SEAL_OPEN_FRACTION).
+# sealed: foil tape on the mesh around the fans, taped seams and slot mouths.
+# leaky: realistic stock. Mesh + filter front and top, restricted floor,
+# solid glass side, seams at small gaps. Rear slots at 3 (45 %): brackets are
+# out, but roughly half of the slot openings sit behind the cards' own brackets.
+LEAKAGE_SEALS = {
+    "sealed": {"front": 4, "top": 4, "bottom": 5, "side": 5, "seams": 5, "rear_slots": 5},
+    "leaky": {"front": 3, "top": 3, "bottom": 4, "side": 5, "seams": 4, "rear_slots": 3},
+}
+
+
 def apply_leakage(build: BuildCfg, mode: str) -> None:
-    if mode == "sealed":
-        build.seals = {
-            "front": 2,
-            "top": 2,
-            "bottom": 2,
-            "side": 1,
-            "seams": 1,
-            "rear_slots": 1,
-        }
-    elif mode == "leaky":
-        build.seals = {
-            "front": 4,
-            "top": 4,
-            "bottom": 3,
-            "side": 2,
-            "seams": 3,
-            "rear_slots": 4,
-        }
-    else:
+    if mode not in LEAKAGE_SEALS:
         raise ValueError(f"Unknown leakage level '{mode}'")
+    build.seals = dict(LEAKAGE_SEALS[mode])
 
 
 def _set_curve(build: BuildCfg, fan_curve: str) -> None:
@@ -273,10 +267,10 @@ def reference_build(case_id: str, library: Library | None = None) -> BuildCfg:
             "model": "arctic-360" if case.radiator_support.get("top") else None,
             "panel": "top",
             "direction": "exhaust",
-            "cpu_power_w": 125,
             "fan": "arctic-p12-pwm-pst",
             "fan_count": 3,
         },
+        cpu={"power_w": 125, "cooling": "water" if case.radiator_support.get("top") else "air"},
         shroud={"mode": "off", "fan": "noctua-nf-a14-ippc-3000", "count": 2, "duty": 1},
         obstruction="low",
         cables="clean",

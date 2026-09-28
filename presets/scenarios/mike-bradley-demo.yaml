@@ -11,7 +11,7 @@ steps:
 - id: as-mocked
   title: 9000D mock, shroud on, aggressive curve
   layout: keep
-  fan_curve: maxq_aggressive
+  fan_curve: custom_accelerated
   shroud: 'on'
   pressure: standard
   leakage: leaky
@@ -24,7 +24,7 @@ steps:
 - id: shroud-off
   title: Same mock, shroud removed
   layout: keep
-  fan_curve: maxq_aggressive
+  fan_curve: custom_accelerated
   shroud: 'off'
   pressure: standard
   leakage: leaky
@@ -37,7 +37,7 @@ steps:
 - id: packed
   title: Mock cards close-packed
   layout: close4
-  fan_curve: maxq_aggressive
+  fan_curve: custom_accelerated
   shroud: 'on'
   pressure: standard
   leakage: leaky

@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+# Rev 3 called the fast curve `maxq_aggressive`. Rev 4 renames it to
+# `custom_accelerated` (0 % at 25 °C → 100 % at 70 °C, linear) and keeps the
+# old name as an alias so saved builds and API clients keep working.
+FAN_CURVE_ALIASES = {"maxq_aggressive": "custom_accelerated", "aggressive": "custom_accelerated"}
+
+
+def canonical_curve(name: str | None) -> str | None:
+    if name is None:
+        return None
+    return FAN_CURVE_ALIASES.get(str(name), str(name))
 
 
 class _Base(BaseModel):
@@ -37,6 +48,10 @@ class CardModel(_Base):
     height_mm: float
     thickness_mm: float
     blower: bool = True
+    # blower: radial fan, exhaust out the rear bracket.
+    # flow_through: axial fans on the fan face; air leaves up through the
+    # backplate side into the gap above, plus a smaller share out the bracket.
+    cooler: str = "blower"
     throttle_c: float = 88.0
     cutoff_c: float = 90.0
     fan_curves: dict[str, list[list[float]]]
@@ -45,6 +60,10 @@ class CardModel(_Base):
     inlet_faces: str = "both"
     inlet_split: float = 0.75
     notes: str = ""
+
+    @property
+    def flow_through(self) -> bool:
+        return self.cooler == "flow_through"
 
 
 class RadiatorModel(_Base):
@@ -123,6 +142,11 @@ class GpuCfg(_Base):
     undervolt_mv: float = 0
     gap_override: str | None = None
 
+    @field_validator("fan_curve", mode="before")
+    @classmethod
+    def _alias_curve(cls, value):
+        return canonical_curve(value) or "stock"
+
 
 class MountCfg(_Base):
     id: str
@@ -136,10 +160,12 @@ class MountCfg(_Base):
 
 class RadiatorCfg(_Base):
     model: str | None = None
-    panel: str = "top"
+    panel: str = "top"  # front | top | bottom (rear kept for old builds)
     direction: str = "exhaust"
     arrangement: str = "push"
-    cpu_power_w: float = 150
+    # Rev 3 kept the CPU load here. Rev 4 reads BuildCfg.cpu; this field is
+    # only used to migrate an old build that has no `cpu` block.
+    cpu_power_w: float | None = None
     fan: str | None = None
     fan_count: int = 3
     fan_duty: float = 1.0
@@ -152,6 +178,24 @@ class ShroudCfg(_Base):
     duty: float = 1.0
 
 
+class CpuCfg(_Base):
+    """CPU heat and how it leaves the case.
+
+    water: the package heat rides the radiator branch (needs a radiator).
+    air: the heat goes into the case air through a tower cooler, whose fan and
+    fin stack are a branch in the flow network. The rear mount pulls from the
+    cooler outlet.
+    """
+
+    power_w: float = 150.0
+    cooling: str = "water"  # water | air
+    cooler_fan: str = "generic-140"
+    cooler_fan_count: int = 1
+    cooler_duty: float = 0.8
+    # Tower fin-stack loss, Pa/(m³/s)². None → calib.GLOBAL["cpu_heatsink_k"].
+    heatsink_k: float | None = None
+
+
 class BuildCfg(_Base):
     id: str
     name: str
@@ -161,6 +205,7 @@ class BuildCfg(_Base):
     gpus: list[GpuCfg]
     mounts: list[MountCfg] = Field(default_factory=list)
     radiator: RadiatorCfg = Field(default_factory=RadiatorCfg)
+    cpu: CpuCfg = Field(default_factory=CpuCfg)
     shroud: ShroudCfg = Field(default_factory=ShroudCfg)
     seals: dict[str, int] = Field(default_factory=dict)
     filters: dict[str, str] = Field(default_factory=dict)
@@ -177,6 +222,24 @@ class BuildCfg(_Base):
     illustrative_mock: bool = False
     notes: str = ""
 
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_cpu(cls, data):
+        """Rev 3 builds have no `cpu` block. Take the load off the radiator."""
+        if not isinstance(data, dict) or data.get("cpu") is not None:
+            return data
+        data = dict(data)
+        rad = data.get("radiator") or {}
+        if hasattr(rad, "model_dump"):
+            rad = rad.model_dump()
+        power = rad.get("cpu_power_w")
+        has_rad = bool(rad.get("model"))
+        data["cpu"] = {
+            "power_w": 150.0 if power is None else float(power),
+            "cooling": "water" if has_rad else "air",
+        }
+        return data
+
 
 class ScenarioStep(_Base):
     id: str
@@ -188,6 +251,11 @@ class ScenarioStep(_Base):
     leakage: str | None = None
     fan_curve: str | None = None
     advance_s: float = 18
+
+    @field_validator("fan_curve", mode="before")
+    @classmethod
+    def _alias_curve(cls, value):
+        return canonical_curve(value)
 
 
 class Scenario(_Base):

@@ -77,7 +77,7 @@ def run(
     shroud: str = typer.Option("off", help="off, on, or passive"),
     leakage: str = typer.Option("leaky", help="leaky or sealed"),
     rear_duct: str = typer.Option(None, help="Set 'passive' to force the unpowered duct"),
-    fan_curve: str = typer.Option("stock", help="stock, maxq_aggressive, or custom"),
+    fan_curve: str = typer.Option("stock", help="stock, custom_accelerated (alias maxq_aggressive), or custom"),
 ) -> None:
     """Solve one factorial point on a saved build."""
     from gpusim.factors import apply_cell

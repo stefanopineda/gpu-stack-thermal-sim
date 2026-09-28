@@ -5,11 +5,11 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-from gpusim.calib import CARD, GLOBAL, card_tuning
+from gpusim.calib import CARD, GLOBAL, card_tuning, global_curve
 from gpusim.flow import solve_network
 from gpusim.library import Library, get_library
 from gpusim.models import BuildCfg
-from gpusim.network import build_network
+from gpusim.network import ROLE, build_network
 from gpusim.physics import duty_at, electrical_power, m3s_to_cfm
 from gpusim.thermal import solve_thermal
 
@@ -33,6 +33,9 @@ class CardReport:
     throttle: bool
     gap_mm: float
     gap_state: str
+    cooler: str = "blower"
+    fan_curve: str = "stock"
+    thermal: dict | None = None
 
 
 @dataclass
@@ -53,6 +56,8 @@ class Solution:
     pressures: dict[str, float] = field(default_factory=dict)
     node_temp: dict[str, float] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    plume: list[dict] = field(default_factory=list)
+    advection_residual_kg_s: float = 0.0
 
     @property
     def hottest_die(self) -> float:
@@ -88,6 +93,8 @@ class Solution:
             "pressures": self.pressures,
             "node_temp": self.node_temp,
             "notes": self.notes,
+            "plume": self.plume,
+            "advection_residual_kg_s": self.advection_residual_kg_s,
         }
 
 
@@ -114,9 +121,15 @@ def _curve_for(gpu, card_model) -> list[list[float]]:
             raise ValueError(f"{gpu.id} uses a custom fan curve but no points were given")
         return gpu.custom_curve
     curves = card_model.fan_curves
-    if gpu.fan_curve not in curves:
-        raise ValueError(f"{gpu.id} fan curve '{gpu.fan_curve}' is not on card '{card_model.id}'")
-    return curves[gpu.fan_curve]
+    if gpu.fan_curve in curves:
+        return curves[gpu.fan_curve]
+    shared = global_curve(gpu.fan_curve)
+    if shared is not None:
+        return shared
+    raise ValueError(
+        f"{gpu.id} fan curve '{gpu.fan_curve}' is not on card '{card_model.id}'. "
+        "Use stock, custom_accelerated, or custom."
+    )
 
 
 def _powers(build: BuildCfg, sample: dict, limits: dict[str, float] | None = None):
@@ -209,6 +222,9 @@ def _reports(build, thermal, duties, unthrottled_die, unthrottled_power, thresho
                 throttle=throttled,
                 gap_mm=row.gap_mm,
                 gap_state=row.gap_state,
+                cooler=(row.detail or {}).get("cooler", "blower"),
+                fan_curve=gpu.fan_curve,
+                thermal=row.detail,
             )
         )
     return reports
@@ -241,31 +257,30 @@ def solve(
     if do_throttle and any(
         unthrottled_die[g.id] > thresholds[g.id][0] + 0.15 for g in build.gpus
     ):
-        limits = {g.id: g.power_limit_w for g in build.gpus}
-        # The electrical model clamps to the limit, so scale the limit.
-        for _ in range(5):
-            hot = False
+        original = {g.id: g.power_limit_w for g in build.gpus}
+        limits = dict(original)
+        # Die rise over the card's own inlet air is close to linear in power,
+        # so scale each limit by (cutoff − T_in) / (T_die − T_in). Cards that
+        # overshoot low are allowed back up, never above their own limit.
+        for _ in range(10):
+            changed = False
             for row in thermal.cards:
                 cutoff = thresholds[row.gpu_id][0]
-                if row.t_die_c > cutoff + 0.25:
-                    hot = True
-                    limits[row.gpu_id] = max(40.0, limits[row.gpu_id] * cutoff / row.t_die_c)
-            if not hot:
+                t_ref = min(row.t_in_c, cutoff - 5.0)
+                current = limits[row.gpu_id]
+                too_hot = row.t_die_c > cutoff + 0.25
+                too_cold = row.t_die_c < cutoff - 1.0 and current < original[row.gpu_id] - 0.5
+                if not (too_hot or too_cold):
+                    continue
+                ratio = (cutoff - 0.3 - t_ref) / max(row.t_die_c - t_ref, 0.5)
+                ratio = min(max(ratio, 0.15), 1.6)
+                limits[row.gpu_id] = min(original[row.gpu_id], max(20.0, current * ratio))
+                changed = True
+            if not changed:
                 break
             _, flow, thermal, duties = _couple(
                 build, lib, merged, limits, max(outer - 2, 4), duties, t_amb
             )
-        # If we overshot well under the cutoff, nudge the limit back up once.
-        for row in list(thermal.cards):
-            cutoff = thresholds[row.gpu_id][0]
-            if unthrottled_die[row.gpu_id] > cutoff and row.t_die_c < cutoff - 1.5:
-                limits[row.gpu_id] = min(
-                    next(g.power_limit_w for g in build.gpus if g.id == row.gpu_id),
-                    limits[row.gpu_id] * cutoff / max(row.t_die_c, 1.0),
-                )
-        _, flow, thermal, duties = _couple(
-            build, lib, merged, limits, max(outer - 2, 4), duties, t_amb
-        )
 
     reports = _reports(build, thermal, duties, unthrottled_die, unthrottled_power, thresholds)
     branches = []
@@ -284,9 +299,61 @@ def solve(
                 "dp_pa": flow.dp.get(br.id, 0.0),
                 "mass_kg_s": flow.mass_kg_s.get(br.id, 0.0),
                 "kind": br.kind,
+                "role": ROLE.get(br.kind, br.kind),
                 "label": br.label,
+                "fan": br.q_tab is not None and br.rpm > 0,
             }
         )
+    for sealed in getattr(net, "sealed", []) or []:
+        branches.append(
+            {
+                "id": sealed["id"],
+                "a": sealed["a"],
+                "b": sealed["b"],
+                "k": None,
+                "flow_m3s": 0.0,
+                "flow_cfm": 0.0,
+                "dp_pa": flow.pressure.get(sealed["a"], 0.0),
+                "mass_kg_s": 0.0,
+                "kind": "sealed",
+                "role": "seal resistance: infinite (solid glass / metal, taped)",
+                "label": sealed["label"],
+                "fan": False,
+            }
+        )
+    plume = []
+    for t in thermal.transfers or []:
+        rho = t.get("rho", 1.2) or 1.2
+        plume.append(
+            {
+                **{k: v for k, v in t.items() if k != "rho"},
+                "flow_cfm": m3s_to_cfm(t["mass_kg_s"] / rho),
+                "t_from_c": thermal.node_temp.get(t["from_node"]),
+                "t_to_c": thermal.node_temp.get(t["to_node"]),
+                "role": ROLE["plume-ingest"],
+            }
+        )
+        branches.append(
+            {
+                "id": t["id"],
+                "a": t["from_node"],
+                "b": t["to_node"],
+                "k": None,
+                "flow_m3s": t["mass_kg_s"] / rho,
+                "flow_cfm": m3s_to_cfm(t["mass_kg_s"] / rho),
+                "dp_pa": 0.0,
+                "mass_kg_s": t["mass_kg_s"],
+                "kind": "plume-ingest",
+                "role": ROLE["plume-ingest"],
+                "label": (
+                    f"{t['upper']} ingests {t['share_of_upper_intake']:.0%} of its fan-side intake "
+                    f"from {t['lower']}'s exhaust jet (gap {t['gap_mm']:.1f} mm, φ = {t['phi']:.2f})"
+                ),
+                "fan": False,
+            }
+        )
+    adv = thermal.advection_residual or {}
+    adv_max = max((abs(v) for v in adv.values()), default=0.0)
     notes = [
         "Air-cooled model only. GPU water blocks are out of scope.",
         "Typical accuracy ±5–10 °C absolute; better for ranking than for absolute temperature.",
@@ -294,6 +361,11 @@ def solve(
     ]
     if build.illustrative_mock:
         notes.append("Illustrative mock — not a measurement or claim about anyone's real build.")
+    if any(t["mass_kg_s"] > 0 for t in thermal.transfers or []):
+        notes.append(
+            "Stacked flow-through cards: the upper card breathes part of the lower card's exhaust "
+            "(plume ingestion, φ(gap) = φ_max·exp(−gap/L))."
+        )
     return Solution(
         build_id=build.id,
         cards=reports,
@@ -311,6 +383,8 @@ def solve(
         pressures=flow.pressure,
         node_temp={k: v for k, v in thermal.node_temp.items() if not str(k).startswith("_")},
         notes=notes,
+        plume=plume,
+        advection_residual_kg_s=adv_max,
     )
 
 
@@ -341,6 +415,8 @@ def sample_tuning(rng, build: BuildCfg) -> dict:
         "ambient_offset": float(rng.normal(0.0, 0.8)),
         "ippc_p_scale": float(rng.uniform(ippc_lo, 1.0)),
         "recirc_area_m2": GLOBAL["recirc_area_m2"] * ln(0.25),
+        "plume_phi_max": float(rng.uniform(0.70, 0.95)),
+        "plume_length_mm": GLOBAL["plume_length_mm"] * ln(0.25),
     }
 
 

@@ -65,7 +65,7 @@ def optimize(cards: int, case_id: str = "meshify2xl", mc: int = 200, seed: int =
         for shroud in ("off", "on"):
             for pressure in ("standard", "high"):
                 for leakage in ("leaky", "sealed"):
-                    for curve in ("stock", "maxq_aggressive"):
+                    for curve in ("stock", "custom_accelerated"):
                         trial = base.model_copy(deep=True)
                         gpus = []
                         for index, slot in enumerate(slots, start=1):

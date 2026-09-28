@@ -90,6 +90,9 @@ def gap_table(
             if back_frac > 0:
                 sides.append(_side("backplate", gap, state, back_frac, None))
             info[gpu.id] = _record(card, True, sides, gpu.gap_override)
+            # Off to the side: the exhaust face opens onto free air, no card above.
+            info[gpu.id]["above"] = {"gap_mm": gap, "state": state, "neighbor": None}
+            info[gpu.id]["below"] = {"gap_mm": gap, "state": state, "neighbor": None}
             continue
 
         below = _nearest_below(gpu, horizontals)
@@ -132,6 +135,10 @@ def gap_table(
         if back_frac > 0:
             sides.append(_side("backplate", cpu_gap, cpu_state, back_frac, cpu_neighbor))
         info[gpu.id] = _record(card, False, sides, gpu.gap_override)
+        # Both faces, whatever the inlet split. A flow-through card exhausts
+        # into the gap above; its fan side draws from the gap below.
+        info[gpu.id]["above"] = {"gap_mm": float(cpu_gap), "state": cpu_state, "neighbor": cpu_neighbor}
+        info[gpu.id]["below"] = {"gap_mm": float(floor_gap), "state": floor_state, "neighbor": floor_neighbor}
     return info
 
 
@@ -155,6 +162,7 @@ def _record(card: CardModel, vertical: bool, sides: list[dict], override: str | 
         "sides": sides,
         "thickness_mm": card.thickness_mm,
         "inlet_faces": card.inlet_faces,
+        "cooler": card.cooler,
     }
 
 
@@ -170,6 +178,20 @@ def _nearest_below(gpu, horizontals):
     if not below:
         return None
     return min(below, key=lambda other: slot_number(other.slot))
+
+
+def exit_area_m2(gap_mm: float, exit_width_m: float, cutout_m2: float) -> float:
+    """Flow-through exhaust leaving the backplate side into the gap above."""
+    gap_m = max(float(gap_mm), 0.3) / 1000.0
+    return float(min(max(exit_width_m * gap_m, 1e-8), max(cutout_m2, 1e-8)))
+
+
+def plume_fraction(gap_mm: float, phi_max: float, length_mm: float) -> float:
+    """Share of the upper card's fan-side intake drawn straight from the jet below."""
+    import math
+
+    g = max(float(gap_mm), 0.0)
+    return float(min(max(phi_max, 0.0), 0.98) * math.exp(-g / max(length_mm, 1.0)))
 
 
 def inlet_area_m2(gap_mm: float, state: str, inlet_width_m: float, eye_m2: float) -> float:

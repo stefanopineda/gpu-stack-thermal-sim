@@ -13,13 +13,63 @@ from __future__ import annotations
 
 import numpy as np
 
-from gpusim.calib import CABLE_K, FILTER_K_AT_REF, OBSTRUCTION_K, SEAL_CD, SEAL_OPEN_FRACTION
+from gpusim.calib import (
+    CABLE_INLET_K,
+    CABLE_K,
+    DEFAULT_SEALS,
+    FILTER_K_AT_REF,
+    OBSTRUCTION_K,
+    SEAL_CD,
+    SEAL_NAMES,
+    SEAL_OPEN_FRACTION,
+)
 from gpusim.flow import Branch
-from gpusim.layout import gap_table, inlet_area_m2, sort_gpus
+from gpusim.layout import exit_area_m2, gap_table, inlet_area_m2, sort_gpus
 from gpusim.models import BuildCfg, CaseModel
 from gpusim.physics import air_density, fan_tables, orifice_k, quadratic_curve, rpm_from_duty, scale_parallel
 
 AMB = "amb"
+
+# What each branch kind is, in words, for the network view and the API.
+ROLE = {
+    "fan": "case fan: pressure source in series with its own impedance",
+    "blank": "blanked mount (near-closed plate)",
+    "orifice": "empty mount (open orifice)",
+    "leak": "seal resistance (panel mesh / gaps)",
+    "spill": "internal resistance: GPU zone → main case volume",
+    "gap": "inter-card slot resistance (card inlet slit)",
+    "blower": "GPU fan + heatsink fin-channel resistance",
+    "gpu-fan": "GPU axial fans + heatsink fin-channel resistance",
+    "up-exit": "flow-through exhaust into the gap above the card",
+    "bracket": "rear bracket vent",
+    "recirc": "blower exhaust short-circuit back into the GPU zone",
+    "plume": "rear exhaust plume mixing into the room",
+    "rear-slot": "open rear slot mouths",
+    "reingest": "rear-slot reingestion of the exhaust plume",
+    "shroud-fan": "rear shroud fans (pressure source)",
+    "shroud-leak": "rear shroud shell leakage",
+    "radiator": "radiator core + its fans",
+    "cpu-cooler": "CPU tower cooler: fan + fin stack",
+    "cpu-exit": "internal resistance: CPU cooler outlet → case",
+    "bleed": "numerical bleed (regularisation, not a leak path)",
+    "plume-ingest": "plume ingestion: lower card's exhaust into the upper card's intake",
+}
+
+
+def internal_k_mult(build: BuildCfg) -> float:
+    """k multiplier for internal branches from obstruction and cable management."""
+    return float(OBSTRUCTION_K.get(build.obstruction, 1.0) * CABLE_K.get(build.cables, 1.0))
+
+
+def seal_level(build: BuildCfg, name: str) -> int:
+    level = int(build.seals.get(name, DEFAULT_SEALS.get(name, 3)))
+    level = min(5, max(1, level))
+    if name == "side":
+        if build.side_panel == "removed":
+            level = 1
+        elif build.side_panel == "mesh":
+            level = min(level, 3)
+    return level
 
 
 def _fan_qp(fan, rpm: float, parallel: int, p_scale: float):
@@ -33,8 +83,9 @@ def _blower_qp(params: dict, duty: float):
     qmax_m3h = params["qmax_m3s"] * 3600.0
     pmax_mm = params["pmax_pa"] / 9.80665
     q, p = fan_tables(quadratic_curve(qmax_m3h, pmax_mm, n=11))
-    # Duty is a fraction of max RPM (affinity Q ∝ duty), with a floor at rpm_min.
-    rpm = max(float(params["rpm_min"]), float(duty) * float(params["rpm_max"]))
+    # Duty is a fraction of max RPM (affinity Q ∝ duty). No floor: a curve
+    # that asks for 0 % stops the fan (rev 4 custom_accelerated at 25 °C).
+    rpm = max(float(duty), 0.0) * float(params["rpm_max"])
     return q, p, rpm, params["rpm_max"]
 
 
@@ -44,6 +95,13 @@ class Network:
         self.nodes = nodes
         self.gaps = gaps
         self.ordered_ids = ordered_ids
+        # Interfaces at seal level 5: no branch, infinite resistance. Listed so
+        # the network view can still draw them.
+        self.sealed: list[dict] = []
+        # (lower gpu, upper gpu, gap mm) pairs where the lower card's exhaust
+        # jet points at the upper card's fan face.
+        self.plume_pairs: list[tuple[str, str, float]] = []
+        self.cooler: dict[str, str] = {}
 
     def by_id(self, ident: str) -> Branch | None:
         for br in self.branches:
@@ -111,11 +169,21 @@ def build_network(
         # Stack effect is a few tenths of a pascal; kept as a pressure bias via k_lin sign later.
         pass
 
+    air_cpu = build.cpu.cooling == "air"
+    if build.cpu.cooling == "water" and not build.radiator.model and build.cpu.power_w > 0:
+        raise ValueError(
+            "CPU is water-cooled but the build has no radiator. "
+            "Set radiator.model or switch cpu.cooling to 'air'."
+        )
+    if air_cpu:
+        bleed("cpu")
+        _add_cpu_cooler(build, fans, rho_ref, rho_for, sample, add)
     _add_mounts(
-        build, case, fans, intake_node, rho_ref, rho_for, ippc_scale, sample, add,
+        build, case, fans, intake_node, rho_ref, rho_for, ippc_scale, sample, add, air_cpu,
     )
-    _add_radiator(build, case, fans, radiators, rho_ref, ippc_scale, sample, add)
-    _add_panel_leaks(build, case, rho_ref, seal_scale, direct, add)
+    _add_radiator(build, case, fans, radiators, rho_ref, ippc_scale, sample, add, intake_node)
+    sealed: list[dict] = []
+    _add_panel_leaks(build, case, rho_ref, seal_scale, direct, add, sealed)
     _add_spill(build, case, rho_ref, sample, add)
 
     shroud_on = build.shroud.mode in ("on", "passive")
@@ -139,6 +207,7 @@ def build_network(
 
     _add_rear_slots(build, case, rho_ref, seal_scale, shroud_on, sample, add)
 
+    cooler: dict[str, str] = {}
     for gpu in sort_gpus(build):
         params = dict(sample.get("cards", {}).get(gpu.card, {}))
         # caller merges card tuning; sample['cards'][id] is a full dict when MC-ing
@@ -146,9 +215,12 @@ def build_network(
             from gpusim.calib import card_tuning
 
             params = card_tuning(gpu.card)
+        card = cards[gpu.card]
+        through = card.cooler == "flow_through"
+        cooler[gpu.id] = card.cooler
         gap = gaps[gpu.id]
         bleed(f"cin-{gpu.id}")
-        _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add)
+        _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add, CABLE_INLET_K.get(build.cables, 1.0))
         q, p, rpm, rpm_ref = _blower_qp(params, duties.get(gpu.id, 0.7))
         add(
             Branch(
@@ -158,8 +230,8 @@ def build_network(
                 k=float(params["channel_k"]),
                 k_lin=5.0,
                 rho=rho_for(f"cin-{gpu.id}"),
-                kind="blower",
-                label=f"{gpu.id} blower and fin channel",
+                kind="gpu-fan" if through else "blower",
+                label=f"{gpu.id} {'axial fans' if through else 'blower'} and fin channel",
                 q_tab=q,
                 p_tab=p,
                 rpm=rpm,
@@ -181,7 +253,26 @@ def build_network(
                 label=f"{gpu.id} rear bracket vent into the {dest}",
             )
         )
-        if not shroud_on:
+        if through:
+            above = gap.get("above") or {"gap_mm": 30.0, "state": "open_slot", "neighbor": None}
+            area = exit_area_m2(above["gap_mm"], params["exit_width_m"], params["exit_area_m2"])
+            toward = above.get("neighbor") or ("free air" if gap.get("vertical") else "CPU area")
+            add(
+                Branch(
+                    id=f"upexit-{gpu.id}",
+                    a=f"cex-{gpu.id}",
+                    b="gpu",
+                    k=orifice_k(area, rho_ref, 0.65),
+                    k_lin=1.0,
+                    rho=rho_for(f"cex-{gpu.id}"),
+                    kind="up-exit",
+                    label=(
+                        f"{gpu.id} exhaust up through the backplate side "
+                        f"({above['gap_mm']:.1f} mm toward {toward})"
+                    ),
+                )
+            )
+        elif not shroud_on:
             recirc = float(sample.get("recirc_area_m2", 1.1e-4))
             add(
                 Branch(
@@ -196,10 +287,24 @@ def build_network(
                 )
             )
 
+    # A flow-through card's jet points at the fan face of the card directly above.
+    pairs = []
+    for gpu in sort_gpus(build):
+        if cooler.get(gpu.id) != "flow_through":
+            continue
+        above = gaps[gpu.id].get("above") or {}
+        upper = above.get("neighbor")
+        if upper and not gaps[gpu.id].get("vertical"):
+            pairs.append((gpu.id, upper, float(above["gap_mm"])))
+
     if build.buoyancy:
         _apply_buoyancy(branches, node_temp, t_ref, case)
 
-    return Network(branches, sorted(nodes), gaps, ordered)
+    net = Network(branches, sorted(nodes), gaps, ordered)
+    net.sealed = sealed
+    net.plume_pairs = pairs
+    net.cooler = cooler
+    return net
 
 
 def _open_air(build, cards, duties, sample, rho_ref, add, bleed, nodes, branches) -> Network:
@@ -208,8 +313,10 @@ def _open_air(build, cards, duties, sample, rho_ref, add, bleed, nodes, branches
 
     gaps = {}
     ordered = []
+    cooler = {}
     for gpu in sort_gpus(build):
         params = dict(sample.get("cards", {}).get(gpu.card) or card_tuning(gpu.card))
+        cooler[gpu.id] = cards[gpu.card].cooler
         bleed(f"cin-{gpu.id}")
         bleed(f"cex-{gpu.id}")
         add(
@@ -235,7 +342,7 @@ def _open_air(build, cards, duties, sample, rho_ref, add, bleed, nodes, branches
                 k=float(params["channel_k"]),
                 k_lin=5.0,
                 rho=rho_ref,
-                kind="blower",
+                kind="gpu-fan" if cards[gpu.card].cooler == "flow_through" else "blower",
                 label=f"{gpu.id} blower and fin channel",
                 q_tab=q,
                 p_tab=p,
@@ -256,11 +363,27 @@ def _open_air(build, cards, duties, sample, rho_ref, add, bleed, nodes, branches
                 label=f"{gpu.id} open-air exhaust",
             )
         )
+        if cards[gpu.card].cooler == "flow_through":
+            add(
+                Branch(
+                    id=f"upexit-{gpu.id}",
+                    a=f"cex-{gpu.id}",
+                    b=AMB,
+                    k=orifice_k(params["exit_area_m2"], rho_ref, 0.65),
+                    k_lin=1.0,
+                    rho=rho_ref,
+                    kind="up-exit",
+                    label=f"{gpu.id} open-air exhaust through the backplate side",
+                )
+            )
         gaps[gpu.id] = {
             "gap_mm": 80.0,
             "state": "open_slot",
             "vertical": False,
             "inlet_faces": "both",
+            "cooler": cards[gpu.card].cooler,
+            "above": {"gap_mm": 80.0, "state": "open_slot", "neighbor": None},
+            "below": {"gap_mm": 80.0, "state": "open_slot", "neighbor": None},
             "sides": [
                 {
                     "name": "fan",
@@ -272,10 +395,12 @@ def _open_air(build, cards, duties, sample, rho_ref, add, bleed, nodes, branches
             ],
         }
         ordered.append(gpu.id)
-    return Network(branches, sorted(nodes), gaps, ordered)
+    net = Network(branches, sorted(nodes), gaps, ordered)
+    net.cooler = cooler
+    return net
 
 
-def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add) -> None:
+def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add, k_mult: float = 1.0) -> None:
     """One orifice per inlet face. Area is the slot-map slit, capped by that face's share of the eye."""
     eye = float(params["inlet_eye_m2"])
     width = float(params["inlet_width_m"])
@@ -291,7 +416,7 @@ def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add) -> None:
                 id=f"gap-{gpu.id}-{side['name']}",
                 a="gpu",
                 b=f"cin-{gpu.id}",
-                k=orifice_k(area, rho_ref, 0.62),
+                k=orifice_k(area, rho_ref, 0.62) * k_mult,
                 k_lin=2.0,
                 rho=rho_for("gpu"),
                 kind="gap",
@@ -326,20 +451,23 @@ def _resolved_mounts(build: BuildCfg, case: CaseModel) -> list:
     return resolved
 
 
-def _panel_target(panel: str, intake_node: str) -> str:
+def _panel_target(panel: str, intake_node: str, air_cpu: bool = False) -> str:
     if panel == "front":
         return intake_node
     if panel == "bottom":
         return "gpu"
+    if panel == "rear" and air_cpu:
+        # The rear fan sits right behind a tower cooler in nearly every build.
+        return "cpu"
     return "case"
 
 
-def _add_mounts(build, case, fans, intake_node, rho_ref, rho_for, ippc_scale, sample, add) -> None:
+def _add_mounts(build, case, fans, intake_node, rho_ref, rho_for, ippc_scale, sample, add, air_cpu=False) -> None:
     cage = build.drive_cage == "present"
     for mount in _resolved_mounts(build, case):
         if mount.state == "radiator":
             continue
-        target = _panel_target(mount.panel, intake_node)
+        target = _panel_target(mount.panel, intake_node, air_cpu)
         filt = build.filters.get(mount.panel, "none")
         k_extra = FILTER_K_AT_REF.get(filt, 0.0)
         if mount.panel == "front" and cage:
@@ -396,7 +524,7 @@ def _add_mounts(build, case, fans, intake_node, rho_ref, rho_for, ippc_scale, sa
         )
 
 
-def _add_radiator(build, case, fans, radiators, rho_ref, ippc_scale, sample, add) -> None:
+def _add_radiator(build, case, fans, radiators, rho_ref, ippc_scale, sample, add, intake_node="case") -> None:
     rad_cfg = build.radiator
     if not rad_cfg.model:
         return
@@ -411,10 +539,13 @@ def _add_radiator(build, case, fans, radiators, rho_ref, ippc_scale, sample, add
     k_rad = k_path / float(count * count)
     filt = build.filters.get(rad_cfg.panel, "none")
     k_rad += FILTER_K_AT_REF.get(filt, 0.0) / float(count * count)
+    # Front radiator breathes the same volume the front fans feed; bottom
+    # sits under the cards; top (and legacy rear/side) is the main volume.
+    inside = {"front": intake_node, "bottom": "gpu"}.get(rad_cfg.panel, "case")
     if rad_cfg.direction == "intake":
-        a, b = AMB, "case"
+        a, b = AMB, inside
     else:
-        a, b = "case", AMB
+        a, b = inside, AMB
     add(
         Branch(
             id="radiator",
@@ -429,7 +560,7 @@ def _add_radiator(build, case, fans, radiators, rho_ref, ippc_scale, sample, add
             p_tab=p,
             rpm=rpm,
             rpm_ref=rpm_ref,
-            heat_tag="cpu",
+            heat_tag="cpu" if build.cpu.cooling == "water" else None,
         )
     )
 
@@ -438,20 +569,14 @@ def air_density_safe(build, _node: str) -> float:
     return air_density(build.ambient_c, build.altitude_m)
 
 
-def _seal_area(build, name: str, geometric: float, seal_scale: float) -> float:
-    level = int(build.seals.get(name, 3))
-    level = min(5, max(1, level))
-    if name == "side":
-        if build.side_panel == "removed":
-            level = 5
-        elif build.side_panel == "mesh":
-            level = max(level, 4)
-    frac = SEAL_OPEN_FRACTION[level] * seal_scale
+def _seal_area(build, name: str, geometric: float, seal_scale: float):
+    level = seal_level(build, name)
+    frac = min(SEAL_OPEN_FRACTION[level] * seal_scale, 1.0)
     cd = SEAL_CD[level]
-    return max(geometric * frac, 1e-7), cd
+    return geometric * frac, cd
 
 
-def _add_panel_leaks(build, case, rho_ref, seal_scale, direct, add) -> None:
+def _add_panel_leaks(build, case, rho_ref, seal_scale, direct, add, sealed=None) -> None:
     targets = {
         "front": "gpu" if direct else "case",
         "top": "case",
@@ -460,8 +585,14 @@ def _add_panel_leaks(build, case, rho_ref, seal_scale, direct, add) -> None:
         "seams": "case",
     }
     for name, geometric in case.leak_areas_m2.items():
+        level = seal_level(build, name)
         area, cd = _seal_area(build, name, geometric, seal_scale)
         target = targets.get(name, "case")
+        if area <= 0.0:
+            # Level 5: solid glass or metal, taped. No branch; R = ∞.
+            if sealed is not None:
+                sealed.append({"id": f"leak-{name}", "a": target, "b": AMB, "level": level, "label": f"{name}: {SEAL_NAMES[level]}"})
+            continue
         add(
             Branch(
                 id=f"leak-{name}",
@@ -471,26 +602,61 @@ def _add_panel_leaks(build, case, rho_ref, seal_scale, direct, add) -> None:
                 k_lin=0.4,
                 rho=rho_ref,
                 kind="leak",
-                label=f"{name} seal level {build.seals.get(name, 3)}",
+                label=f"{name} seal level {level} ({SEAL_NAMES[level]}, {SEAL_OPEN_FRACTION[level]:.0%} open)",
             )
         )
 
 
-def _add_spill(build, case, rho_ref, sample, add) -> None:
-    from gpusim.calib import CABLE_K as cables
-    from gpusim.calib import OBSTRUCTION_K as obst
+def _add_cpu_cooler(build, fans, rho_ref, rho_for, sample, add) -> None:
+    """Air-cooled CPU: tower fan + fin stack from the case into the cooler outlet."""
+    cpu = build.cpu
+    fan_id = cpu.cooler_fan if cpu.cooler_fan in fans else "generic-140"
+    fan = fans[fan_id]
+    rpm = rpm_from_duty(fan.rpm_min, fan.rpm_max, cpu.cooler_duty)
+    q, p, rpm, rpm_ref = _fan_qp(fan, rpm, max(int(cpu.cooler_fan_count), 1), 1.0)
+    k_hs = float(cpu.heatsink_k if cpu.heatsink_k is not None else sample.get("cpu_heatsink_k", 2.5e4))
+    add(
+        Branch(
+            id="cpu-cooler",
+            a="case",
+            b="cpu",
+            k=k_hs,
+            k_lin=2.0,
+            rho=rho_for("case"),
+            kind="cpu-cooler",
+            label=f"CPU tower cooler, {cpu.cooler_fan_count}× {fan.name}, {cpu.power_w:.0f} W",
+            q_tab=q,
+            p_tab=p,
+            rpm=rpm,
+            rpm_ref=rpm_ref,
+            heat_tag="cpu",
+        )
+    )
+    area = float(sample.get("cpu_exit_area_m2", 0.03))
+    add(
+        Branch(
+            id="cpu-exit",
+            a="cpu",
+            b="case",
+            k=orifice_k(area, rho_ref, 0.75) * internal_k_mult(build),
+            k_lin=0.3,
+            rho=rho_for("cpu"),
+            kind="cpu-exit",
+            label="CPU cooler outlet back into the case volume",
+        )
+    )
 
+
+def _add_spill(build, case, rho_ref, sample, add) -> None:
     base = float(sample.get("spill_area_direct_m2", 0.045))
     if case.airflow_layout != "direct_front_to_gpu":
         base = float(sample.get("spill_area_mixed_m2", 0.012))
-    mult = obst.get(build.obstruction, 1.0) * cables.get(build.cables, 1.0)
-    area = base / mult
     add(
         Branch(
             id="spill",
             a="gpu",
             b="case",
-            k=orifice_k(area, rho_ref, 0.75),
+            k=orifice_k(base, rho_ref, 0.75) * internal_k_mult(build),
             k_lin=0.3,
             rho=rho_ref,
             kind="spill",
@@ -506,11 +672,11 @@ def _add_rear_slots(build, case, rho_ref, seal_scale, shroud_on, sample, add) ->
         frac = float(sample.get("shroud_bypass_fraction", 0.04))
         # Tape still closes holes the shroud would otherwise inhale.
         area, cd = _seal_area(build, "rear_slots", geometric, seal_scale)
-        area = max(area, geometric * frac * min(seal_scale, 1.0) * 0.15)
-        # Use the more open of "seal applied" and a shroud mouth, but if the
-        # user sealed to level 1 the seal result is already tiny — keep it.
-        level = int(build.seals.get("rear_slots", 4))
-        if level <= 2:
+        area = max(area, geometric * 1e-4)
+        # Taped slots (level 4–5) keep the seal result. Otherwise the open
+        # mouths bypass into the plenum through the shroud's baffled fraction.
+        level = seal_level(build, "rear_slots")
+        if level >= 4:
             mouth = area
         else:
             mouth = geometric * frac
@@ -528,6 +694,8 @@ def _add_rear_slots(build, case, rho_ref, seal_scale, shroud_on, sample, add) ->
         )
     else:
         area, cd = _seal_area(build, "rear_slots", geometric, seal_scale)
+        if area <= 0.0:
+            return
         reingest = float(sample.get("reingest_fraction", 0.22))
         add(
             Branch(

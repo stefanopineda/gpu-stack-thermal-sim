@@ -175,7 +175,7 @@ def write_hypothesis(frame: pd.DataFrame, path: Path, mc: int) -> None:
         "",
         "1. Spacing (gap1, shroud still off). Confirms anchor A against anchor B with no new parts.",
         "2. Shroud on, same spacing. Isolates the plenum fans.",
-        "3. GPU fan curve to maxq_aggressive, which is not a sweep factor — do it on the winning geometry.",
+        "3. GPU fan curve to custom_accelerated (0 % at 25 °C → 100 % at 70 °C), which is not a sweep factor — do it on the winning geometry.",
         "4. Only then tape the case or flip the radiator. Those fight each other (CPU heat vs recirculation).",
         "",
         "Confidence is higher for the order than for the absolute degree. If two neighbouring",
