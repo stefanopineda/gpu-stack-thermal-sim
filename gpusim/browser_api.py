@@ -158,6 +158,22 @@ def optimize_payload(data: dict) -> dict:
         raise ApiError(400, str(exc)) from exc
 
 
+def worth_payload(data: dict) -> dict:
+    """"Worth it?" ranking of single changes to a build. Body: {"build": …, "mc": n}."""
+    from gpusim.worth import worth_it
+
+    raw = data.get("build", data)
+    build = raw if isinstance(raw, BuildCfg) else BuildCfg.model_validate(raw)
+    lib = get_library()
+    if not build.open_air and build.case not in lib.cases:
+        raise ApiError(400, f"Unknown case {build.case}")
+    mc = max(0, min(int(data.get("mc", 0) or 0), 64))
+    try:
+        return worth_it(build, lib, mc=mc)
+    except Exception as exc:
+        raise ApiError(400, str(exc)) from exc
+
+
 def scenario_payload(data: dict) -> dict:
     lib = get_library()
     scenario_id = data.get("scenario_id")
@@ -211,6 +227,8 @@ def dispatch(method: str, path: str, body: str | None = None) -> tuple[int, str]
             payload = solve_payload(json.loads(body or "{}"))
         elif method == "POST" and path == "/api/optimize":
             payload = optimize_payload(json.loads(body or "{}"))
+        elif method == "POST" and path == "/api/worth":
+            payload = worth_payload(json.loads(body or "{}"))
         elif method == "POST" and path == "/api/scenario":
             payload = scenario_payload(json.loads(body or "{}"))
         else:

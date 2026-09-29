@@ -15,7 +15,15 @@ from pydantic import BaseModel
 
 from gpusim import __version__
 from gpusim import api as simapi
-from gpusim.browser_api import ApiError, build_payload, optimize_payload, presets_payload, scenario_payload, solve_payload
+from gpusim.browser_api import (
+    ApiError,
+    build_payload,
+    optimize_payload,
+    presets_payload,
+    scenario_payload,
+    solve_payload,
+    worth_payload,
+)
 from gpusim.calib import GLOBAL_FAN_CURVES
 from gpusim.library import get_library
 from gpusim.models import BuildCfg
@@ -53,6 +61,11 @@ class OptimizeRequest(BaseModel):
     cards: int = 4
     case: str = "meshify2xl"
     mc: int = 40
+
+
+class WorthRequest(BaseModel):
+    build: BuildCfg
+    mc: int = 0
 
 
 class ScenarioRequest(BaseModel):
@@ -99,6 +112,15 @@ def api_solve(build: BuildCfg):
 def api_optimize(body: OptimizeRequest):
     try:
         return optimize_payload(body.model_dump())
+    except ApiError as exc:
+        raise _http(exc) from exc
+
+
+@app.post("/api/worth", tags=["visualizer"])
+def api_worth(body: WorthRequest):
+    """Rank single changes to the build by how much cooler the hottest die gets (paired MC band when mc > 0)."""
+    try:
+        return worth_payload({"build": body.build, "mc": body.mc})
     except ApiError as exc:
         raise _http(exc) from exc
 

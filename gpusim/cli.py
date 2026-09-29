@@ -130,6 +130,33 @@ def optimize(
 
 
 @app.command()
+def worth(
+    build: str = typer.Option("meshify2xl-stefano", help="Build preset id"),
+    mc: int = typer.Option(24, help="Paired Monte Carlo draws for the gain band (0 = nominal only)"),
+) -> None:
+    """Worth it? Rank single changes to a build by how much cooler the hottest GPU gets."""
+    from gpusim.library import get_library
+    from gpusim.worth import worth_it
+
+    lib = get_library()
+    if build not in lib.builds:
+        raise typer.BadParameter(f"Unknown build '{build}'. Known: {', '.join(sorted(lib.builds))}")
+    result = worth_it(lib.builds[build], lib, mc=mc)
+    base = result["base"]
+    typer.echo(
+        f"{lib.builds[build].name}: hottest GPU {base['hottest_die_c']:.1f} °C "
+        f"(unthrottled {base['hottest_unthrottled_c']:.1f} °C)"
+    )
+    for row in result["rows"]:
+        band = row["band_c"]
+        # Printed as the temperature change (negative = cooler), band included.
+        band_txt = f" [{-band[1]:+.1f}…{-band[0]:+.1f}]" if band else ""
+        flag = "  inside the noise" if row["inside_noise"] else ""
+        typer.echo(f"  {-row['gain_c']:+6.1f} °C{band_txt}  {row['effort_label']:<24} {row['title']}{flag}")
+    typer.echo(result["noise_rule"])
+
+
+@app.command()
 def schematic(
     build: str = typer.Option("meshify2xl-stefano"),
     out: Path = typer.Option(Path("plots/schematic.png")),

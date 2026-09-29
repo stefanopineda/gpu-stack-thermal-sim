@@ -162,6 +162,46 @@
         }
       }
     },
+    "/api/worth": {
+      "post": {
+        "tags": [
+          "visualizer"
+        ],
+        "summary": "Api Worth",
+        "description": "Rank single changes to the build by how much cooler the hottest die gets (paired MC band when mc > 0).",
+        "operationId": "api_worth_api_worth_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/scenario": {
       "post": {
         "tags": [
@@ -1269,6 +1309,23 @@
           "name"
         ],
         "title": "Variant"
+      },
+      "WorthRequest": {
+        "properties": {
+          "build": {
+            "$ref": "#/components/schemas/BuildCfg"
+          },
+          "mc": {
+            "type": "integer",
+            "title": "Mc",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "build"
+        ],
+        "title": "WorthRequest"
       }
     }
   },
