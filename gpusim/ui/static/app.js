@@ -1,5 +1,6 @@
-/* gpusim visualizer. The solver stays on the server; this file drives the
- * controls and hands results to the 3D scene and the network view.
+/* gpusim visualizer. Locally the solver is the Python server. On gpuism.com
+ * the same calls are answered in the browser. This file drives the controls
+ * and hands results to the 3D scene and the network view.
  * Rev 4.1: keep it simple. Every panel shows the one choice most people make;
  * everything else sits behind an expander. */
 import { CaseScene, activeLayouts, faceFanLabel, facePatterns } from "./scene.js";
@@ -25,6 +26,8 @@ const state = {
   demoTimer: null,
   net: "off",
   scene: null,
+  mtab: "pc",
+  mtabChosen: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -97,6 +100,9 @@ async function boot() {
   document.querySelectorAll("#facebar button").forEach((b) => (b.onclick = () => setFace(b.dataset.face)));
   document.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => setView(b.dataset.view)));
   document.querySelectorAll("[data-net]").forEach((b) => (b.onclick = () => setNet(b.dataset.net)));
+  document.querySelectorAll("[data-mtab]").forEach((b) => (b.onclick = () => setMobileTab(b.dataset.mtab)));
+  syncMobileChrome();
+  window.matchMedia("(max-width: 800px)").addEventListener("change", syncMobileChrome);
   $("unit-toggle").onclick = () => {
     state.unitF = !state.unitF;
     $("unit-toggle").textContent = state.unitF ? "°C" : "°F";
@@ -174,8 +180,10 @@ async function loadBuild(id) {
     // Usually a server started before this build preset existed: the page is
     // newer than the process serving it. Say so instead of drawing nothing.
     showLoadError(
-      `Build "${id}" is not on this server (HTTP ${res.status}). The gpusim ui process is older than this page — ` +
-        "restart it (Ctrl-C, then `uv run gpusim ui`) and reload.",
+      window.GPUSIM_BROWSER
+        ? `Build "${id}" failed to load (HTTP ${res.status}). Reload the page and try again.`
+        : `Build "${id}" is not on this server (HTTP ${res.status}). The gpusim ui process is older than this page — ` +
+            "restart it (Ctrl-C, then `uv run gpusim ui`) and reload.",
     );
     return;
   }
@@ -246,7 +254,8 @@ function enterApp() {
   $("start").classList.add("hidden");
   $("app").classList.remove("hidden");
   if (!state.scene) {
-    state.scene = new CaseScene($("scene"), null, {
+    try {
+      state.scene = new CaseScene($("scene"), null, {
       onPickMount: (id, panel) => {
         state.selectedMount = id;
         setFace(panel);
@@ -271,6 +280,10 @@ function enterApp() {
         tip.style.top = `${Math.min(ev.clientY + 16, window.innerHeight - tip.offsetHeight - 8)}px`;
       },
     });
+    } catch (err) {
+      console.error(err);
+      state.scene = null;
+    }
   }
   state.build.seals = { ...DEFAULT_SEALS, ...(state.build.seals || {}) };
   state.build.filters = state.build.filters || {};
@@ -293,6 +306,43 @@ function setFace(face) {
 function setView(view) {
   document.querySelectorAll("[data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === view));
   state.scene?.setView(view);
+}
+
+function syncMobileChrome() {
+  const on = window.matchMedia("(max-width: 800px)").matches;
+  if (on && !state.mtabChosen) state.mtab = state.net === "full" ? "network" : state.net === "split" ? "split" : state.mtab || "pc";
+  document.body.classList.toggle("is-mobile", on);
+  for (const tab of ["pc", "customize", "network", "split"]) {
+    document.body.classList.toggle(`mtab-${tab}`, on && state.mtab === tab);
+  }
+  document.querySelectorAll("[data-mtab]").forEach((b) => b.classList.toggle("on", b.dataset.mtab === state.mtab));
+}
+
+function setMobileTab(tab) {
+  state.mtab = tab;
+  state.mtabChosen = true;
+  if (tab === "network") setNet("full");
+  else if (tab === "split") setNet("split");
+  else setNet("off");
+  syncMobileChrome();
+}
+
+function renderMobileTemps() {
+  const root = $("mobile-temps");
+  if (!root) return;
+  const sol = state.solution;
+  root.replaceChildren();
+  if (!sol || sol.error) {
+    root.append(el("span", { class: "hot" }, sol?.error ? "—" : "…"));
+    return;
+  }
+  root.append(el("span", { class: "hot", style: `color:${tempColor(sol.hottest_die_c)}` }, `Hottest ${fmt(sol.hottest_die_c)}`));
+  const byId = Object.fromEntries(sol.cards.map((c) => [c.id, c]));
+  orderedGpus().forEach((g, i) => {
+    const c = byId[g.id];
+    if (!c) return;
+    root.append(el("span", { class: "mt", style: `color:${tempColor(c.t_die_c)}` }, `GPU ${i + 1} ${fmt(c.t_die_c)}`));
+  });
 }
 
 function setNet(mode, quiet) {
@@ -953,6 +1003,7 @@ function renderResults() {
 
 /* Stats, off to the side: the hottest card, the case, then GPU 1…n in order. */
 function renderReadout() {
+  renderMobileTemps();
   const sol = state.solution;
   const root = $("readout");
   root.innerHTML = "";
@@ -1175,6 +1226,6 @@ async function runOptimal() {
 }
 
 // Handle for scripted checks (headless screenshots, OBS macros). Not an API.
-window.gpusim = { state, setFace, setNet, setView, changed, loadBuild, respace, solveNow };
+window.gpusim = { state, setFace, setNet, setView, setMobileTab, changed, loadBuild, respace, solveNow };
 
 boot();

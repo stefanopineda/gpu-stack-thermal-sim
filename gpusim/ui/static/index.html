@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>gpusim — air-cooled multi-GPU</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
@@ -65,6 +65,8 @@
       </div>
     </header>
 
+    <div id="mobile-temps" class="mobile-temps" aria-label="GPU temperatures"></div>
+
     <main class="layout">
       <nav id="facebar" class="facebar" aria-label="Case faces">
         <button data-face="case" type="button"><b>Case</b><span id="fb-case"></span></button>
@@ -107,6 +109,12 @@
 
       <aside id="readout" class="readout"></aside>
     </main>
+    <nav id="mobile-tabs" class="mobile-tabs" aria-label="Views">
+      <button type="button" data-mtab="pc">PC</button>
+      <button type="button" data-mtab="customize">Customize</button>
+      <button type="button" data-mtab="network">Resistor</button>
+      <button type="button" data-mtab="split">Split</button>
+    </nav>
     <footer>
       Air-cooled only. GPU water blocks are out of scope.
       Typical accuracy ±5–10 °C absolute; better for ranking configurations than for absolute temperatures.

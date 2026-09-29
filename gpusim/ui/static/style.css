@@ -288,3 +288,79 @@ details.net-more p { font-size: 13px; color: var(--muted); line-height: 1.5; max
 .net-sym .duct-path { stroke: #b58cff; stroke-width: 2.4; fill: none; }
 
 .load-error { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 50; max-width: 720px; padding: 12px 16px; border-radius: 8px; background: #3a1712; border: 1px solid #e24b3b; color: #ffe2dc; font-size: 14px; cursor: pointer; }
+
+.mobile-temps, .mobile-tabs { display: none; }
+.solver-status { margin-top: 14px; }
+
+/* Phone: one view at a time, temperatures stay pinned under the header. */
+@media (max-width: 800px) {
+  h1 { font-size: 34px; }
+  .lede { font-size: 16px; }
+  .start-card { padding: 18px 16px 32px; }
+  .quick, .template-grid { grid-template-columns: 1fr; }
+  .quick-card b { font-size: 18px; }
+
+  .app { height: 100dvh; grid-template-rows: auto auto 1fr auto; }
+  footer { display: none; }
+  header { flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
+  .build-name { max-width: 42vw; font-size: 12px; }
+  .mock { max-width: none; order: 5; }
+  .header-readout { display: none; }
+  #net-seg { display: none; }
+  .header-actions { width: 100%; flex-wrap: wrap; overflow: visible; }
+  .demo-bar { flex-wrap: wrap; }
+
+  .mobile-temps {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    padding: 6px 10px; background: #100e0c; border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  .mobile-temps .hot { font-size: 18px; font-weight: 750; white-space: nowrap; }
+  .mobile-temps .mt {
+    font-size: 12px; font-weight: 650; white-space: nowrap;
+    padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px;
+  }
+  .mobile-tabs {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: #100e0c; border-top: 1px solid var(--line);
+  }
+  .mobile-tabs button { padding: 9px 2px; font-size: 13px; font-weight: 700; background: transparent; }
+  .mobile-tabs button.on { color: var(--copper); border-color: var(--copper); }
+
+  body.is-mobile .layout,
+  body.net-split .layout,
+  body.net-full .layout { grid-template-columns: 1fr; }
+  .legend { flex-wrap: wrap; max-width: calc(100% - 12px); font-size: 11px; gap: 6px 10px; top: 6px; left: 6px; }
+  .face-inset { display: none; }
+  .mount-row { grid-template-columns: 46px minmax(0, 1fr) 56px 44px; }
+  .net-svg { min-width: 680px; }
+  .load-error { max-width: calc(100% - 24px); }
+
+  body.mtab-pc .facebar,
+  body.mtab-pc .panel,
+  body.mtab-pc .readout { display: none !important; }
+
+  body.mtab-customize .stage { display: none; }
+  body.mtab-customize .layout { grid-template-columns: 84px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  body.mtab-customize .facebar { overflow: auto; }
+  body.mtab-customize .readout {
+    display: block; grid-column: 1 / -1; max-height: 32vh;
+    border-left: none; border-top: 1px solid var(--line);
+  }
+
+  body.mtab-network .facebar,
+  body.mtab-network .panel,
+  body.mtab-network .readout,
+  body.mtab-network .view3d { display: none !important; }
+  body.mtab-network .netview { border-left: none; }
+
+  body.mtab-split .facebar,
+  body.mtab-split .panel,
+  body.mtab-split .readout { display: none !important; }
+  body.mtab-split .stage.net-split .views {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(190px, 40vh) minmax(220px, 1fr);
+  }
+  body.mtab-split .netview { border-left: none; border-top: 1px solid var(--line); }
+}
