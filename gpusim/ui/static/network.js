@@ -1,362 +1,369 @@
-/* Resistor-network view. Layer 1: airflow (pressure = voltage, volumetric
- * flow = current). Layer 2: per-card thermal chain (temperature = voltage,
- * heat = current), driven by the mass flow layer 1 solved. */
-
-const FAN_KINDS = new Set(["fan", "shroud-fan", "radiator", "blower", "gpu-fan", "cpu-cooler"]);
-const NAMES = {
-  fan: "fan impedance + fan",
-  "shroud-fan": "shroud fans",
-  radiator: "radiator core + fans",
-  blower: "blower + fin channel",
-  "gpu-fan": "axial fans + fin channel",
-  "cpu-cooler": "CPU tower fin stack + fan",
-  leak: "seal resistance",
-  sealed: "seal resistance ∞",
-  gap: "inter-card slot resistance",
-  spill: "internal resistance (zone → case)",
-  "cpu-exit": "internal resistance (cooler → case)",
-  bracket: "bracket vent resistance",
-  recirc: "exhaust short-circuit",
-  plume: "plume → room",
-  "rear-slot": "open rear slots",
-  reingest: "rear-slot reingestion",
-  "shroud-leak": "shroud shell leak",
-  orifice: "open mount",
-  blank: "blanked mount",
-  "up-exit": "flow-through exhaust (up)",
-};
+/* Resistor-network view, kept readable: every element shows a short name and
+ * one number; everything else is on hover or in the expanders underneath.
+ * Layer 1: airflow (fans push air through resistances; pressure ≈ voltage,
+ * flow ≈ current). Layer 2: heat (each card's heat crosses thermal
+ * resistances into the air layer 1 delivers). */
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const kfmt = (k) => (k == null ? "∞" : k >= 1e4 ? k.toExponential(1) : k.toFixed(0));
+const cfm = (v) => `${Math.abs(v).toFixed(0)} CFM`;
 
-function leftSide(br) {
-  const text = `${br.id} ${br.label}`.toLowerCase();
-  if (br.kind === "radiator") return /front|bottom/.test(text);
-  return /front|bottom|side/.test(text) && !/rear/.test(text);
+const FAN_KINDS = new Set(["fan", "shroud-fan", "radiator", "cpu-cooler"]);
+const CARD_KINDS = new Set(["gap", "blower", "gpu-fan", "bracket", "recirc", "up-exit", "stack", "plume-ingest"]);
+
+/* Short, plain names for what each branch is. */
+function shortName(g) {
+  const face = (/^(?:mount|leak)-([a-z_]+)/.exec(g.id)?.[1] || "").replace("_", " ");
+  const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+  switch (g.kind) {
+    case "fan":
+      return g.id === "psu-fan" ? "PSU fan" : `${cap(face)} fan${g.count > 1 ? `s ×${g.count}` : ""}`;
+    case "blank":
+      return `${cap(face)} cover plate${g.count > 1 ? `s ×${g.count}` : ""}`;
+    case "orifice":
+      return `${cap(face)} open hole${g.count > 1 ? `s ×${g.count}` : ""}`;
+    case "leak":
+      return `${cap(face)} panel gaps`;
+    case "sealed":
+      return `${cap(face)} sealed (∞)`;
+    case "radiator":
+      return "Radiator + fans";
+    case "spill":
+      return "GPU zone → case";
+    case "cpu-cooler":
+      return "CPU cooler";
+    case "cpu-exit":
+      return "Cooler outlet";
+    case "plume":
+      return "Plume → room";
+    case "rear-slot":
+      return "Open rear slots";
+    case "reingest":
+      return "Slots ↔ exhaust plume";
+    case "shroud-fan":
+      return "Shroud fans";
+    case "shroud-leak":
+      return "Shroud leak";
+    default:
+      return g.kind;
+  }
 }
 
-function panelOf(br) {
-  const m = /^(?:mount|leak)-([a-z]+)/.exec(br.id);
-  return m ? m[1] : br.kind;
-}
-
-/* Collapse identical parallel branches (e.g. three front fans) into one symbol. */
 function groupBranches(branches) {
   const groups = new Map();
   branches.forEach((br) => {
-    if (br.kind === "plume-ingest") return;
-    const key = `${br.kind}|${br.a}|${br.b}|${panelOf(br)}`;
+    const panel = /^(?:mount|leak)-([a-z_]+)/.exec(br.id)?.[1] || br.kind;
+    const key = `${br.kind}|${br.a}|${br.b}|${panel}`;
     if (!groups.has(key)) groups.set(key, { ...br, count: 0, flow_total: 0, members: [] });
     const g = groups.get(key);
     g.count += 1;
     g.flow_total += br.flow_cfm;
-    g.members.push(`${br.id} ${br.flow_cfm.toFixed(1)} CFM`);
+    g.members.push(br);
   });
   return [...groups.values()];
 }
 
+function tipFor(g) {
+  const sealed = g.kind === "sealed";
+  const isFan = FAN_KINDS.has(g.kind) || g.fan;
+  const flow = g.count > 1 ? g.flow_total : g.flow_cfm;
+  const law = sealed
+    ? "Solid glass or metal (seal 5): no opening, infinite resistance, no air."
+    : isFan
+      ? `Fan: pressure source on its P–Q curve, P_a − P_b = k·Q·|Q| − P_fan(Q); k = ${kfmt(g.k)} Pa/(m³/s)².`
+      : `Resistance: ΔP = k·Q·|Q|, k = ${kfmt(g.k)} Pa/(m³/s)².`;
+  const members = g.count > 1 ? ` ${g.count} in parallel: ${g.members.map((m) => `${m.id} ${m.flow_cfm.toFixed(1)} CFM`).join(", ")}.` : "";
+  return `${g.role || g.kind}. ${g.label}. ${law} Flow ${Math.abs(flow).toFixed(1)} CFM${g.dp_pa == null || sealed ? "" : `, ΔP ${Math.abs(g.dp_pa).toFixed(1)} Pa`}.${members}`;
+}
+
 export function renderNetwork(el, ctx) {
-  const { solution, build, fmt, mode } = ctx;
-  if (!solution || solution.error || !solution.branches) {
-    el.innerHTML = `<p class="warn">${esc(solution?.error || "Solving…")}</p>`;
+  const { solution: sol, fmt, presets } = ctx;
+  if (!sol || sol.error || !sol.branches) {
+    el.innerHTML = `<p class="warn">${esc(sol?.error || "Solving…")}</p>`;
     return;
   }
-  const full = mode === "full";
+  const names = Object.fromEntries((presets?.cards || []).map((c) => [c.id, c.name.replace(/^NVIDIA (GeForce )?/, "")]));
   el.innerHTML = `
     <div class="net-head">
       <h2>How the number is made</h2>
-      <p>Two coupled solves. <b>Layer 1</b> is the airflow network: static pressure is voltage, volumetric flow is current,
-      every branch obeys <code>ΔP = k·Q·|Q|</code> (orifice <code>k = ρ / (2 C<sub>d</sub>² A²)</code>), a fan adds a
-      pressure source <code>P<sub>fan</sub>(Q)·(N/N<sub>ref</sub>)²</code>, and mass balances at every node (Kirchhoff's current law).
-      <b>Layer 2</b> is each card's thermal network: the mass flow from layer 1 sets <code>R<sub>conv</sub> = 1 / (ε·ṁ·c<sub>p</sub>)</code>
-      with <code>ε = 1 − e<sup>−NTU</sup></code>, <code>h</code> from <code>Nu = C·Re<sup>m</sup>·Pr<sup>1/3</sup></code>.
-      Temperatures then set each GPU's fan duty and the air density, and layer 1 is solved again until both settle.</p>
+      <p><b>1 · Airflow:</b> fans push air through resistances (pressure ≈ voltage, flow ≈ current).
+      <b>2 · Heat:</b> each card's heat crosses thermal resistances into the air from step 1.
+      The two are solved together. <span class="hint">Hover any part for its numbers and assumptions.</span></p>
+      <details class="net-more"><summary>How it works</summary>
+        <p>Every airflow branch obeys <code>ΔP = k·Q·|Q|</code>; an opening's <code>k = ρ / (2 C<sub>d</sub>² A²)</code>.
+        A fan adds pressure along its curve, scaled by speed (<code>Q ∝ N</code>, <code>P ∝ N²</code>), and works against the
+        pressure it sees. Air mass balances at every node (Kirchhoff's current law).</p>
+        <p>For heat, the air flow through each card's fins sets <code>R_conv = 1 / (ε·ṁ·c<sub>p</sub>)</code>
+        (ε-NTU, <code>Nu = C·Re<sup>m</sup>·Pr<sup>1/3</sup></code>). Then
+        <code>T_die = T_inlet + Q_fins·R_conv + P_die·R_tim</code>. Temperatures set each GPU fan's speed and the air density,
+        and step 1 is solved again until both settle.</p>
+        <p>Flow-through cards blow their exhaust up into the card above. The share it swallows (the plume) comes from the
+        jet speed, the case crossflow and entrainment; touching cards also share a direct duct.</p>
+      </details>
     </div>
-    <div class="net-layer"><h3>Layer 1 · airflow network <span class="fine">(pressure = voltage, flow = current; Pa, CFM)</span></h3>${airflowSvg(solution, build, full)}</div>
-    <div class="net-layer"><h3>Layer 2 · thermal network per card <span class="fine">(temperature = voltage, heat = current; °C, W, K/W)</span></h3>${thermalSvg(solution, fmt, full, Object.fromEntries((ctx.presets?.cards || []).map((c) => [c.id, c.name])))}</div>
-    <p class="fine net-foot">Mass residual ${solution.residual_kg_s.toExponential(1)} kg/s (plume overlay ${(
-      solution.advection_residual_kg_s || 0
-    ).toExponential(1)}). Energy in vs enthalpy out ${(solution.energy_error * 100).toFixed(3)} %. Hover any element for its assumption.</p>`;
+    <div class="net-legend">${legend()}</div>
+    <section class="net-layer"><h3>1 · Airflow <span class="fine">CFM on each branch, °C at each node</span></h3>${airflowSvg(sol)}</section>
+    <section class="net-layer"><h3>2 · Heat, per card <span class="fine">air temperature → die temperature</span></h3>${thermalRows(sol, fmt, names)}</section>
+    <details class="net-more"><summary>Every airflow branch (${sol.branches.length})</summary>${branchTable(sol)}</details>
+    <details class="net-more"><summary>Every card's heat path, with the math</summary>${thermalTable(sol, fmt, names)}</details>
+    <p class="fine net-foot">Mass balance residual ${sol.residual_kg_s.toExponential(1)} kg/s · energy in vs out ${(sol.energy_error * 100).toFixed(3)} %.</p>`;
 }
 
-function airflowSvg(sol, build, full) {
-  const cards = sol.cards || [];
-  const nodes = new Set();
-  sol.branches.forEach((br) => {
-    nodes.add(br.a);
-    nodes.add(br.b);
-  });
-  const groups = groupBranches(sol.branches);
-  const W = 1000;
-  const laneH = 56;
-  const railL = 30;
-  const railR = W - 30;
+function legend() {
+  const item = (svg, text, tip) => `<span data-tip="${esc(tip)}"><svg class="net-sym" width="34" height="18" viewBox="-17 -9 34 18">${svg}</svg>${text}</span>`;
+  return [
+    item(fanSym("in"), "fan (pushes air)", "A fan is a pressure source: it pushes air along its pressure–flow curve and moves less air against higher pressure."),
+    item(resSym(), "resistance", "Anything air squeezes through: panel gaps, filters, slot gaps, fins, bracket vents. ΔP = k·Q·|Q|."),
+    item(`<text y="5" text-anchor="middle" class="inf">∞</text>`, "sealed", "Solid glass or metal: no opening, infinite resistance."),
+    item(`<path d="M-15,0 L15,0" class="plume-path"/>`, "plume", "Hot exhaust a flow-through card blows into the card above it."),
+    item(`<path d="M-15,0 L15,0" class="duct-path"/>`, "duct", "Touching flow-through cards: the lower card's exhaust goes straight into the fans above."),
+  ].join("");
+}
 
-  // Which node/side each room-connected branch uses, so lanes can be counted first.
-  const railUse = {};
+function resSym() {
+  return `<rect x="-15" y="-6" width="30" height="12" class="sym-bg"/><polyline points="-15,0 -11,-5 -6,5 -1,-5 4,5 9,-5 15,0" class="sym"/>`;
+}
+
+function fanSym(dir) {
+  return `<circle r="8" class="sym-bg"/><circle r="8" class="sym fan ${dir}"/><path d="M-4,0 L4,0 M1,-3 L4,0 L1,3" class="sym fan ${dir}"/>`;
+}
+
+/* ------------------------------------------------------------------ layer 1 */
+
+function airflowSvg(sol) {
+  const cards = sol.cards || [];
+  // Plugged mounts with no flow add nothing to the picture; they stay in the table.
+  const groups = groupBranches(sol.branches.filter((b) => !CARD_KINDS.has(b.kind) && !(b.kind === "blank" && Math.abs(b.flow_cfm) < 0.5)));
+  const nodes = new Set(sol.branches.flatMap((b) => [b.a, b.b]));
+  const W = 1000;
+  const railL = 34;
+  const railR = W - 34;
+  const lane = 40;
+  // Room-side branches get their own lane, counted per node and side first.
+  const rail = {};
   groups.forEach((g) => {
     if (g.a !== "amb" && g.b !== "amb") return;
-    const inner = g.a === "amb" ? g.b : g.a;
-    g._inner = inner;
-    g._side = leftSide(g) ? "L" : "R";
-    (railUse[`${inner}|${g._side}`] ||= []).push(g);
+    g._inner = g.a === "amb" ? g.b : g.a;
+    const text = `${g.id} ${g.label}`.toLowerCase();
+    g._side = /front|bottom|side/.test(text) && !/rear/.test(text) && g.kind !== "plume" ? "L" : "R";
+    (rail[`${g._inner}|${g._side}`] ||= []).push(g);
   });
-  const lanesDown = (node) => Math.max(railUse[`${node}|L`]?.length || 0, railUse[`${node}|R`]?.length || 0);
-  const pos = {};
-  pos.case = { x: 330, y: 58 };
-  if (nodes.has("cpu")) pos.cpu = { x: 560, y: 58 };
-  const topBand = 58 + Math.max(lanesDown("case"), lanesDown("cpu")) * laneH;
-  const rowH = 104;
-  const top = topBand + 70;
+  const count = (n, s) => rail[`${n}|${s}`]?.length || 0;
+  // GPU-zone branches that leave toward the right (rear) run along the bottom,
+  // under the cards, instead of cutting across them.
+  const bottomRail = rail["gpu|R"] || [];
+  delete rail["gpu|R"];
+  const pos = { case: { x: 600, y: 56 } };
+  // Main case lanes run right from the case node; the left side starts one lane
+  // down so the zone → case line has the top row to itself.
+  const caseLanes = Math.max(count("case", "R"), count("case", "L") + 1, 1);
+  if (nodes.has("cpu")) pos.cpu = { x: 820, y: 56 + caseLanes * lane + 10 };
+  const topBand = nodes.has("cpu") ? pos.cpu.y + (count("cpu", "R") + 1) * lane + 10 : 56 + caseLanes * lane;
+  const rowH = 70;
+  const top = topBand + 50;
   cards.forEach((c, i) => {
-    pos[`cin-${c.id}`] = { x: 450, y: top + i * rowH };
-    pos[`cex-${c.id}`] = { x: 720, y: top + i * rowH };
+    pos[`cin-${c.id}`] = { x: 420, y: top + i * rowH };
+    pos[`cex-${c.id}`] = { x: 660, y: top + i * rowH };
   });
-  const midY = top + ((cards.length - 1) * rowH) / 2;
-  pos.gpu = { x: 220, y: midY + 10 };
-  if (nodes.has("plenum")) pos.plenum = { x: 840, y: midY };
-  if (nodes.has("plume")) pos.plume = { x: 840, y: midY };
-  const bottomLane = top + (cards.length - 1) * rowH + 70;
-  const gpuLanes = railUse["gpu|L"]?.length || 0;
-  const H = Math.max(bottomLane + 70, pos.gpu.y + (gpuLanes / 2) * laneH + 60);
+  const midY = top + ((Math.max(cards.length, 1) - 1) * rowH) / 2;
+  pos.gpu = { x: 250, y: midY };
+  const sink = nodes.has("plenum") ? "plenum" : nodes.has("plume") ? "plume" : null;
+  if (sink) pos[sink] = { x: 820, y: midY };
+  const bottom = top + (cards.length - 1) * rowH + 56;
+  const bottomLanes = bottomRail.length + (sol.branches.some((b) => b.kind === "rear-slot" && b.b !== "amb") ? 1 : 0) + (sol.branches.some((b) => b.kind === "reingest") ? 1 : 0);
+  const H = Math.max(bottom + Math.max(bottomLanes, 1) * lane + 20, midY + (count("gpu", "L") / 2 + 1) * lane + 30);
 
-  const parts = [];
-  parts.push(`<line x1="${railL}" y1="26" x2="${railL}" y2="${H - 8}" class="rail"/>`);
-  parts.push(`<line x1="${railR}" y1="26" x2="${railR}" y2="${H - 8}" class="rail"/>`);
-  parts.push(`<text x="${railL - 4}" y="16" class="rail-t">room air · 0 Pa · ${(sol.node_temp?.amb ?? 25).toFixed(1)} °C</text>`);
-  parts.push(`<text x="${railR + 4}" y="16" class="rail-t" text-anchor="end">room air · 0 Pa</text>`);
+  const out = [];
+  out.push(`<line x1="${railL}" y1="20" x2="${railL}" y2="${H - 6}" class="rail"/><line x1="${railR}" y1="20" x2="${railR}" y2="${H - 6}" class="rail"/>`);
+  out.push(`<text x="${railL - 6}" y="13" class="rail-t">room</text><text x="${railR + 6}" y="13" class="rail-t" text-anchor="end">room</text>`);
 
-  const laneIndex = {};
+  const used = {};
+  const labelled = (g, pts, seg, name) => {
+    const a = pts[seg];
+    const b = pts[seg + 1];
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    const sealed = g.kind === "sealed";
+    const isFan = FAN_KINDS.has(g.kind) || g.fan;
+    const flow = g.count > 1 ? g.flow_total : g.flow_cfm;
+    const width = sealed ? 1.5 : Math.min(1.2 + Math.abs(flow) / 30, 5);
+    const forward = (g.flow_m3s ?? 0) >= 0;
+    const intake = g.a === "amb" ? forward : !forward;
+    const sym = sealed ? `<text y="5" text-anchor="middle" class="inf">∞</text>` : isFan ? fanSym(intake ? "in" : "out") : resSym();
+    const [p, q] = forward ? [a, b] : [b, a];
+    const arrow = sealed || Math.abs(flow) < 0.5 ? "" : `<path d="M${p.x + (q.x - p.x) * 0.78},${p.y + (q.y - p.y) * 0.78} L${p.x + (q.x - p.x) * 0.84},${p.y + (q.y - p.y) * 0.84}" class="flowdir" marker-end="url(#arr)"/>`;
+    const text = sealed ? name : `${name} · ${cfm(flow)}`;
+    return `<g class="branch" data-tip="${esc(tipFor(g))}">
+      <path d="M${pts.map((pt) => `${pt.x},${pt.y}`).join(" L")}" class="wire ${sealed ? "sealed" : ""}" style="stroke-width:${width}"/>${arrow}
+      <g transform="translate(${mx},${my})">${sym}</g>
+      <text x="${mx}" y="${my - 12}" text-anchor="middle" class="br-t">${esc(text)}</text></g>`;
+  };
+
   let bottomUsed = 0;
+  const bottomLane = () => bottom + (bottomUsed++) * lane;
+  bottomRail.forEach((g) => {
+    const y = bottomLane();
+    const a = pos.gpu;
+    const pts = [a, { x: a.x, y }, { x: railR, y }];
+    out.push(labelled(g, g.a === "amb" ? pts.slice().reverse() : pts, 1, shortName(g)));
+    g._done = true;
+  });
   groups.forEach((g) => {
+    if (g._done) return;
     if (g._inner) {
       const pn = pos[g._inner];
       if (!pn) return;
       const key = `${g._inner}|${g._side}`;
-      const n = railUse[key].length;
-      const k = (laneIndex[key] = (laneIndex[key] ?? -1) + 1);
-      const downward = g._inner === "case" || g._inner === "cpu";
-      const y = downward ? pn.y + k * laneH : pn.y + (k - (n - 1) / 2) * laneH;
+      const n = rail[key].length;
+      const k = (used[key] = (used[key] ?? -1) + 1);
+      const down = g._inner === "case" || g._inner === "cpu";
+      const offset = (g._inner === "case" && g._side === "L") || g._inner === "cpu" ? 1 : 0;
+      const y = down ? pn.y + (k + offset) * lane : pn.y + (k - (n - 1) / 2) * lane;
       const railX = g._side === "L" ? railL : railR;
-      const elbowX = pn.x + (g._side === "L" ? -46 : 46);
-      const inward = g.a === "amb";
-      const pts = [pn, { x: elbowX, y }, { x: railX, y }];
-      parts.push(branchSvg(g, inward ? pts.slice().reverse() : pts, full, { seg: inward ? 0 : 1 }));
+      const elbow = pn.x + (g._side === "L" ? -40 : 40);
+      const pts = [pn, { x: elbow, y }, { x: railX, y }];
+      out.push(labelled(g, g.a === "amb" ? pts.slice().reverse() : pts, g.a === "amb" ? 0 : 1, shortName(g)));
       return;
     }
-    const p1 = pos[g.a];
-    const p2 = pos[g.b];
-    if (!p1 || !p2) return;
-    if ((g.kind === "rear-slot" || g.kind === "reingest") && g.a === "gpu") {
-      const y = bottomLane + bottomUsed * laneH;
-      bottomUsed += 1;
-      parts.push(branchSvg(g, [p1, { x: p1.x, y }, { x: p2.x, y }, p2], full, { seg: 1 }));
-      return;
-    }
-    let bend = 0;
-    if (/^cex-/.test(g.a) && (g.b === "gpu" || g.b === "case")) bend = g.b === "case" ? -1 : 1;
-    // Several brackets converge on the plenum; keep their symbols near their own card.
-    const t = g.kind === "bracket" ? 0.34 : g.kind === "gap" ? 0.58 : 0.5;
-    parts.push(branchSvg(g, [p1, p2], full, { bend, t }));
-  });
-
-  (sol.plume || []).forEach((p) => {
-    const a = pos[p.from_node];
-    const b = pos[p.to_node];
+    const a = pos[g.a];
+    const b = pos[g.b];
     if (!a || !b) return;
-    const cx = (a.x + b.x) / 2;
-    const cy = (a.y + b.y) / 2;
-    const tip = `Plume ingestion (special coupling term, not a resistor): ${p.upper} draws φ = ${(p.phi * 100).toFixed(0)} % of its fan-side intake ` +
-      `from ${p.lower}'s exhaust jet, φ(gap) = φmax·exp(−gap/L), gap ${p.gap_mm.toFixed(1)} mm. Mass ${p.flow_cfm.toFixed(1)} CFM at ` +
-      `${p.t_from_c?.toFixed(1)} °C, capped by the jet. The same mass is taken off the zone streams, so every node still balances.`;
-    parts.push(
-      `<g class="plume" data-tip="${esc(tip)}"><path d="M${a.x},${a.y} Q${cx},${cy + 10} ${b.x + 12},${b.y + 8}" class="plume-path" marker-end="url(#arrow-plume)"/>` +
-        `<text x="${cx}" y="${cy + 4}" text-anchor="middle" class="plume-t">plume ${(p.share_of_upper_intake * 100).toFixed(0)}%</text></g>`,
-    );
-  });
-
-  Object.entries(pos).forEach(([name, p]) => {
-    const P = sol.pressures?.[name];
-    const T = sol.node_temp?.[name];
-    const card = /^c(in|ex)-/.test(name) || name === "plenum" || name === "plume";
-    const label = name === "gpu" ? "GPU zone" : name === "case" ? "main case" : name === "cpu" ? "CPU cooler out" : name.replace("cin-", "inlet ").replace("cex-", "exhaust ");
-    const tip = `Node ${label}: gauge pressure ${P?.toFixed(2)} Pa, air ${T?.toFixed(1)} °C. Mass in = mass out (residual ${(sol.node_residual?.[name] ?? 0).toExponential(1)} kg/s).`;
-    const ty = card ? p.y + 24 : p.y - 14;
-    const vy = card ? p.y + 40 : p.y + 24;
-    parts.push(
-      `<g class="node" data-tip="${esc(tip)}"><circle cx="${p.x}" cy="${p.y}" r="8"/>` +
-        `<text x="${p.x}" y="${ty}" text-anchor="middle" class="node-t">${esc(label)}</text>` +
-        `<text x="${p.x}" y="${vy}" text-anchor="middle" class="node-v">${P?.toFixed(1)} Pa · ${T?.toFixed(1)} °C</text></g>`,
-    );
-  });
-  const defs = `<defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker>
-    <marker id="arrow-plume" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff8a3d"/></marker>
-  </defs>`;
-  return `<svg viewBox="0 0 ${W} ${H}" class="net-svg" preserveAspectRatio="xMidYMin meet">${defs}${parts.join("")}</svg>`;
-}
-
-/* One branch along a polyline (or a bowed curve). The symbol sits on segment
- * opts.seg (default: the longest), with the solved flow direction arrowed. */
-function branchSvg(g, pts, full, opts = {}) {
-  const cfm = g.count > 1 ? g.flow_total : g.flow_cfm;
-  const width = Math.min(1 + Math.abs(cfm) / 25, 5);
-  const sealed = g.kind === "sealed";
-  const isFan = FAN_KINDS.has(g.kind) && g.fan !== false;
-  const name = NAMES[g.kind] || g.kind;
-  const count = g.count > 1 ? ` ×${g.count}` : "";
-  const flowText = sealed ? "R = ∞ · 0 CFM" : `${Math.abs(cfm).toFixed(1)} CFM`;
-  const dp = g.dp_pa == null || sealed ? "" : ` · ${Math.abs(g.dp_pa).toFixed(1)} Pa`;
-  const formula = sealed
-    ? "Solid glass or metal (seal level 5): open area 0, so the branch is removed; resistance is infinite and no air passes."
-    : isFan
-      ? `P_a − P_b = k·Q·|Q| − P_fan(Q), with k = ${kfmt(g.k)} Pa/(m³/s)² for the mount/core and the fan curve scaled by (N/N_ref)².`
-      : `ΔP = k·Q·|Q|, k = ${kfmt(g.k)} Pa/(m³/s)².`;
-  const tip = `${g.role || name}${count ? ` (${g.count} in parallel)` : ""}. ${g.label}. ${formula} Flow ${flowText}${dp}.` +
-    (g.count > 1 ? ` Members: ${g.members.join(", ")}.` : "");
-  // Branch a→b; pts may run either way. Flow direction decides the arrow.
-  const first = pts[0];
-  const last = pts[pts.length - 1];
-  let d;
-  let mid;
-  let ang;
-  let arrowSeg = null;
-  if (opts.bend) {
-    const dx = last.x - first.x;
-    const dy = last.y - first.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const c = { x: (first.x + last.x) / 2 - (dy / len) * opts.bend * 70, y: (first.y + last.y) / 2 + (dx / len) * opts.bend * 70 };
-    d = `M${first.x},${first.y} Q${c.x},${c.y} ${last.x},${last.y}`;
-    mid = { x: 0.25 * first.x + 0.5 * c.x + 0.25 * last.x, y: 0.25 * first.y + 0.5 * c.y + 0.25 * last.y };
-    ang = (Math.atan2(dy, dx) * 180) / Math.PI;
-  } else {
-    d = "M" + pts.map((p) => `${p.x},${p.y}`).join(" L");
-    let seg = opts.seg;
-    if (seg == null) {
-      let best = -1;
-      for (let i = 0; i < pts.length - 1; i += 1) {
-        const l = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
-        if (l > best) {
-          best = l;
-          seg = i;
-        }
-      }
+    if (g.kind === "spill") {
+      out.push(labelled(g, [a, { x: a.x, y: pos.case.y }, b], 1, shortName(g)));
+    } else if (g.kind === "rear-slot" || g.kind === "reingest") {
+      const y = bottomLane();
+      out.push(labelled(g, [a, { x: a.x, y }, { x: b.x, y }, b], 1, shortName(g)));
+    } else if (g.kind === "cpu-cooler") {
+      out.push(labelled(g, [a, { x: a.x, y: b.y }, b], 1, shortName(g)));
+    } else if (g.kind === "cpu-exit") {
+      out.push(labelled(g, [a, { x: a.x, y: a.y + 24 }, { x: pos.case.x + 30, y: a.y + 24 }, { x: pos.case.x + 30, y: b.y }, b], 1, shortName(g)));
+    } else {
+      out.push(labelled(g, [a, b], 0, shortName(g)));
     }
-    const a = pts[seg];
-    const b = pts[seg + 1];
-    const t = opts.t ?? 0.5;
-    mid = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-    ang = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
-    arrowSeg = [a, b];
-  }
-  // Callers always pass points from node a to node b.
-  const forward = (g.flow_m3s ?? 0) >= 0;
-  let arrow = "";
-  if (arrowSeg && !sealed && Math.abs(cfm) >= 0.05) {
-    const [a, b] = forward ? arrowSeg : [arrowSeg[1], arrowSeg[0]];
-    const t0 = { x: a.x + (b.x - a.x) * 0.8, y: a.y + (b.y - a.y) * 0.8 };
-    const t1 = { x: a.x + (b.x - a.x) * 0.86, y: a.y + (b.y - a.y) * 0.86 };
-    arrow = `<line x1="${t0.x}" y1="${t0.y}" x2="${t1.x}" y2="${t1.y}" class="flowdir" marker-end="url(#arrow)"/>`;
-  }
-  const flip = ang > 90 || ang < -90;
-  const lineCls = sealed ? "wire sealed" : "wire";
-  const symbol = sealed ? openSymbol() : isFan ? fanSymbol() : resistorSymbol();
-  const short = `${shortName(g)}${count}`;
-  const value = full ? `${flowText}${dp}` : flowText;
-  return `<g class="branch k-${g.kind}" data-tip="${esc(tip)}">
-    <path d="${d}" class="${lineCls}" style="stroke-width:${width}"/>${arrow}
-    <g transform="translate(${mid.x},${mid.y}) rotate(${flip ? ang + 180 : ang})">${symbol}
-      <text y="-14" text-anchor="middle" class="br-t">${esc(short)}</text>
-      <text y="${isFan ? 27 : 23}" text-anchor="middle" class="br-v">${esc(value)}</text>
-    </g></g>`;
-}
-
-function shortName(g) {
-  if (g.kind === "leak" || g.kind === "sealed") {
-    const face = /^leak-([a-z_]+)/.exec(g.id)?.[1] || "";
-    return `${face.replace("_", " ")} seal${g.kind === "sealed" ? " ∞" : ""}`;
-  }
-  const map = { gap: "slot gap", spill: "internal", bracket: "bracket", "up-exit": "up-exit" };
-  if (g.kind === "fan" || g.kind === "blank" || g.kind === "orifice") return `${panelOf(g)} ${g.kind === "fan" ? "fan" : g.kind}`;
-  return map[g.kind] || NAMES[g.kind] || g.kind;
-}
-
-function resistorSymbol() {
-  return `<rect x="-20" y="-7" width="40" height="14" class="sym-bg"/><polyline points="-20,0 -15,-6 -9,6 -3,-6 3,6 9,-6 15,6 20,0" class="sym"/>`;
-}
-
-function fanSymbol() {
-  return `<rect x="-24" y="-12" width="48" height="24" class="sym-bg"/><circle cx="-8" r="10" class="sym fan"/><path d="M-14,0 L-2,0 M-6,-4 L-2,0 L-6,4" class="sym"/>` +
-    `<polyline points="4,0 7,-5 11,5 15,-5 19,5 22,0" class="sym"/>`;
-}
-
-function openSymbol() {
-  return `<rect x="-16" y="-9" width="32" height="18" class="sym-bg"/><text y="6" text-anchor="middle" class="inf">∞</text>`;
-}
-
-function thermalSvg(sol, fmt, full, names = {}) {
-  const cards = sol.cards || [];
-  const W = 1100;
-  const rowH = 212;
-  const H = 20 + cards.length * rowH;
-  const parts = [];
-  const cols = { zone: 70, inlet: 300, hs: 640, die: 930 };
-  cards.forEach((c, i) => {
-    const d = c.thermal || {};
-    const y = 64 + i * rowH;
-    const yb = y + 62;
-    const tIn = d.t_inlet_used_c ?? c.t_in_c;
-    const rConv = d.r_conv_k_per_w;
-    const eq =
-      rConv == null
-        ? "fan stalled: no convection through the fins"
-        : `T_die = T_in + Q_ch·R_conv + P_die·R_tim = ${tIn.toFixed(1)} + ${d.q_channel_w.toFixed(0)}×${rConv.toFixed(3)} + ${d.p_die_w.toFixed(0)}×${d.r_tim_k_per_w.toFixed(3)} = ${d.t_die_c.toFixed(1)} °C`;
-    const plume = d.plume_from
-      ? `+ ${(d.plume_share_of_intake * 100).toFixed(0)} % of ${d.plume_from}'s exhaust at ${d.plume_source_temp_c?.toFixed(1)} °C`
-      : "";
-    const mixTip = `Inlet air: GPU-zone air at ${d.t_zone_c?.toFixed(1)} °C${plume ? `, ${plume}` : ", no plume from below"}, plus ${d.inlet_heat_captured_w?.toFixed(1)} W of shroud/backplate heat captured in the gap. ` +
-      "The plume share is the rev 4 coupling term φ(gap) = φmax·exp(−gap/L).";
-    const convTip = `Convective resistance heatsink → air, R_conv = 1/(ε·ṁ·c_p) = 1/(${d.epsilon?.toFixed(2)} × ${((d.mass_kg_s || 0) * 1000).toFixed(1)} g/s × 1007 J/(kg·K)) = ${rConv?.toFixed(3)} K/W. ` +
-      `ṁ comes from layer 1 (${c.flow_cfm.toFixed(1)} CFM at ${Math.round(c.duty * 100)} % fan duty). ε-NTU with Nu = C·Re^m·Pr^1/3.`;
-    const extTip = `Parallel path heatsink → GPU zone through the shroud and backplate, R_ext = ${d.r_ext_k_per_w?.toFixed(2)} K/W, carrying ${d.q_ext_w?.toFixed(1)} W. ` +
-      "A share of it is captured by the inlet of the card that breathes that gap.";
-    const timTip = `Die → heatsink, TIM + spreading, R_tim = ${d.r_tim_k_per_w} K/W, carrying the die power ${d.p_die_w?.toFixed(0)} W.`;
-    const memTip = `Memory → heatsink, R_mem = ${d.r_mem_k_per_w} K/W, carrying ${d.p_mem_w?.toFixed(0)} W.`;
-    const node = (x, yy, label, t, tip) =>
-      `<g class="tnode" data-tip="${esc(tip)}"><circle cx="${x}" cy="${yy}" r="8"/><text x="${x}" y="${yy - 14}" text-anchor="middle" class="node-t">${label}</text>` +
-      `<text x="${x}" y="${yy + 24}" text-anchor="middle" class="node-v">${t}</text></g>`;
-    const res = (x1, x2, yy, label, value, tip, below = false) =>
-      `<g class="branch" data-tip="${esc(tip)}"><line x1="${x1}" y1="${yy}" x2="${x2}" y2="${yy}" class="wire"/>` +
-      `<g transform="translate(${(x1 + x2) / 2},${yy})">${resistorSymbol()}<text y="${below ? 24 : -13}" text-anchor="middle" class="br-t">${label}</text>` +
-      `<text y="${below ? 40 : 24}" text-anchor="middle" class="br-v">${value}</text></g></g>`;
-    const name = names[c.card] || c.card;
-    parts.push(`<text x="8" y="${y - 38}" class="row-t">${c.id} · ${esc(name)} · ${c.cooler === "flow_through" ? "flow-through" : "blower"} · slot ${c.slot}${c.throttle ? " · THROTTLE (die shown at the throttled equilibrium)" : ""}</text>`);
-    parts.push(
-      `<g class="branch mix" data-tip="${esc(mixTip)}"><line x1="${cols.zone}" y1="${y}" x2="${cols.inlet}" y2="${y}" class="wire mixwire"/>` +
-        `<text x="${(cols.zone + cols.inlet) / 2}" y="${y - 10}" text-anchor="middle" class="br-t">inlet mixing</text>` +
-        `<text x="${(cols.zone + cols.inlet) / 2}" y="${y + 20}" text-anchor="middle" class="br-v">${esc(plume || "zone air only")}</text></g>`,
-    );
-    parts.push(res(cols.inlet, cols.hs, y, "GPU convective resistance R_conv", rConv == null ? "∞" : `${rConv.toFixed(3)} K/W · ${d.q_channel_w?.toFixed(0)} W`, convTip));
-    parts.push(res(cols.hs, cols.die, y, "R_tim (die → heatsink)", `${d.r_tim_k_per_w} K/W · ${d.p_die_w?.toFixed(0)} W`, timTip));
-    parts.push(
-      `<g class="branch" data-tip="${esc(extTip)}"><polyline points="${cols.hs - 16},${y} ${cols.hs - 16},${yb} ${cols.zone},${yb} ${cols.zone},${y}" class="wire thin" fill="none"/>` +
-        `<g transform="translate(${(cols.hs + cols.zone) / 2},${yb})">${resistorSymbol()}<text y="24" text-anchor="middle" class="br-t">R_ext shroud / backplate → zone</text>` +
-        `<text y="40" text-anchor="middle" class="br-v">${d.r_ext_k_per_w?.toFixed(2)} K/W · ${d.q_ext_w?.toFixed(1)} W</text></g></g>`,
-    );
-    parts.push(
-      `<g class="branch" data-tip="${esc(memTip)}"><polyline points="${cols.hs + 16},${y} ${cols.hs + 16},${yb} ${cols.die},${yb}" class="wire thin" fill="none"/>` +
-        `<g transform="translate(${(cols.hs + cols.die) / 2 + 8},${yb})">${resistorSymbol()}<text y="24" text-anchor="middle" class="br-t">R_mem</text>` +
-        `<text y="40" text-anchor="middle" class="br-v">${d.r_mem_k_per_w} K/W · ${d.p_mem_w?.toFixed(0)} W</text></g></g>`,
-    );
-    parts.push(node(cols.zone, y, "GPU zone air", fmt(d.t_zone_c), `GPU-zone air temperature from the layer-1 advection balance: ${d.t_zone_c?.toFixed(2)} °C.`));
-    parts.push(node(cols.inlet, y, "card inlet", fmt(tIn), mixTip));
-    parts.push(node(cols.hs, y, "heatsink", fmt(d.t_heatsink_c), `Heatsink metal. Heat in = board power ${c.power_w.toFixed(0)} W; out = fins (Q_ch) + shroud/backplate (Q_ext).`));
-    parts.push(node(cols.die, y, "die", fmt(d.t_die_c), `Die temperature. ${eq}.`));
-    parts.push(
-      `<g class="tnode" data-tip="${esc(memTip)}"><circle cx="${cols.die}" cy="${yb}" r="6"/>` +
-        `<text x="${cols.die + 14}" y="${yb + 5}" class="node-v">memory ${fmt(c.t_mem_c)}</text></g>`,
-    );
-    parts.push(`<text x="${cols.zone - 20}" y="${yb + 72}" class="eq">${esc(eq)}</text>`);
   });
-  return `<svg viewBox="0 0 ${W} ${H}" class="net-svg" preserveAspectRatio="xMidYMin meet">${parts.join("")}</svg>`;
+
+  // Card rows: slot gap → GPU (fans + fins) → bracket; exhaust paths up or back.
+  const plumeByUpper = Object.fromEntries((sol.plume || []).map((p) => [p.upper, p]));
+  cards.forEach((c, i) => {
+    const cin = pos[`cin-${c.id}`];
+    const cex = pos[`cex-${c.id}`];
+    const mine = sol.branches.filter((b) => [b.a, b.b].some((n) => n === `cin-${c.id}` || n === `cex-${c.id}`));
+    const byKind = (k) => mine.filter((b) => b.kind === k);
+    const gaps = byKind("gap");
+    const gapFlow = gaps.reduce((s, b) => s + b.flow_cfm, 0);
+    const gapTip = `Slot gap into GPU ${i + 1}'s fans: ${gaps.map((b) => `${b.label}, ${b.flow_cfm.toFixed(1)} CFM, k ${kfmt(b.k)}`).join("; ")}. Tight gaps starve the fan.`;
+    out.push(`<g class="branch" data-tip="${esc(gapTip)}"><path d="M${pos.gpu.x},${pos.gpu.y} C${pos.gpu.x + 90},${pos.gpu.y} ${cin.x - 90},${cin.y} ${cin.x},${cin.y}" class="wire" style="stroke-width:${Math.min(1.2 + gapFlow / 30, 4)}"/></g>`);
+    const fanBr = mine.find((b) => b.kind === "blower" || b.kind === "gpu-fan");
+    const fanTip = fanBr ? `${fanBr.label}: ${fanBr.flow_cfm.toFixed(1)} CFM, fin-channel k ${kfmt(fanBr.k)}, ΔP ${fanBr.dp_pa.toFixed(1)} Pa. Fan at ${Math.round(c.duty * 100)} % speed.` : "";
+    out.push(
+      `<g class="card-box" data-tip="${esc(fanTip)}"><rect x="${cin.x + 14}" y="${cin.y - 20}" width="${cex.x - cin.x - 28}" height="40" rx="7"/>` +
+        `<text x="${(cin.x + cex.x) / 2}" y="${cin.y - 3}" text-anchor="middle" class="card-t">GPU ${i + 1}</text>` +
+        `<text x="${(cin.x + cex.x) / 2}" y="${cin.y + 13}" text-anchor="middle" class="card-v">${c.flow_cfm.toFixed(0)} CFM${plumeByUpper[c.id]?.mass_kg_s > 0 ? ` · ${Math.round(plumeByUpper[c.id].share_of_upper_intake * 100)} % from GPU ${i + 2}` : ` · ${c.cooler === "flow_through" ? "flow-through" : "blower"}`}</text></g>`,
+    );
+    out.push(`<circle cx="${cin.x}" cy="${cin.y}" r="4" class="dot"/><circle cx="${cex.x}" cy="${cex.y}" r="4" class="dot"/>`);
+    const bracket = byKind("bracket")[0];
+    if (bracket && sink) {
+      out.push(`<g class="branch" data-tip="${esc(`${bracket.label}: ${bracket.flow_cfm.toFixed(1)} CFM, k ${kfmt(bracket.k)}.`)}"><path d="M${cex.x},${cex.y} C${cex.x + 70},${cex.y} ${pos[sink].x - 70},${pos[sink].y} ${pos[sink].x},${pos[sink].y}" class="wire" style="stroke-width:${Math.min(1.2 + Math.abs(bracket.flow_cfm) / 30, 4)}"/></g>`);
+    }
+    const up = byKind("up-exit")[0];
+    if (up) {
+      out.push(`<g class="branch" data-tip="${esc(`${up.label}: ${up.flow_cfm.toFixed(1)} CFM rising into the upper case.`)}"><path d="M${cex.x},${cex.y} C${cex.x + 40},${cex.y - 30} ${pos.case.x + 20},${pos.case.y + 40} ${pos.case.x},${pos.case.y}" class="wire thin"/></g>`);
+    }
+    const back = byKind("recirc")[0];
+    if (back) {
+      out.push(`<g class="branch" data-tip="${esc(`${back.label}: ${back.flow_cfm.toFixed(1)} CFM leaking back into the GPU zone around the bracket.`)}"><path d="M${cex.x},${cex.y} C${cex.x},${cex.y + 30} ${pos.gpu.x + 60},${pos.gpu.y + 40} ${pos.gpu.x},${pos.gpu.y}" class="wire thin faint"/></g>`);
+    }
+    const duct = sol.branches.find((b) => b.kind === "stack" && b.b === `cin-${c.id}`);
+    if (duct && pos[duct.a]) {
+      const from = pos[duct.a];
+      const gy = (from.y + cin.y) / 2 + 3;
+      out.push(`<g class="branch" data-tip="${esc(`${duct.label}: ${duct.flow_cfm.toFixed(1)} CFM straight from the card below into this card's fans.`)}"><path d="M${from.x - 40},${from.y - 20} L${from.x - 40},${gy} L${cin.x + 40},${gy} L${cin.x + 40},${cin.y + 20}" class="duct-path"/></g>`);
+    }
+    const plume = plumeByUpper[c.id];
+    if (plume && plume.mass_kg_s > 0 && pos[plume.from_node]) {
+      const from = pos[plume.from_node];
+      const tip = `Plume: GPU ${i + 1} draws ${(plume.share_of_upper_intake * 100).toFixed(0)} % of its intake from the exhaust of the card below (${plume.flow_cfm.toFixed(1)} CFM at ${plume.t_from_c?.toFixed(1)} °C). ` +
+        `Jet ${plume.jet_velocity_m_s?.toFixed(2)} m/s, crossflow ${plume.crossflow_m_s?.toFixed(2)} m/s, ${(plume.swept_fraction * 100).toFixed(0)} % swept away, ${(plume.entrained_ratio * 100).toFixed(0)} % room air entrained over the ${plume.gap_mm.toFixed(0)} mm gap.`;
+      const gy = (from.y + cin.y) / 2 - 3;
+      out.push(`<g class="branch" data-tip="${esc(tip)}"><path d="M${from.x - 24},${from.y - 20} L${from.x - 24},${gy} L${cin.x + 24},${gy} L${cin.x + 24},${cin.y + 20}" class="plume-path"/></g>`);
+    }
+  });
+
+  const nodeName = { gpu: "GPU zone", case: "Main case", cpu: "CPU cooler", plenum: "Shroud", plume: "Rear exhaust" };
+  Object.entries(pos).forEach(([name, p]) => {
+    if (!nodeName[name]) return;
+    const T = sol.node_temp?.[name];
+    const P = sol.pressures?.[name];
+    const tip = `${nodeName[name]} air: ${T?.toFixed(1)} °C, ${P >= 0 ? "+" : ""}${P?.toFixed(1)} Pa relative to the room. Air in = air out.`;
+    const sideLanes = name === "gpu" ? count("gpu", "L") : name === sink ? count(sink, "R") : 0;
+    const ty = sideLanes ? p.y + (sideLanes / 2) * lane + 14 : name === "cpu" ? p.y + 5 : p.y - 16;
+    const tx = name === "gpu" ? p.x - 60 : name === sink ? p.x + 70 : name === "cpu" ? p.x + 44 : p.x;
+    out.push(
+      `<g class="node" data-tip="${esc(tip)}"><circle cx="${p.x}" cy="${p.y}" r="9"/>` +
+        `<text x="${tx}" y="${ty}" text-anchor="middle" class="node-t">${name === "cpu" ? `${T?.toFixed(1)} °C` : `${nodeName[name]} · ${T?.toFixed(1)} °C`}</text></g>`,
+    );
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" class="net-svg" preserveAspectRatio="xMidYMin meet">
+    <defs><marker id="arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
+    ${out.join("")}</svg>`;
+}
+
+/* ------------------------------------------------------------------ layer 2 */
+
+function thermalRows(sol, fmt, names) {
+  return `<div class="heat-rows">${(sol.cards || [])
+    .map((c, i) => {
+      const d = c.thermal || {};
+      const tIn = d.t_inlet_used_c ?? c.t_in_c;
+      const duct = sol.branches.find((b) => b.kind === "stack" && b.b === `cin-${c.id}` && b.flow_cfm > 1);
+      const share = duct ? Math.min(1, duct.flow_cfm / Math.max(c.flow_cfm, 1e-6)) : 0;
+      const plume = duct
+        ? `${Math.round(share * 100)} % straight from the card below`
+        : d.plume_from
+          ? `+${Math.round(d.plume_share_of_intake * 100)} % exhaust from below`
+          : "zone air";
+      const chip = (label, t, tip, cls = "") => `<span class="chip ${cls}" data-tip="${esc(tip)}"><small>${label}</small><b>${fmt(t)}</b></span>`;
+      const link = (label, tip) => `<span class="link" data-tip="${esc(tip)}">${label}</span>`;
+      const rConv = d.r_conv_k_per_w;
+      return `<div class="heat-row">
+        <span class="heat-name" data-tip="${esc(`${names[c.card] || c.card}, slot ${c.slot}, ${c.power_w.toFixed(0)} W.`)}">GPU ${i + 1}</span>
+        ${chip("zone air", d.t_zone_c, `GPU-zone air from layer 1: ${d.t_zone_c?.toFixed(2)} °C.`)}
+        ${link(plume, `Inlet air = zone air${d.plume_from ? `, ${Math.round(d.plume_share_of_intake * 100)} % of it replaced by exhaust from the card below at ${d.plume_source_temp_c?.toFixed(1)} °C` : ""}, plus ${d.inlet_heat_captured_w?.toFixed(1)} W from neighbouring backplates.`)}
+        ${chip("inlet", tIn, `Air entering the fans: ${tIn?.toFixed(2)} °C.`)}
+        ${link(rConv == null ? "no airflow" : `R<sub>conv</sub> ${rConv.toFixed(3)} K/W`, `Fins to air: R_conv = 1/(ε·ṁ·c_p) = 1/(${d.epsilon?.toFixed(2)} × ${((d.mass_kg_s || 0) * 1000).toFixed(1)} g/s × 1007) = ${rConv?.toFixed(3)} K/W, carrying ${d.q_channel_w?.toFixed(0)} W. ṁ comes from layer 1 (${c.flow_cfm.toFixed(1)} CFM). A parallel ${d.r_ext_k_per_w?.toFixed(1)} K/W path sheds ${d.q_ext_w?.toFixed(1)} W off the shroud and backplate.`)}
+        ${chip("heatsink", d.t_heatsink_c, `Heatsink metal, ${d.t_heatsink_c?.toFixed(1)} °C.`)}
+        ${link(`R<sub>tim</sub> ${d.r_tim_k_per_w} K/W`, `Die to heatsink (paste + spreading): ${d.r_tim_k_per_w} K/W carrying ${d.p_die_w?.toFixed(0)} W. Memory: ${d.r_mem_k_per_w} K/W, ${d.p_mem_w?.toFixed(0)} W → ${fmt(c.t_mem_c)}.`)}
+        ${chip("die", d.t_die_c, `T_die = T_in + Q_fins·R_conv + P_die·R_tim = ${tIn?.toFixed(1)} + ${d.q_channel_w?.toFixed(0)}×${rConv?.toFixed(3)} + ${d.p_die_w?.toFixed(0)}×${d.r_tim_k_per_w} = ${d.t_die_c?.toFixed(1)} °C${c.throttle ? " (throttled result)" : ""}.`, "die")}
+      </div>`;
+    })
+    .join("")}</div>`;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+function branchTable(sol) {
+  const rows = sol.branches
+    .filter((b) => b.kind !== "bleed")
+    .map(
+      (b) =>
+        `<tr><td>${esc(b.label)}</td><td>${esc(b.role || b.kind)}</td><td class="num">${kfmt(b.k)}</td><td class="num">${b.flow_cfm.toFixed(1)}</td><td class="num">${b.dp_pa == null ? "—" : b.dp_pa.toFixed(1)}</td></tr>`,
+    )
+    .join("");
+  return `<table class="net-table"><tr><th>Branch</th><th>What it is</th><th>k, Pa/(m³/s)²</th><th>CFM</th><th>ΔP, Pa</th></tr>${rows}</table>`;
+}
+
+function thermalTable(sol, fmt, names) {
+  const rows = (sol.cards || [])
+    .map((c, i) => {
+      const d = c.thermal || {};
+      const tIn = d.t_inlet_used_c ?? c.t_in_c;
+      return `<tr><td>GPU ${i + 1}<br><span class="fine">${esc(names[c.card] || c.card)}</span></td>
+        <td class="num">${fmt(d.t_zone_c)}</td><td class="num">${d.plume_from ? `${Math.round(d.plume_share_of_intake * 100)} %` : "—"}</td>
+        <td class="num">${fmt(tIn)}</td><td class="num">${((d.mass_kg_s || 0) * 1000).toFixed(1)}</td><td class="num">${d.epsilon?.toFixed(2)}</td>
+        <td class="num">${d.r_conv_k_per_w?.toFixed(3) ?? "∞"}</td><td class="num">${d.q_channel_w?.toFixed(0)} / ${d.q_ext_w?.toFixed(0)}</td>
+        <td class="num">${fmt(d.t_heatsink_c)}</td><td class="num">${d.r_tim_k_per_w}</td><td class="num">${fmt(d.t_die_c)}</td><td class="num">${fmt(c.t_mem_c)}</td></tr>
+        <tr class="eq-row"><td></td><td colspan="11"><code>T_die = ${tIn?.toFixed(1)} + ${d.q_channel_w?.toFixed(0)} × ${d.r_conv_k_per_w?.toFixed(3)} + ${d.p_die_w?.toFixed(0)} × ${d.r_tim_k_per_w} = ${d.t_die_c?.toFixed(1)} °C</code></td></tr>`;
+    })
+    .join("");
+  return `<table class="net-table"><tr><th>Card</th><th>Zone air</th><th>Plume</th><th>Inlet</th><th>ṁ, g/s</th><th>ε</th><th>R_conv K/W</th><th>Fins / shell W</th><th>Heatsink</th><th>R_tim K/W</th><th>Die</th><th>Memory</th></tr>${rows}</table>`;
 }

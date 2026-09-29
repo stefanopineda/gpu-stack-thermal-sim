@@ -593,7 +593,10 @@ function internalsPanel() {
     const btn = el("button", { type: "button", class: cpu.cooling === mode ? "on" : "", tip: TIPS.cpuCooling }, mode === "air" ? "Air cooler" : "Water (AIO)");
     btn.onclick = () => {
       cpu.cooling = mode;
+      // The radiator only exists for a water-cooled CPU here (GPU AIOs are out
+      // of scope), so an air cooler takes it off and water puts one on.
       if (mode === "water" && !b.radiator.model) placeRadiator("top", state.presets.radiators[0].id);
+      if (mode === "air" && b.radiator.model) removeRadiator();
       changed(true);
     };
     return btn;

@@ -217,7 +217,9 @@ export class CaseScene {
       // front → rear. Internal fans are drawn amber, not intake blue / exhaust red.
       const upward = (cpu.cooler_airflow || "up") === "up";
       const fans = cpu.cooler_fans || "both";
-      const fin = upward ? [0.15, 0.13, 0.14] : [0.11, 0.15, 0.15];
+      // Noctua NH-U14S TR5-SP6 class: a 52 mm-thick fin stack, 150 mm wide,
+      // standing 165 mm off the board, fans on its two broad faces.
+      const fin = upward ? [0.15, 0.052, 0.165] : [0.052, 0.15, 0.165];
       const cz = 0.014 + fin[2] / 2;
       add(
         new THREE.BoxGeometry(...fin),
