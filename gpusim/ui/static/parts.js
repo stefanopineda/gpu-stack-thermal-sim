@@ -241,13 +241,17 @@ function frameGeometry(size, depth) {
 
 /* A case fan: square frame, blades, hub, and a thin lit ring whose colour says
  * intake / exhaust / internal. Axis is +Z, airflow along `flow` (+1 or −1). */
-export function fanModel(sizeM, { cue = null, style = "black", depth = 0.025, blades = 9 } = {}) {
+export function fanModel(sizeM, { cue = null, style = "black", depth = 0.025, blades = 9, frame: square = true } = {}) {
   const g = new THREE.Group();
   const r = (sizeM / 2) * 0.93;
   const frameMat = style === "classic" ? MAT.beige : style === "grey" ? MAT.noctua : MAT.black;
   const bladeMat = style === "classic" ? MAT.brown : style === "grey" ? MAT.noctua : MAT.blade;
-  const frame = new THREE.Mesh(frameGeometry(sizeM, depth), frameMat);
-  g.add(frame);
+  // Case fans have a square frame; a GPU's own fans sit in a round opening.
+  g.add(
+    square
+      ? new THREE.Mesh(frameGeometry(sizeM, depth), frameMat)
+      : new THREE.Mesh(once(`g:gpuFanRim:${sizeM}`, () => new THREE.TorusGeometry((sizeM / 2) * 0.97, 0.0018, 8, 64)), MAT.black),
+  );
   const rotor = new THREE.Mesh(bladeGeometry(r, blades), bladeMat);
   g.add(rotor);
   const hub = cyl(r * 0.3, depth * 0.8, MAT.black, 28);
@@ -256,8 +260,8 @@ export function fanModel(sizeM, { cue = null, style = "black", depth = 0.025, bl
   const cap = cyl(r * 0.2, depth * 0.82, MAT.steelMid, 24);
   cap.rotation.x = Math.PI / 2;
   g.add(cap);
-  // Struts on the motor side.
-  for (let i = 0; i < 4; i += 1) {
+  // Struts on the motor side (case fans only).
+  for (let i = 0; i < (square ? 4 : 0); i += 1) {
     const s = box(r * 1.05, 0.003, 0.003, MAT.black);
     s.position.z = -depth / 2 + 0.002;
     s.rotation.z = (Math.PI / 4) * (2 * i + 1) * 0.5;
@@ -291,27 +295,322 @@ export function openHole(sizeM) {
 
 /* ------------------------------------------------------------------ GPUs */
 
-/* Blower impeller seen through the fan window. */
-function blowerWheel(r) {
+/* Modelled on NVIDIA's product photos (nvidia.com RTX PRO 6000 Blackwell
+ * Max-Q and Workstation Edition pages, and the Workstation datasheet):
+ *   Max-Q: glossy black box shroud, one blower with a polished hub and a
+ *     champagne ring, a full-length window of gold fins along the top edge,
+ *     gold NVIDIA mark and "RTX PRO 6000" on that edge.
+ *   Workstation (600 W): rounded matte-black double flow-through body, an X
+ *     ("bow-tie") face with finely grooved fin zones at both ends and a gloss
+ *     centre marked "RTX PRO 6000" in gold, two fans on the underside, gold
+ *     NVIDIA mark and a recessed 12V-2x6 connector on the top edge.
+ * The RTX 5090 FE uses the same body in gunmetal; the 3090 FE keeps its
+ * second fan on the backplate side. */
+
+const GOLD_TEXT = "#c9a860";
+
+function textTexture(key, text, { w = 512, h = 96, size = 64, weight = 600, eye = false, align = "center", spacing = 0 } = {}) {
+  return canvasTexture(`txt:${key}`, w, h, (g) => {
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = GOLD_TEXT;
+    g.font = `${weight} ${size}px "Helvetica Neue", Arial, sans-serif`;
+    g.textBaseline = "middle";
+    if ("letterSpacing" in g) g.letterSpacing = `${spacing}px`;
+    let x = align === "center" ? w / 2 : 8;
+    g.textAlign = align === "center" ? "center" : "left";
+    if (eye) {
+      // The NVIDIA "eye": a rounded mark with a swirl cut through it.
+      const s = h * 0.62;
+      const ex = 8;
+      const ey = (h - s) / 2;
+      g.fillRect(ex, ey, s, s);
+      g.globalCompositeOperation = "destination-out";
+      g.lineWidth = s * 0.14;
+      g.beginPath();
+      g.ellipse(ex + s * 0.62, ey + s * 0.5, s * 0.34, s * 0.22, 0, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.arc(ex + s * 0.62, ey + s * 0.5, s * 0.08, 0, Math.PI * 2);
+      g.fill();
+      g.globalCompositeOperation = "source-over";
+      x = ex + s + 16;
+      g.textAlign = "left";
+    }
+    g.fillText(text, x, h / 2 + 2);
+  }, [1, 1]);
+}
+
+function decal(tex, w, h) {
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex, transparent: true, metalness: 0.85, roughness: 0.3, polygonOffset: true, polygonOffsetFactor: -2,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  // The scene root is mirrored in x (front on the right), so pre-mirror text
+  // along the card's length to read the right way round.
+  mesh.scale.x = -1;
+  return mesh;
+}
+
+/* Fine grooves, the texture of a fin stack seen through a vented face. */
+function grooveTexture(key, pitch, base, line, repeat = [1, 1]) {
+  return canvasTexture(`groove:${key}`, 256, 256, (g, w, h) => {
+    g.fillStyle = base;
+    g.fillRect(0, 0, w, h);
+    g.strokeStyle = line;
+    g.lineWidth = pitch * 0.45;
+    for (let y = pitch / 2; y < h; y += pitch) {
+      g.beginPath();
+      g.moveTo(0, y);
+      g.lineTo(w, y);
+      g.stroke();
+    }
+  }, repeat);
+}
+
+/* Gold fin window of the Max-Q: vertical fins, bronze, darker toward the ends. */
+function goldFinTexture() {
+  return canvasTexture("goldfins", 1024, 64, (g, w, h) => {
+    const grad = g.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, "#3b3122");
+    grad.addColorStop(0.2, "#9c8659");
+    grad.addColorStop(0.5, "#c7ae78");
+    grad.addColorStop(0.8, "#8f7a51");
+    grad.addColorStop(1, "#3b3122");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = "rgba(10,8,5,0.75)";
+    for (let x = 0; x < w; x += 5) g.fillRect(x, 0, 2, h);
+    const shade = g.createLinearGradient(0, 0, 0, h);
+    shade.addColorStop(0, "rgba(0,0,0,0.55)");
+    shade.addColorStop(0.35, "rgba(0,0,0,0)");
+    shade.addColorStop(1, "rgba(0,0,0,0.35)");
+    g.fillStyle = shade;
+    g.fillRect(0, 0, w, h);
+  }, [1, 1]);
+}
+
+const GPU_MAT = {
+  get gloss() {
+    return once("m:gpuGloss", () => new THREE.MeshPhysicalMaterial({ color: 0x050506, metalness: 0.2, roughness: 0.22, clearcoat: 0.8, clearcoatRoughness: 0.12, envMapIntensity: 0.45 }));
+  },
+  get matte() { return once("m:gpuMatte", () => new THREE.MeshStandardMaterial({ color: 0x0c0c0e, metalness: 0.35, roughness: 0.5, envMapIntensity: 0.5 })); },
+  get gunmetal() { return once("m:gpuGun", () => new THREE.MeshStandardMaterial({ color: 0x55585e, metalness: 0.9, roughness: 0.3 })); },
+  get groove() {
+    // Shape UVs are in metres: 18 tiles of 64 grooves per metre ≈ 0.9 mm pitch.
+    return once("m:gpuGroove", () => new THREE.MeshStandardMaterial({ map: grooveTexture("dark", 4, "#060607", "#303134", [1, 18]), metalness: 0.45, roughness: 0.5, envMapIntensity: 0.55 }));
+  },
+  get goldFins() { return once("m:goldFins", () => new THREE.MeshStandardMaterial({ map: goldFinTexture(), metalness: 0.9, roughness: 0.32 })); },
+  get champagne() { return once("m:champagne", () => new THREE.MeshStandardMaterial({ color: 0xc9b07a, metalness: 1, roughness: 0.25 })); },
+  get hub() { return once("m:hub", () => new THREE.MeshStandardMaterial({ color: 0xd4d7da, metalness: 1, roughness: 0.12 })); },
+  get bracket() {
+    return once("m:bracket", () => new THREE.MeshStandardMaterial({ color: 0xc0c3c7, metalness: 0.95, roughness: 0.3, alphaMap: ventTexture(), alphaTest: 0.5 }));
+  },
+};
+
+/* Blower impeller seen through the fan eye: dark blades round a polished hub. */
+function blowerWheel(r, { hub = true } = {}) {
   const g = new THREE.Group();
-  const disc = cyl(r, 0.004, MAT.black, 36);
-  disc.rotation.x = Math.PI / 2;
-  g.add(disc);
+  const well = cyl(r, 0.002, MAT.black, 40);
+  well.rotation.x = Math.PI / 2;
+  g.add(well);
   const blades = once(`g:impeller:${r}`, () => {
     const parts = [];
-    for (let i = 0; i < 36; i += 1) {
-      const b = new THREE.BoxGeometry(r * 0.32, 0.0012, 0.003);
-      b.translate(r * 0.8, 0, 0.0015);
-      b.rotateZ((2 * Math.PI * i) / 36 + 0.3);
+    for (let i = 0; i < 44; i += 1) {
+      const b = new THREE.BoxGeometry(r * 0.36, 0.0009, 0.004);
+      b.translate(r * 0.8, 0, 0.002);
+      b.rotateZ((2 * Math.PI * i) / 44 + 0.35);
       parts.push(b);
     }
     return mergeGeometries(parts);
   });
   g.add(new THREE.Mesh(blades, MAT.blade));
-  const hub = cyl(r * 0.45, 0.005, MAT.steelMid, 24);
-  hub.rotation.x = Math.PI / 2;
-  hub.position.z = 0.0025;
-  g.add(hub);
+  if (hub) {
+    // Polished, slightly domed hub cap.
+    const cap = new THREE.Mesh(once(`g:hubcap:${r}`, () => new THREE.SphereGeometry(r * 0.58, 40, 12, 0, Math.PI * 2, 0, 0.42)), GPU_MAT.hub);
+    cap.rotation.x = Math.PI / 2;
+    cap.scale.set(1, 0.35, 1);
+    cap.position.z = 0.001 - r * 0.58 * Math.cos(0.42) * 0.35; // seat the cap on the face
+    g.add(cap);
+  }
+  return g;
+}
+
+/* Parts every card shares: PCIe fingers into the slot and the I/O bracket. */
+function cardCommon(g, L, T, H) {
+  const fingers = box(0.089, 0.0014, 0.008, MAT.gold);
+  fingers.position.set(L / 2 - 0.0885, T / 2 - 0.006, -H / 2 - 0.004);
+  g.add(fingers);
+  const bracket = new THREE.Mesh(once("g:bracket", () => new THREE.BoxGeometry(0.0012, 1, 1)), GPU_MAT.bracket);
+  bracket.scale.set(1, T + 0.004, H + 0.012);
+  bracket.position.set(L / 2 + 0.0006, 0, 0.004);
+  g.add(bracket);
+}
+
+/* Temperature cue: a thin lit line along the glass-facing edge. */
+function tempLine(g, color, length, x, y, z) {
+  const bar = box(length, 0.0016, 0.0012, glow(color, 1.8));
+  bar.position.set(x, y, z);
+  g.add(bar);
+}
+
+function maxqModel(card, { L, T, H, color, topInletShare, pro }) {
+  const g = new THREE.Group();
+  const body = box(L, T, H, GPU_MAT.gloss);
+  g.add(body);
+  // Blower eye on the fan face (−Y, toward the floor).
+  const r = Math.min(0.043, H * 0.39);
+  const fx = -L / 2 + 0.062;
+  const wheel = blowerWheel(r);
+  wheel.rotation.x = Math.PI / 2;
+  wheel.position.set(fx, -T / 2 - 0.0004, 0);
+  g.add(wheel);
+  const ring = new THREE.Mesh(once(`g:eyeRing:${r}`, () => new THREE.TorusGeometry(r + 0.0015, 0.0016, 10, 64)), GPU_MAT.champagne);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(fx, -T / 2 - 0.0006, 0);
+  g.add(ring);
+  if (topInletShare > 0) {
+    // Part of the eye is also open through the backplate side (Max-Q).
+    const rr = Math.min(0.032, r * Math.sqrt(topInletShare / Math.max(1 - topInletShare, 0.1)));
+    const eye = blowerWheel(rr, { hub: false });
+    eye.rotation.x = -Math.PI / 2;
+    eye.position.set(fx, T / 2 + 0.0004, 0);
+    g.add(eye);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(rr + 0.001, 0.0012, 8, 48), GPU_MAT.champagne);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.set(fx, T / 2 + 0.0006, 0);
+    g.add(rim);
+  }
+  // Glass-facing edge (+Z): long gold fin window toward the fan face, gold
+  // marks on the strip beside it.
+  const winLen = L - 0.05;
+  const winH = T * 0.56;
+  const win = new THREE.Mesh(new THREE.PlaneGeometry(winLen, winH), GPU_MAT.goldFins);
+  win.position.set(-0.008, -T / 2 + 0.004 + winH / 2, H / 2 + 0.0004);
+  g.add(win);
+  const frame = box(winLen + 0.003, winH + 0.003, 0.0006, GPU_MAT.matte);
+  frame.position.set(-0.008, win.position.y, H / 2 + 0.0001);
+  g.add(frame);
+  const stripY = (win.position.y + winH / 2 + T / 2) / 2;
+  if (pro) {
+    const logo = decal(textTexture("nvidia", "NVIDIA", { eye: true, size: 58, weight: 700, align: "left", spacing: 2 }), 0.05, 0.0094);
+    logo.position.set(-L / 2 + 0.035, stripY, H / 2 + 0.0006);
+    g.add(logo);
+    const name = decal(textTexture("rtxpro", "RTX PRO 6000", { size: 50, weight: 500, spacing: 3 }), 0.034, 0.0064);
+    name.position.set(L / 2 - 0.03, stripY, H / 2 + 0.0006);
+    g.add(name);
+  }
+  tempLine(g, color, winLen * 0.55, 0, T / 2 - 0.0025, H / 2 + 0.0006);
+  cardCommon(g, L, T, H);
+  return g;
+}
+
+/* Rounded-rectangle outline in the card's length × height plane. */
+function roundedOutline(L, H, r) {
+  const s = new THREE.Shape();
+  const x0 = -L / 2;
+  const y0 = -H / 2;
+  s.moveTo(x0 + r, y0);
+  s.lineTo(x0 + L - r, y0);
+  s.quadraticCurveTo(x0 + L, y0, x0 + L, y0 + r);
+  s.lineTo(x0 + L, y0 + H - r);
+  s.quadraticCurveTo(x0 + L, y0 + H, x0 + L - r, y0 + H);
+  s.lineTo(x0 + r, y0 + H);
+  s.quadraticCurveTo(x0, y0 + H, x0, y0 + H - r);
+  s.lineTo(x0, y0 + r);
+  s.quadraticCurveTo(x0, y0, x0 + r, y0);
+  return s;
+}
+
+/* One end zone of the X face: a hexagon whose inner edge points at the centre. */
+function endZone(L, H, side, { edge = 0.009, centre = 0.014, slant = 0.042 } = {}) {
+  const s = new THREE.Shape();
+  const outer = side * (L / 2 - edge);
+  const innerTip = side * centre;
+  const innerCorner = side * (centre + slant);
+  const top = H / 2 - edge;
+  s.moveTo(outer, -top);
+  s.lineTo(innerCorner, -top);
+  s.lineTo(innerTip, 0);
+  s.lineTo(innerCorner, top);
+  s.lineTo(outer, top);
+  s.closePath();
+  return s;
+}
+
+/* Lay a shape drawn in (length, height) onto a card face: +1 = backplate
+ * (+Y), −1 = fan face (−Y). */
+function onFace(geo, face, y) {
+  geo.rotateX(face > 0 ? -Math.PI / 2 : Math.PI / 2);
+  geo.translate(0, y, 0);
+  return geo;
+}
+
+function flowThroughModel(card, { L, T, H, color }) {
+  const g = new THREE.Group();
+  const id = card?.id || "";
+  const pro = id.includes("rtx-pro-6000");
+  const is3090 = id === "rtx-3090-fe";
+  const bodyMat = pro ? GPU_MAT.matte : GPU_MAT.gunmetal;
+  const bevel = 0.0025;
+  const bodyGeo = new THREE.ExtrudeGeometry(roundedOutline(L - 2 * bevel, H - 2 * bevel, 0.016), {
+    depth: T - 2 * bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, curveSegments: 10,
+  });
+  bodyGeo.rotateX(Math.PI / 2); // extrusion along −Y, outline height along +Z
+  bodyGeo.translate(0, (T - 2 * bevel) / 2, 0);
+  g.add(new THREE.Mesh(bodyGeo, bodyMat));
+  // Both broad faces carry the X: grooved fin zones at the ends, a darker
+  // gloss centre between them.
+  for (const face of [1, -1]) {
+    const y = face * (T / 2 + 0.0004);
+    for (const side of [-1, 1]) {
+      const zone = new THREE.Mesh(onFace(new THREE.ShapeGeometry(endZone(L, H, side)), face, y), GPU_MAT.groove);
+      g.add(zone);
+    }
+    const centre = new THREE.Shape();
+    const c = 0.014 + 0.042 - 0.006;
+    const top = H / 2 - 0.009;
+    centre.moveTo(-c + 0.006, -top);
+    centre.lineTo(c - 0.006, -top);
+    centre.lineTo(0.008, 0);
+    centre.lineTo(c - 0.006, top);
+    centre.lineTo(-c + 0.006, top);
+    centre.lineTo(-0.008, 0);
+    centre.closePath();
+    g.add(new THREE.Mesh(onFace(new THREE.ShapeGeometry(centre), face, face * (T / 2 + 0.0002)), GPU_MAT.gloss));
+  }
+  if (pro) {
+    const name = decal(textTexture("rtxpro", "RTX PRO 6000", { size: 50, weight: 500, spacing: 3 }), 0.036, 0.0068);
+    name.rotation.x = -Math.PI / 2;
+    name.position.set(0, T / 2 + 0.0008, H * 0.2);
+    g.add(name);
+  }
+  // Two fans on the underside, in the fin zones. The 3090 FE's second fan is
+  // on the backplate side at the bracket end.
+  const fanD = Math.min(0.1, H * 0.72);
+  const fx = L / 2 - 0.009 - fanD / 2 - 0.004;
+  [-fx, fx].forEach((x, i) => {
+    const onBack = is3090 && i === 1;
+    const fan = fanModel(fanD, { depth: 0.003, blades: 7, frame: false });
+    fan.rotation.x = onBack ? -Math.PI / 2 : Math.PI / 2;
+    fan.position.set(x, (onBack ? 1 : -1) * (T / 2 + 0.0019), 0);
+    g.add(fan);
+  });
+  // Glass-facing edge (+Z): gold NVIDIA mark toward the front, recessed power
+  // connector in the middle.
+  const edgeZ = H / 2 + 0.0006;
+  if (pro || id === "rtx-5090-fe") {
+    const logo = decal(textTexture("nvidia", "NVIDIA", { eye: true, size: 58, weight: 700, align: "left", spacing: 2 }), 0.06, 0.0112);
+    logo.position.set(-L / 2 + 0.05, 0, edgeZ);
+    g.add(logo);
+  }
+  const pocket = box(0.034, T * 0.55, 0.004, MAT.black);
+  pocket.position.set(0.01, 0, H / 2 - 0.0012);
+  g.add(pocket);
+  const plug = box(0.02, T * 0.28, 0.006, MAT.rubber);
+  plug.position.set(0.01, 0, H / 2 + 0.001);
+  g.add(plug);
+  tempLine(g, color, L * 0.3, L * 0.26, T / 2 - 0.004, edgeZ);
+  cardCommon(g, L, T, H);
   return g;
 }
 
@@ -319,88 +618,9 @@ function blowerWheel(r) {
  * thickness (fan face at −Y, backplate at +Y), Z = height (PCB edge and gold
  * fingers at −Z toward the board, top edge +Z toward the glass). */
 export function gpuModel(card, { L, T, H, tempColor, topInletShare = 0 }) {
-  const g = new THREE.Group();
-  const through = card?.cooler === "flow_through";
-  const hotColor = new THREE.Color(tempColor);
-  // PCB and backplate.
-  const backplate = box(L * 0.98, 0.0022, H * 0.96, MAT.steel);
-  backplate.position.set(-L * 0.01, T / 2 - 0.0011, 0);
-  g.add(backplate);
-  const pcb = box(L * 0.95, 0.0016, H * 0.93, MAT.pcb);
-  pcb.position.set(-L * 0.02, T / 2 - 0.004, -H * 0.01);
-  g.add(pcb);
-  // Gold fingers, into the slot.
-  const fingers = box(0.089, 0.0014, 0.008, MAT.gold);
-  fingers.position.set(L / 2 - 0.0885, T / 2 - 0.004, -H / 2 - 0.004);
-  g.add(fingers);
-  // Rear bracket with vents.
-  const bracket = new THREE.Mesh(
-    once("g:bracket", () => new THREE.BoxGeometry(0.0012, 1, 1)),
-    new THREE.MeshStandardMaterial({ color: 0xb9bdc2, metalness: 0.9, roughness: 0.35, alphaMap: ventTexture(), alphaTest: 0.5 }),
-  );
-  bracket.scale.set(1, T + 0.004, H + 0.012);
-  bracket.position.set(L / 2 + 0.0006, 0, 0.004);
-  g.add(bracket);
-
-  if (!through) {
-    // Blower: enclosed black shroud, impeller window at the front end.
-    const shroud = box(L, T - 0.006, H * 0.97, MAT.black);
-    shroud.position.set(0, -0.001, 0);
-    g.add(shroud);
-    const trim = box(L * 0.96, 0.002, 0.004, MAT.alu);
-    trim.position.set(0, -T / 2 + 0.002, H / 2 - 0.004);
-    g.add(trim);
-    const wheel = blowerWheel(0.034);
-    wheel.rotation.x = Math.PI / 2; // face −Y, toward the floor
-    wheel.position.set(-L / 2 + 0.055, -T / 2 + 0.002, 0);
-    g.add(wheel);
-    if (topInletShare > 0) {
-      // Max-Q style: part of the blower eye is open through the backplate too.
-      const rr = Math.min(0.03, 0.034 * Math.sqrt(topInletShare / Math.max(1 - topInletShare, 0.1)));
-      const eye = blowerWheel(rr);
-      eye.rotation.x = -Math.PI / 2;
-      eye.position.set(-L / 2 + 0.055, T / 2 + 0.0002, 0);
-      g.add(eye);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(rr + 0.002, 0.0015, 8, 40), MAT.alu);
-      rim.rotation.x = Math.PI / 2;
-      rim.position.set(-L / 2 + 0.055, T / 2 + 0.0005, 0);
-      g.add(rim);
-    }
-    const ring = new THREE.Mesh(once("g:blowRing", () => new THREE.TorusGeometry(0.036, 0.0018, 8, 48)), MAT.alu);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.set(-L / 2 + 0.055, -T / 2 - 0.001, 0);
-    g.add(ring);
-  } else {
-    // Flow-through: gunmetal frame, two axial fans on the fan face, finned
-    // cut-outs in the backplate where the exhaust leaves.
-    const frame = box(L, T - 0.008, H * 0.98, MAT.gpuBody);
-    g.add(frame);
-    const r = Math.min(0.05, H * 0.36);
-    [-L / 2 + r + 0.012, L / 2 - r - 0.03].forEach((x, i) => {
-      if (card.id === "rtx-3090-fe" && i === 1) return;
-      const fan = fanModel(r * 2.05, { depth: 0.012, blades: 7 });
-      fan.rotation.x = Math.PI / 2; // axis +Z → −Y
-      fan.position.set(x, -T / 2 + 0.002, 0);
-      g.add(fan);
-    });
-    // Backplate cut-outs over the fin stacks.
-    [-L / 2 + r + 0.012, L / 2 - r - 0.03].forEach((x) => {
-      const cut = box(r * 1.7, 0.001, H * 0.6, MAT.darkFins);
-      cut.position.set(x, T / 2 + 0.0002, 0);
-      g.add(cut);
-    });
-    if (card.id === "rtx-3090-fe") {
-      const rear = fanModel(r * 2.05, { depth: 0.012, blades: 7 });
-      rear.rotation.x = -Math.PI / 2;
-      rear.position.set(L / 2 - r - 0.03, T / 2 + 0.002, 0);
-      g.add(rear);
-    }
-  }
-  // Temperature light bar along the glass-facing top edge.
-  const bar = box(L * 0.7, 0.004, 0.0025, glow(hotColor, 1.6));
-  bar.position.set(-L * 0.08, 0, H / 2 + 0.001);
-  g.add(bar);
-  return g;
+  const color = new THREE.Color(tempColor);
+  if (card?.cooler === "flow_through") return flowThroughModel(card, { L, T, H, color });
+  return maxqModel(card, { L, T, H, color, topInletShare, pro: (card?.id || "").includes("rtx-pro-6000") });
 }
 
 /* ------------------------------------------------------------------ board, CPU */
