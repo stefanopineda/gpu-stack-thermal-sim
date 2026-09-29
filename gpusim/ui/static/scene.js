@@ -189,7 +189,7 @@ export class CaseScene {
     add(new THREE.BoxGeometry(board.depth, board.height, 0.003), new THREE.MeshStandardMaterial({ color: 0x2c5a4c, roughness: 0.8, emissive: 0x0d2019 }), bx, by, 0.012, boardTip);
     // sTR5 socket and retention frame.
     const sx = board.rear - board.depth * 0.46;
-    const sy = board.top - 0.1;
+    const sy = board.top - 0.085;
     add(new THREE.BoxGeometry(0.078, 0.078, 0.01), new THREE.MeshStandardMaterial({ color: 0xa9b0b5, metalness: 0.7, roughness: 0.35 }), sx, sy, 0.019, "sTR5 socket (Threadripper PRO)");
     // Eight DIMM slots, four each side of the socket, running top to bottom.
     const dimm = new THREE.MeshStandardMaterial({ color: 0x6b7178, roughness: 0.5, metalness: 0.3 });
@@ -267,15 +267,16 @@ export class CaseScene {
   /* ASUS Pro WS WRX90E-SAGE SE, EEB 12 × 13 in: schematic placement. */
   _board() {
     const { H, D } = this._dims();
-    const height = Math.min(0.305, H - 0.12);
+    const height = Math.min(0.35, H - 0.1);
     const depth = Math.min(0.33, D - 0.08);
-    return { top: H - 0.03, height, depth, rear: D - 0.012 };
+    return { top: H - 0.025, height, depth, rear: D - 0.012 };
   }
 
-  /* Slot 1 sits about 158 mm below the board's top edge (ATX slot positions). */
+  /* Slot 1 sits below the socket with room for a ~165 mm tower cooler, about
+   * 185 mm under the board's top edge; the board runs on below slot 7. */
   slotY(s) {
     const k = this.ctx.kase;
-    const slot1 = Math.min(m(k.top_slot_y_mm), this._board().top - 0.158);
+    const slot1 = Math.min(m(k.top_slot_y_mm), this._board().top - 0.185);
     return slot1 - (s - 1) * m(k.slot_pitch_mm);
   }
 
@@ -419,9 +420,16 @@ export class CaseScene {
     let size;
     let pos;
     let inward;
+    const slideTo = (length, span) => {
+      // Slide the slab to one end of its panel when the build says so.
+      if (rad.offset === "rear") return span - 0.015 - length / 2;
+      if (rad.offset === "front") return 0.015 + length / 2;
+      return null;
+    };
     if (panel === "top") {
       size = [Math.min(len, D - 0.04), t, wid];
-      pos = new THREE.Vector3(layouts.length ? mean("x_mm") : D / 2, H - t / 2 - 0.004, layouts.length ? mean("z_mm") : W / 2);
+      const x = slideTo(size[0], D) ?? (layouts.length ? mean("x_mm") : D / 2);
+      pos = new THREE.Vector3(x, H - t / 2 - 0.004, layouts.length ? mean("z_mm") : W / 2);
       inward = new THREE.Vector3(0, -1, 0);
     } else if (panel === "front") {
       size = [t, Math.min(len, H - 0.04), wid];
@@ -429,7 +437,8 @@ export class CaseScene {
       inward = new THREE.Vector3(1, 0, 0);
     } else {
       size = [Math.min(len, D - 0.04), t, wid];
-      pos = new THREE.Vector3(layouts.length ? mean("x_mm") : D / 2, t / 2 + 0.004, layouts.length ? mean("z_mm") : W / 2);
+      const x = slideTo(size[0], D) ?? (layouts.length ? mean("x_mm") : D / 2);
+      pos = new THREE.Vector3(x, t / 2 + 0.004, layouts.length ? mean("z_mm") : W / 2);
       inward = new THREE.Vector3(0, 1, 0);
     }
     const geo = new THREE.BoxGeometry(...size);
@@ -563,6 +572,13 @@ export class CaseScene {
         const c = box.center.clone().add(new THREE.Vector3(dx, 0, 0)).add(box.fanNormal.clone().multiplyScalar(halfT + 0.002));
         this._fanDisc(c, box.fanNormal, through ? 0.045 : 0.03, "gpu", { kind: "gpu", id: gpu.id, tip });
       });
+      // Blowers that also breathe through the backplate side (Max-Q: about a
+      // quarter of the eye) get a smaller inlet drawn on the top face too.
+      if (!through && (card?.inlet_faces === "both" || card?.inlet_faces === "cpu")) {
+        const share = card.inlet_faces === "cpu" ? 1 : Math.max(0.1, 1 - (card.inlet_split ?? 0.75));
+        const c = box.center.clone().add(new THREE.Vector3(fanCenters[0], 0, 0)).add(box.exhaustNormal.clone().multiplyScalar(halfT + 0.002));
+        this._fanDisc(c, box.exhaustNormal, 0.03 * Math.sqrt(share / (1 - share || 1)), "gpu", { kind: "gpu", id: gpu.id, tip: `${tip} · top-side inlet (${Math.round(share * 100)} % of the blower eye)` });
+      }
       // Flow-through exhaust plume above the card; stronger when the card above breathes it.
       if (through) {
         const plume = plumeByLower[gpu.id];
@@ -600,30 +616,34 @@ export class CaseScene {
     const { W, D } = this._dims();
     const top = this.slotY(1) + 0.03;
     const bottom = this.slotY(kase.horizontal_slots) - m(kase.slot_pitch_mm);
-    const h = Math.max(top - bottom, 0.08);
+    const count = mode === "on" ? Math.max(0, build.shroud.count || 0) : 0;
+    const fan = presets.fans.find((f) => f.id === build.shroud.fan);
+    const fanD = m(fan ? fan.size_mm : 140);
+    // One plenum over every bracket, horizontal and vertical: it spans the full
+    // case width (and overhangs if the fans side by side need more room) and
+    // the full height of the slot area.
+    const h = Math.max(top - bottom, fanD + 0.02);
+    const wid = Math.max(W - 0.01, count * fanD + 0.02);
     const depth = 0.07;
-    const wid = Math.min(W * 0.8, 0.2);
     const geo = new THREE.BoxGeometry(depth, h, wid);
     const box = new THREE.Mesh(
       geo,
       new THREE.MeshStandardMaterial({
         color: mode === "on" ? COLORS.shroudOn : COLORS.shroudPassive,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.5,
         roughness: 0.5,
       }),
     );
-    box.position.set(D + depth / 2, bottom + h / 2, wid / 2 + 0.01);
+    box.position.set(D + depth / 2, (top + bottom) / 2, W / 2);
+    box.userData = { kind: "part", tip: mode === "on" ? `Rear GPU shroud: one plenum over every bracket outlet, ${count} fans side by side pulling on it` : "Passive rear duct over the bracket outlets" };
     this.root.add(box);
     const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xf0c8b8 }));
     edge.position.copy(box.position);
     this.root.add(edge);
-    const count = mode === "on" ? Math.max(0, build.shroud.count || 0) : 0;
-    const fan = presets.fans.find((f) => f.id === build.shroud.fan);
-    const r = Math.min(m(fan ? fan.size_mm : 140) / 2, h / (2 * Math.max(count, 1)) - 0.003, wid / 2 - 0.005);
     for (let i = 0; i < count; i += 1) {
-      const y = bottom + ((i + 0.5) / count) * h;
-      this._fanDisc(new THREE.Vector3(D + depth - 0.006, y, box.position.z), new THREE.Vector3(1, 0, 0), r, "exhaust", {
+      const z = W / 2 + (i - (count - 1) / 2) * (fanD + 0.004);
+      this._fanDisc(new THREE.Vector3(D + depth - 0.006, (top + bottom) / 2, z), new THREE.Vector3(1, 0, 0), fanD / 2 - 0.002, "exhaust", {
         kind: "shroud",
         tip: `Rear shroud fan: ${fan ? fan.name : "fan"}`,
       });

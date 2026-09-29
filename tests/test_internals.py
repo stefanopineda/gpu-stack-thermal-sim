@@ -110,14 +110,28 @@ def test_slot_covers_close_the_rear_not_the_gap_between_cards():
 
 
 def test_rear_slot_flow_follows_case_pressure():
+    """Open slot mouths only re-ingest the plume when the case is below room pressure."""
     lib = get_library()
     from gpusim.factors import apply_cell
 
-    for pressure, sign in (("standard", -1), ("high", 1)):
-        sol = solve(apply_cell(lib.builds["meshify2xl-stefano"], "gap1", pressure, "off", "leaky", library=lib), lib)
+    def no_extra_intakes(build):
+        for mount in build.mounts:
+            if mount.panel in ("top", "bottom") and mount.state == "fan":
+                mount.state, mount.fan = "blanked", None
+        return build
+
+    builds = [
+        no_extra_intakes(apply_cell(lib.builds["meshify2xl-stefano"], "gap1", "standard", "off", "leaky", library=lib)),
+        apply_cell(lib.builds["meshify2xl-stefano"], "gap1", "high", "off", "leaky", library=lib),
+    ]
+    signs = set()
+    for build in builds:
+        sol = solve(build, lib)
         reingest = next(b for b in sol.branches if b["id"] == "rear-reingest")
-        assert (sol.pressures["gpu"] > 0) == (sign > 0)
-        assert reingest["flow_cfm"] * sign > 0  # out of the case only at positive pressure
+        positive = sol.pressures["gpu"] > 0
+        signs.add(positive)
+        assert (reingest["flow_cfm"] > 0) == positive  # + is out of the case
+    assert signs == {True, False}
 
 
 def test_psu_fan_up_is_an_exhaust_and_down_is_not():

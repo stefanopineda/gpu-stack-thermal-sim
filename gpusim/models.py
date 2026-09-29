@@ -191,6 +191,9 @@ class MountCfg(_Base):
 class RadiatorCfg(_Base):
     model: str | None = None
     panel: str = "top"  # front | top | bottom (rear kept for old builds)
+    # Where the radiator sits along its panel: front, center, or rear (slid
+    # back). Drawing only; the airflow branch does not depend on it.
+    offset: str = "center"
     direction: str = "exhaust"
     arrangement: str = "push"
     # Rev 3 kept the CPU load here. Rev 4 reads BuildCfg.cpu; this field is

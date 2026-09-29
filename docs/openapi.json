@@ -982,6 +982,11 @@
             "title": "Panel",
             "default": "top"
           },
+          "offset": {
+            "type": "string",
+            "title": "Offset",
+            "default": "center"
+          },
           "direction": {
             "type": "string",
             "title": "Direction",

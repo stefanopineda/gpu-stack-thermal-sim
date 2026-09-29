@@ -26,7 +26,8 @@ This is revision 4.1 of the spec ([SPEC.md](SPEC.md), §16 for 4.1); the rev 4 p
 Resolved with Stefano (SPEC rev 3), unchanged in rev 4:
 
 - Case fans are Noctua **140 mm redux at 1700 RPM**. The library entry scales the published NF-P14s redux-1500 PWM curve by the fan laws and is marked approximate.
-- CPU cooler is an Arctic 360 mm radiator with its three Arctic P12-class fans, **top exhaust, push**, carrying 150 W of CPU heat (approximate). The CPU is **water-cooled** in this build.
+- CPU cooler is an Arctic 360 mm radiator with its three Arctic P12-class fans, **top exhaust, push, slid to the rear of the top**, carrying 150 W of CPU heat (approximate). The CPU is **water-cooled** in this build.
+- Fan layout confirmed by Stefano (rev 4.1): 3× redux-1700 front intake, one redux-1700 **top intake at the front**, one redux-1700 **bottom intake at the front**, one rear exhaust. The rear GPU shroud's two iPPC-3000 fans sit side by side and the shroud covers every bracket, the vertical card's included.
 - The Phanteks multi-GPU preset is the **Enthoo Elite Server, 12 slots** (dimensions read as H × W × D).
 - Meshify 2 XL has 9 horizontal slots and 3 vertical slots off to the side. Stefano runs with **all slot brackets removed**.
 - The rear exhaust shroud covers the bracket plane and is pulled by **two NF-A14 industrialPPC-3000 PWM** fans. A passive duct is still runnable.
@@ -281,38 +282,39 @@ one. MC is the 5th–95th percentile of the hottest unthrottled die.
 
 | Rank | Config | Hottest | Unthrottled | gpu1 | gpu2 | gpu3 | gpu4 | MC 5–95 % | Case Pa | Throttle |
 |---|---|---:|---:|---:|---:|---:|---:|---|---:|---|
-| 1 | gap1, standard, shroud on, leaky | 84.2 | 84.2 | 84.2 | 84.2 | 84.1 | 84.1 | 76–98 | −6.4 | no |
-| 2 | gap1, standard, shroud on, sealed | 84.3 | 84.3 | 84.3 | 84.3 | 84.2 | 84.2 | 76–98 | −12.9 | no |
-| 3 | gap1, high, shroud on, leaky | 84.7 | 84.7 | 84.7 | 84.7 | 84.6 | 84.7 | 77–98 | +9.5 | no |
-| 4 | gap1, high, shroud on, sealed | 85.5 | 85.5 | 85.5 | 85.5 | 85.4 | 85.5 | 77–99 | +17.6 | no |
-| 5 | gap1, standard, shroud off, sealed | 86.4 | 86.4 | 86.4 | 86.4 | 86.3 | 86.3 | 78–100 | −11.6 | no |
-| 6 | gap1, standard, shroud off, leaky (anchor A) | 86.6 | 86.6 | 86.6 | 86.6 | 86.5 | 86.5 | 78–100 | −3.7 | no |
-| 7 | gap1, high, shroud off, leaky | 86.6 | 86.6 | 86.6 | 86.6 | 86.5 | 86.5 | 78–100 | +8.3 | no |
-| 8 | gap1, high, shroud off, sealed | 88.3 | 88.3 | 88.3 | 88.3 | 88.2 | 88.2 | 79–102 | +18.3 | yes |
-| 9 | stacked, standard, shroud on, leaky | 89.5 | 104.2 | 96.7 | 104.2 | 84.3 | 83.7 | 92–121 | −5.4 | yes |
-| 10 | stacked, standard, shroud on, sealed | 89.5 | 104.2 | 96.7 | 104.2 | 84.3 | 83.7 | 92–121 | −11.1 | yes |
-| 11 | stacked, high, shroud on, leaky | 89.6 | 104.6 | 97.2 | 104.6 | 84.9 | 84.3 | 93–122 | +10.6 | yes |
-| 12 | stacked, high, shroud on, sealed | 89.6 | 105.7 | 98.3 | 105.7 | 86.0 | 85.4 | 94–123 | +18.6 | yes |
-| 13 | stacked, high, shroud off, leaky | 89.5 | 108.5 | 100.6 | 108.5 | 87.1 | 86.4 | 95–126 | +9.2 | yes |
-| 14 | stacked, standard, shroud off, sealed | 89.5 | 108.6 | 100.6 | 108.6 | 86.9 | 86.2 | 95–127 | −9.9 | yes |
-| 15 | stacked, standard, shroud off, leaky | 89.5 | 108.8 | 100.8 | 108.8 | 87.2 | 86.5 | 96–127 | −3.1 | yes |
-| 16 | stock (same as the stacked, standard, shroud off, leaky row) | 89.5 | 108.8 | 100.8 | 108.8 | 87.2 | 86.5 | 96–127 | −3.1 | yes |
-| 17 | stacked, high, shroud off, sealed | 89.6 | 110.8 | 102.9 | 110.8 | 89.5 | 88.8 | 97–129 | +19.2 | yes |
+| 1 | gap1, standard, shroud on, sealed | 83.9 | 83.9 | 83.9 | 83.9 | 83.8 | 83.8 | 76–97 | −1.8 | no |
+| 2 | gap1, standard, shroud on, leaky | 84.0 | 84.0 | 84.0 | 84.0 | 83.9 | 84.0 | 76–98 | −0.9 | no |
+| 3 | gap1, high, shroud on, leaky | 84.5 | 84.5 | 84.5 | 84.5 | 84.4 | 84.4 | 76–98 | +13.5 | no |
+| 4 | gap1, high, shroud on, sealed | 85.5 | 85.5 | 85.5 | 85.5 | 85.4 | 85.4 | 77–99 | +19.5 | no |
+| 5 | gap1, standard, shroud off, sealed | 85.9 | 85.9 | 85.9 | 85.9 | 85.8 | 85.8 | 78–100 | −0.9 | no |
+| 6 | gap1, high, shroud off, leaky | 86.2 | 86.2 | 86.2 | 86.2 | 86.1 | 86.1 | 78–100 | +12.1 | no |
+| 7 | gap1, standard, shroud off, leaky (anchor A) | 86.2 | 86.2 | 86.2 | 86.2 | 86.1 | 86.2 | 78–100 | −0.6 | no |
+| 8 | gap1, high, shroud off, sealed | 88.2 | 88.2 | 88.2 | 88.2 | 88.1 | 88.1 | 80–102 | +20.0 | yes |
+| 9 | stacked, standard, shroud on, sealed | 89.6 | 103.6 | 96.2 | 103.6 | 84.0 | 83.4 | 90–122 | −0.6 | yes |
+| 10 | stacked, standard, shroud on, leaky | 89.6 | 103.9 | 96.5 | 103.9 | 84.2 | 83.6 | 90–122 | −0.7 | yes |
+| 11 | stacked, high, shroud on, leaky | 89.6 | 104.2 | 96.9 | 104.2 | 84.6 | 84.0 | 91–122 | +14.4 | yes |
+| 12 | stacked, high, shroud on, sealed | 89.6 | 105.6 | 98.2 | 105.6 | 86.0 | 85.4 | 92–123 | +20.2 | yes |
+| 13 | stacked, standard, shroud off, sealed | 89.5 | 107.9 | 99.9 | 107.9 | 86.4 | 85.7 | 94–126 | +0.2 | yes |
+| 14 | stacked, high, shroud off, leaky | 89.5 | 108.1 | 100.2 | 108.1 | 86.7 | 86.1 | 94–126 | +12.9 | yes |
+| 15 | stacked, standard, shroud off, leaky | 89.5 | 108.2 | 100.2 | 108.2 | 86.6 | 86.0 | 94–126 | −0.4 | yes |
+| 16 | stock (same as the stacked, standard, shroud off, leaky row) | 89.5 | 108.2 | 100.2 | 108.2 | 86.6 | 86.0 | 94–126 | −0.4 | yes |
+| 17 | stacked, high, shroud off, sealed | 89.6 | 110.7 | 102.8 | 110.7 | 89.4 | 88.7 | 97–129 | +20.5 | yes |
 
 Open air, one Max-Q, stock curve: **82.8 °C**. Custom Accelerated: **73.4 °C**.
 
 Anchor B (four horizontal cards, no vertical, not a factorial row):
-unthrottled 100.8, 109.0, 108.8, 87.2 °C. The middle two are hottest; three
+unthrottled 99.9, 108.0, 107.9, 86.3 °C. The middle two are hottest; three
 cards throttle to the cutoff.
 
-The winner is 84.2 °C on every card at about 26.5 CFM. The stock row's middle
-card runs about 14.9 CFM: its fan faces the next card across 3.6 mm. Stock and
-the best gapped cell overlap only between about 96 and 98 °C in their Monte
-Carlo tails. The gapped layouts differ from each other by less than the noise.
+The top two cells (shroud on, sealed or leaky) are a tie at 83.9–84.0 °C on
+every card, about 26.7 CFM each. The stock row's middle card runs about 14.9
+CFM: its fan faces the next card across 3.6 mm. Stock and the best gapped cell
+overlap only between about 94 and 97 °C in their Monte Carlo tails. The gapped
+layouts differ from each other by less than the noise.
 
 `gpusim optimize --cards 4 --case meshify2xl` (48 candidates) picks gaps plus a
-vertical card, shroud on, standard fan directions, leaky, Custom Accelerated:
-**75.4 °C** (MC 68–88 °C).
+vertical card, shroud on, standard fan directions, sealed, Custom Accelerated:
+**75.3 °C** (MC 68–88 °C).
 
 Full table and the generated hypothesis: `results/meshify2xl-stefano/`
 (`hypothesis_auto.md`; the root `HYPOTHESIS.md` is hand-written). With the

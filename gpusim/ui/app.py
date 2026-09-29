@@ -128,6 +128,8 @@ def presets():
                 "fan_curves": list(c.fan_curves) + [k for k in GLOBAL_FAN_CURVES if k not in c.fan_curves],
                 "stock_curve": c.fan_curves.get("stock"),
                 "cooler": c.cooler,
+                "inlet_faces": c.inlet_faces,
+                "inlet_split": c.inlet_split,
                 "throttle_c": c.throttle_c,
                 "cutoff_c": c.cutoff_c,
                 "notes": c.notes,

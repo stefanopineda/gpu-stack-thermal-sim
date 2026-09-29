@@ -562,6 +562,11 @@
             "title": "Panel",
             "type": "string"
           },
+          "offset": {
+            "default": "center",
+            "title": "Offset",
+            "type": "string"
+          },
           "direction": {
             "default": "exhaust",
             "title": "Direction",
@@ -1263,6 +1268,11 @@
           "panel": {
             "default": "top",
             "title": "Panel",
+            "type": "string"
+          },
+          "offset": {
+            "default": "center",
+            "title": "Offset",
             "type": "string"
           },
           "direction": {
@@ -2020,6 +2030,11 @@
           "panel": {
             "default": "top",
             "title": "Panel",
+            "type": "string"
+          },
+          "offset": {
+            "default": "center",
+            "title": "Offset",
             "type": "string"
           },
           "direction": {

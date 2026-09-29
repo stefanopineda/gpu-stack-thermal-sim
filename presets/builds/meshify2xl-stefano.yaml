@@ -75,8 +75,9 @@ mounts:
 - id: top-1
   panel: top
   size_mm: 140
-  state: radiator
-  direction: exhaust
+  fan: noctua-140-redux-1700
+  state: fan
+  direction: intake
   duty: 1.0
 - id: top-2
   panel: top
@@ -93,7 +94,8 @@ mounts:
 - id: bottom-1
   panel: bottom
   size_mm: 140
-  state: blanked
+  fan: noctua-140-redux-1700
+  state: fan
   direction: intake
   duty: 1.0
 - id: bottom-2
@@ -105,6 +107,7 @@ mounts:
 radiator:
   model: arctic-360
   panel: top
+  offset: rear
   direction: exhaust
   arrangement: push
   fan: arctic-p12-pwm-pst
@@ -149,7 +152,10 @@ room_reingestion_c:
 buoyancy: false
 open_air: false
 illustrative_mock: false
-notes: 'Assumption recorded with the build: the three horizontal cards sit in slots
+notes: 'Fan layout confirmed by Stefano (2026-09-28): 3× redux-1700 front intake, one
+  redux-1700 intake on the top at the front, one on the bottom at the front, the Arctic 360
+  slid to the rear of the top as exhaust, one rear exhaust, and the rear GPU shroud with its
+  two iPPC-3000 fans side by side. Assumption recorded with the build: the three horizontal cards sit in slots
   1, 4 and 7 (one empty slot between pairs, gap1) and the fourth card is in vertical
   slot v2. Anchor A is this layout with the shroud off. The factorial stock cell is
   stacked (no empty slot), shroud off, standard pressure, leaky — it is not this saved

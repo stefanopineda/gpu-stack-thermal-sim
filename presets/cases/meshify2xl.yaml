@@ -122,7 +122,7 @@ mounts:
   id: top-1
   panel: top
   size_mm: 140
-  x_mm: 160
+  x_mm: 100
   y_mm: 540
   z_mm: 120
   pattern: 3x140
@@ -166,7 +166,7 @@ mounts:
   id: bottom-1
   panel: bottom
   size_mm: 140
-  x_mm: 200
+  x_mm: 110
   y_mm: 40
   z_mm: 100
   pattern: 2x140

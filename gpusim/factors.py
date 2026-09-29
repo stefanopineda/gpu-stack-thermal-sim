@@ -59,15 +59,14 @@ def layout_slots(count: int, spacing: str, n_slots: int, width: int = 2) -> list
 
 
 def apply_pressure(build: BuildCfg, mode: str) -> None:
+    """high: every case fan and the radiator intake. standard: the build's own
+    fan directions as saved (rev 4.1 — rev 4 forced top/rear to exhaust, which
+    overrode a deliberate top intake), radiator exhaust."""
+    if mode not in ("high", "standard"):
+        raise ValueError(f"Unknown pressure mode '{mode}'")
     for mount in build.mounts:
-        if mount.state != "fan":
-            continue
-        if mode == "high":
+        if mount.state == "fan" and mode == "high":
             mount.direction = "intake"
-        elif mount.panel in ("front", "bottom", "side"):
-            mount.direction = "intake"
-        else:
-            mount.direction = "exhaust"
     if build.radiator and build.radiator.model:
         build.radiator.direction = "intake" if mode == "high" else "exhaust"
 

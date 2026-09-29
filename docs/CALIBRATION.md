@@ -28,6 +28,23 @@ Custom Accelerated is 0 % duty at 25 °C and 100 % at 70 °C, linear. Rev 3's ag
 is identical. The blower RPM floor (1200 RPM) was removed so 0 % really is off; no stock curve reaches
 that low, so the anchors are unaffected.
 
+## Rev 4.1: Stefano's confirmed fan layout
+
+Stefano confirmed two more intakes on his Meshify (a redux-1700 on the top at the front, one on the
+bottom at the front) and the radiator slid to the rear. No knob was retuned. `pressure = standard` now
+keeps the build's own fan directions (rev 4 forced every top fan to exhaust, which would have flipped the
+top intake). Effect:
+
+| Check | Rev 4 | Rev 4.1 |
+|---|---:|---:|
+| Anchor A | 86.58 | **86.25** |
+| Anchor B unthrottled | 100.8 / 109.0 / 108.8 / 87.2 | **99.9 / 108.0 / 107.9 / 86.3** |
+| Best cell (gap1, standard, shroud on) | 84.20 leaky | **83.91 sealed / 84.04 leaky** |
+| Custom Accelerated on that cell | 75.43 | **75.34** |
+| Stock unthrottled hottest | 108.8 | **108.2** |
+
+Open air, the flow-through open-air checks and anchor C do not use this build and are unchanged.
+
 ## Inlet geometry (unchanged)
 
 In a standard ATX tower the fan face points down, toward the case floor. Each card preset sets

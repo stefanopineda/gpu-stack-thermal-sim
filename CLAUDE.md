@@ -6,7 +6,7 @@ GPU water blocks are out of scope (a water-cooled CPU is supported). Units are C
 ## What matters
 
 - `SPEC.md` is **revision 4.1** (§16 = rev 4.1 review changes, §16.2 = assumption audit: slot covers don't block the inter-card gap, they close the rear openings; PSU fan up is a real exhaust branch; rear-slot re-ingestion only below room pressure) (Stefano's 16-item rev 4 brief; plan in `docs/REV4_PLAN.md`, item map in SPEC §15). Implement that, don't renegotiate it.
-- Default build id: `meshify2xl-stefano` (Meshify 2 XL, 3×140 Noctua redux-1700 front intake, 1× rear exhaust assumed, Arctic 360 top exhaust, CPU water 150 W, 4× RTX PRO 6000 Blackwell Max-Q, slots 1/4/7 + vertical v2, shroud on with 2× NF-A14 iPPC-3000, leaky, stock GPU curve).
+- Default build id: `meshify2xl-stefano` (Meshify 2 XL, 3×140 Noctua redux-1700 front intake + one top intake at the front + one bottom intake at the front (confirmed by Stefano), 1× rear exhaust, Arctic 360 top exhaust slid to the rear (`radiator.offset: rear`), CPU water 150 W, shroud fans drawn side by side, 4× RTX PRO 6000 Blackwell Max-Q, slots 1/4/7 + vertical v2, shroud on with 2× NF-A14 iPPC-3000, leaky, stock GPU curve).
 - The factorial **stock** cell is stacked, shroud off, standard, leaky. It is reported as its own row even though it matches one cell.
 - **Seal levels are reversed in rev 4: 1 = fully open (100 %) … 5 = sealed (0 %, no branch, R = ∞)**; 2 = 70 %, 3 = 45 %, 4 = 5 %. Default side = 5. Leaky = front 3, top 3, bottom 4, side 5, seams 4, rear_slots 3. Sealed = 4/4/5/5/5/5.
 - Fan curves: `stock` (per card YAML) and `custom_accelerated` (global in `calib.GLOBAL_FAN_CURVES`: 0 % @ 25 °C → 100 % @ 70 °C). `maxq_aggressive` is an alias. No blower RPM floor.
@@ -45,4 +45,4 @@ uv run gpusim ui
 uv run gpusim schema
 ```
 
-Latest sweep (rev 4, mc 200, seed 12345): best cell gap1 / standard / shroud on / leaky, 84.2 °C all four cards (MC 76–98). Stock unthrottled hottest 108.8 °C (100.8, 108.8, 87.2, 86.5), throttled ~89.5 °C (MC 96–127). Optimizer: gap + vertical, shroud on, Custom Accelerated, 75.4 °C. Bounds check overall PASS. Spacing is still the large effect; a 2 °C shroud delta is inside the noise.
+Latest sweep (rev 4.1, confirmed layout, mc 200, seed 12345): best cells gap1 / standard / shroud on, sealed 83.9 / leaky 84.0 °C (a tie, MC 76–98). Stock unthrottled hottest 108.2 °C (100.2, 108.2, 86.6, 86.0), throttled ~89.5 °C (MC 94–126). Anchor A 86.25, B 99.9/108.0/107.9/86.3. Optimizer: gap + vertical, shroud on, sealed, Custom Accelerated, 75.3 °C. `pressure=standard` keeps the build's own fan directions. Bounds check overall PASS.

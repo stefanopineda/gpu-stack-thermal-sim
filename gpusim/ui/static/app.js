@@ -552,6 +552,7 @@ function radiatorControls(face) {
   const box = el("details", {}, el("summary", {}, "Radiator model, direction and fans"));
   box.append(selectField("Model", rad, "model", state.presets.radiators.map((r) => [r.id, `${r.name} · ${r.thickness_mm} mm`]), TIPS.radiator, () => placeRadiator(face, rad.model)));
   box.append(selectField("Direction", rad, "direction", [["exhaust", "exhaust"], ["intake", "intake"]], TIPS.radDir));
+  if (face !== "front") box.append(selectField("Position along the panel", rad, "offset", [["center", "centred"], ["rear", "slid to the rear"], ["front", "slid to the front"]], "Where the radiator sits along the panel. Drawing only: the airflow model treats the radiator as one branch wherever it sits."));
   const radFans = state.presets.fans.filter((f) => f.size_mm === 120 || f.size_mm === 140);
   box.append(el("div", { class: "row" }, selectField("Radiator fans", rad, "fan", radFans.map((f) => [f.id, f.name]), TIPS.radFans), numberField("Count", rad, "fan_count", TIPS.radFans, { min: 1, max: 4 })));
   if (state.build.cpu?.cooling !== "water") box.append(el("p", { class: "fine warn" }, "The CPU is air-cooled, so this radiator carries no heat. Set the CPU to water under Internals."));

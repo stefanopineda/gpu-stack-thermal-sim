@@ -2,13 +2,16 @@
 
 The factorial is a hypothesis generator for Stefano's Meshify 2 XL. Absolute temperatures carry about
 ±5–10 °C of uncertainty. Monte Carlo is 200 samples, seed 12345. On the stock cell the hottest-die band is
-96–127 °C. On the best gapped cell it is 76–98 °C. Those tails touch only between about 96 and 98 °C. The
+94–126 °C. On the best gapped cell it is 76–98 °C. Those tails touch only between about 94 and 98 °C. The
 nominal spacing gap is about 25 °C, and it is the only factor that large. Differences of 2 °C among
 already-gapped cells are inside the noise.
 
+Numbers use the fan layout Stefano confirmed (rev 4.1): 3 front intakes, a top intake and a bottom
+intake at the front, the radiator slid to the rear as exhaust, one rear exhaust.
+
 Deltas below are versus the stock cell: three horizontal cards stacked, one vertical, standard fan
-directions, shroud off, leaky seals, stock blower curve. Its unthrottled dies, top to bottom, are 100.8,
-108.8, 87.2 and 86.5 °C (horizontal slots 1, 3, 5, then vertical v2). The throttled equilibrium sits just
+directions, shroud off, leaky seals, stock blower curve. Its unthrottled dies, top to bottom, are 100.2,
+108.2, 86.6 and 86.0 °C (horizontal slots 1, 3, 5, then vertical v2). The throttled equilibrium sits just
 under the 90 °C cutoff. The sweep writes a generated sibling at
 `results/meshify2xl-stefano/hypothesis_auto.md` and leaves this file alone.
 
@@ -23,8 +26,8 @@ pack is the hot card.
 
 `s-gap1__p-standard__sh-off__l-leaky` — measured anchor A.
 
-Predicted hottest die 86.6 °C, no throttle; 86.6, 86.6, 86.5 and 86.5 °C on the vertical card, about
-25.7 CFM each. Delta versus stock: −22 °C unthrottled (108.8 → 86.6). Monte Carlo 78–100 °C.
+Predicted hottest die 86.2 °C, no throttle; 86.2, 86.2, 86.1 and 86.2 °C on the vertical card, about
+25.8 CFM each. Delta versus stock: −22 °C unthrottled (108.2 → 86.2). Monte Carlo 78–100 °C.
 
 Why: stacked, the middle card's fan faces the next card across 3.6 mm and its unthrottled flow is about
 14.9 CFM. One empty slot makes every downward fan eye-limited instead of gap-limited. No new parts.
@@ -35,30 +38,30 @@ Confidence: high for the direction and for "this is the test that matters". Low 
 
 `s-gap1__p-standard__sh-on__l-leaky` — best cell in the factorial.
 
-Predicted hottest die 84.2 °C on every card. Nominal delta versus the gapped, shroud-off cell is −2.4 °C.
-Mean blower flow rises from 25.7 to 26.5 CFM. The case runs slightly below room pressure
+Predicted hottest die 84.0 °C on every card (83.9 °C sealed, a tie). Nominal delta versus the gapped,
+shroud-off cell is −2.2 °C. Mean blower flow rises from 25.8 to 26.7 CFM. The case runs slightly below room pressure
 (about −3 Pa), so with the shroud off some exhaust plume comes back in through the open slot
 mouths; the plenum stops that. At positive case pressure there would be nothing to stop. Monte Carlo 76–98 °C fully overlaps the shroud-off band.
 
-The shroud does not rescue a stacked layout: stacked with the shroud on is still an unthrottled 104.2 °C
-(96.7, 104.2, 84.3, 83.7) and still throttles.
+The shroud does not rescue a stacked layout: stacked with the shroud on is still an unthrottled 103.9 °C
+(96.5, 103.9, 84.2, 83.6) and still throttles.
 
 Confidence: low that the bench will see 2 °C. Medium that the shroud will not make a gapped machine worse.
 
 ## 3. Custom Accelerated fan curve on that same geometry
 
 Not a factorial factor. Custom Accelerated (0 % at 25 °C, linear to 100 % at 70 °C) on gap + vertical,
-shroud on, standard, leaky: hottest die 75.4 °C nominal, about 37 CFM per blower. The open-air check of
+shroud on, standard, leaky: hottest die 75.3 °C nominal, about 37 CFM per blower. The open-air check of
 the same curve is 73.4 °C versus 82.8 °C stock. No parts: a vendor fan-curve change. Do it after tests 1
 and 2 so the curve is not confounded with moving cards. The optimizer's best of 48 candidates is this same
-point, 75.4 °C (Monte Carlo 68–88 °C).
+point with sealed seams, 75.3 °C (Monte Carlo 68–88 °C).
 
 ## 4. Do not tape the case and flip every fan to intake yet
 
-`s-gap1__p-high__sh-off__l-sealed` is the worst gapped cell: 88.3 °C, throttle flag on, about +18 Pa. The
+`s-gap1__p-high__sh-off__l-sealed` is the worst gapped cell: 88.2 °C, throttle flag on, about +20 Pa. The
 radiator is an intake in that mode, so 150 W of CPU heat (assumed) rides in with the fresh air.
 `s-gap1__p-high__sh-on__l-sealed` is 85.5 °C, still worse than leaving the fans alone with the shroud on
-(84.2 °C). Treat positive-pressure-plus-tape as a later, optional negative test.
+(84.0 °C). Treat positive-pressure-plus-tape as a later, optional negative test.
 
 ## Suggested order
 
