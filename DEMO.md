@@ -11,19 +11,20 @@ once so the in-browser solver is loaded and cached (a cold load takes 7–10 s),
 1. **Hook: Mike Bradley's stack.** Home → Mike Bradley's Dengen X Station. Four RTX PRO 6000
    Workstation cards touching. "One number in this model was fit to his top card at 80 % fans, 79 °C.
    Then it predicted his 100 % reading: he measured 69, the model says 69.3."
-2. **Your build.** Home → Stefano's Meshify 2 XL. Hover the hottest card (84.0 °C).
+2. **Your build.** Home → Stefano's Meshify 2 XL. Hover the hottest card (84.5 °C).
 3. **The answer.** Worth it? Walk down the list:
    - Cap power at 80 %: −10.7 °C, free (costs performance).
    - Aggressive fan curve: −8.7 °C, free (louder).
    - Seal, fill the empty mount, flip exhausts: −0.1 °C each, inside the noise.
-   - The shroud: "Your shroud is worth 2.2 °C on this build" (90 %: 1.4–2.5), inside the noise.
-4. **Close.** "Model first. Here's what 5 °C costs you." Apply the fan curve: 84.0 → 75.3 °C.
+   - The shroud: "Your shroud is worth 1.8 °C on this build" (short paired band about 1.0–2.0), inside the noise.
+   - Stack and tape (orientation B) is the hardware A/B, about 19 °C hotter unthrottled. That is the inlet gap, not a reason to skip the live test.
+4. **Close.** "Model first. Here's what 5 °C costs you." Apply the fan curve: 84.5 → 75.4 °C.
    Copy link: the whole build is in the URL.
 
 ### Live shroud test (the part that might fail on stream)
 
-The model's prediction, stated before measuring: **with the shroud 84.0 °C, without 86.2 °C; the
-shroud is worth 2.2 °C (90 % band 1.4–2.5 °C), inside the noise.** The model is ±5–10 °C absolute, so
+The model's prediction, stated before measuring: **with the shroud 84.5 °C, without 86.3 °C; the
+shroud is worth 1.8 °C (short paired band about 1.0–2.0 °C), inside the noise.** The model is ±5–10 °C absolute, so
 compare the *difference*, not the absolute numbers.
 
 1. Same load both times, long enough to flatten (10–15 min): the same benchmark or a fixed power
@@ -79,9 +80,10 @@ about 26 CFM each. Nothing throttles. This is the measured anchor. Spacing did a
 
 Same layout, shroud on.
 
-Say: one plenum over every bracket, two industrial fans pulling on it, in series with the blowers. Hottest
-die 84.2 °C. Mean flow rises from 25.7 to 26.5 CFM. The case sits a few pascals below room pressure here,
-so without the shroud some exhaust plume comes back in through the open slot mouths; the plenum stops that.
+Say: one plenum over every bracket, two industrial fans pulling on it. Interior gaps are their own orifices
+into that plenum, in parallel with the GPU mouths. Hottest die 84.5 °C. Mean blower flow rises from 25.8
+to 26.0 CFM, and about 46 CFM bypasses the fins through the two gaps. The case sits a few pascals below
+room pressure here, so without the shroud some exhaust plume comes back in through the open slot mouths; the plenum stops that.
 At positive case pressure nothing comes back in, shroud or not. The datasheet static pressure is 10.52 mmH₂O and the web page says
 6.58; the model uses the datasheet and the Monte Carlo spans both.
 

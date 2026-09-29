@@ -81,9 +81,28 @@ GLOBAL = {
     "plume_area_m2": 0.04,
     # Imperfect shroud shell, plenum ↔ room, when the shroud is fitted.
     "shroud_shell_area_m2": 8.0e-4,
-    # Fraction of the open rear-slot area that still bypasses into the plenum
-    # (empty brackets under the shroud). The rest is baffled by the shroud walls.
+    # Retired. Shroud-on bypass used to be this fraction of the whole rear-slot
+    # area, one lumped orifice. Mouths are now explicit gap branches
+    # (shroud_gap_cd, shroud_crack_mm). Kept so an old sample key does not
+    # crash a merge; the network does not read it.
     "shroud_bypass_fraction": 0.04,
+    # Sharp-edge discharge coefficient for a shroud gap mouth. Same order as
+    # the bracket vent (0.62). Assumed, to be fit to the live shroud A/B.
+    "shroud_gap_cd": 0.62,
+    # Residual rear opening when the gaps are taped (orientation B), millimetres.
+    # Not the 3.6 mm slot slack — that slack is the blower inlet, ahead of the
+    # tape. Assumed, to be fit to the live shroud A/B.
+    "shroud_crack_mm": 0.6,
+    # Skin convection in the gap the shroud pulls: Nu = C Re^m Pr^(1/3).
+    # Not the fin-channel nu_C / nu_m (those are the Max-Q anchor fit).
+    # Assumed, to be fit to the live shroud A/B.
+    "skin_nu_C": 0.10,
+    "skin_nu_m": 0.50,
+    # Below this gap, skin h is scaled by gap/this. Opposing hot walls in a
+    # tight slot do not see the fresh-stream correlation. Assumed.
+    "skin_gap_full_h_mm": 12.0,
+    # Painted blower shell / backplate, two gray planes. Assumed, not measured.
+    "skin_emissivity": 0.80,
     # Of the open rear-slot area with the shroud off, this fraction faces the hot
     # exhaust plume; the rest faces room air. Flow through both is set by the
     # solved pressure: it only comes back IN (re-ingestion) when the GPU zone is

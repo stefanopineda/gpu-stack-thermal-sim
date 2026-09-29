@@ -18,13 +18,23 @@ share would have gone, so every node still balances and no energy is created.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
 
 from gpusim.flow import FlowSolution
 from gpusim.network import AMB, Network
-from gpusim.physics import CP_AIR, air_conductivity, air_density, air_viscosity, fin_epsilon
+from gpusim.physics import (
+    CP_AIR,
+    air_conductivity,
+    air_density,
+    air_viscosity,
+    fin_epsilon,
+    gap_channel_h,
+    m3s_to_cfm,
+    skin_couple_ua,
+)
 
 
 @dataclass
@@ -231,6 +241,18 @@ def _enthalpy(net, flow, heat_branch, t_nodes, t_amb) -> float:
     return net_w
 
 
+def _wash(net: Network, gpu_id: str) -> list[dict]:
+    return [g for g in (getattr(net, "shroud_gaps", None) or []) if gpu_id in (g["upper"], g["lower"])]
+
+
+def _wall_conductance(ua: float, mass_kg_s: float) -> float:
+    """W/K this wall can put into its half of the bypass stream (ε-NTU)."""
+    cap = 0.5 * max(float(mass_kg_s), 0.0) * CP_AIR
+    if cap < 1e-8 or ua <= 0.0:
+        return 0.0
+    return float((1.0 - math.exp(-min(ua / cap, 40.0))) * cap)
+
+
 def solve_thermal(
     build,
     net: Network,
@@ -257,6 +279,8 @@ def solve_thermal(
         elif net.by_id("radiator") is not None:
             heat_branch_cpu["radiator"] = cpu_w
     transfers = [] if build.open_air else plume_transfers(net, flow, sample)
+    # Previous-pass heatsink temperatures, for the skin-to-skin gap.
+    hs_prev: dict[str, float] = {}
 
     for _ in range(4):
         heat_branch = dict(heat_branch_cpu)
@@ -289,12 +313,91 @@ def solve_thermal(
             else:
                 t_sink = t_nodes.get("gpu", t_amb)
             r_ext = max(params["r_ext"], 0.05)
-            cond = g_conv + 1.0 / r_ext
             t_sink_used = t_sink
-            t_hs = (p_tot + g_conv * t_in + t_sink / r_ext) / cond
-            q_ext = (t_hs - t_sink) / r_ext
-            q_ext = float(np.clip(q_ext, -0.1 * p_tot, p_tot))
-            q_channel = p_tot - q_ext
+            washed = _wash(net, gpu_id)
+            skin_rows: list[dict] = []
+            q_couple = 0.0
+            h_report = 0.0
+            if not washed:
+                # No shroud stream on this card: the calibrated stagnant shell
+                # path. Shroud-off builds, including both anchors, stay here.
+                cond = g_conv + 1.0 / r_ext
+                t_hs = (p_tot + g_conv * t_in + t_sink / r_ext) / cond
+                q_ext = (t_hs - t_sink) / r_ext
+                q_ext = float(np.clip(q_ext, -0.1 * p_tot, p_tot))
+                q_channel = p_tot - q_ext
+                q_skin = 0.0
+            else:
+                # Washed faces convect into the bypass (or crack) stream.
+                # Unwashed faces keep their share of r_ext. A taped crack also
+                # couples the two skins by conduction and radiation.
+                n_wash = min(len(washed), 2)
+                g_stag = (1.0 / r_ext) * (2 - n_wash) / 2.0
+                k_air = air_conductivity(t_film)
+                mu = air_viscosity(t_film)
+                nu_skin_c = float(sample.get("skin_nu_C", 0.10))
+                nu_skin_m = float(sample.get("skin_nu_m", 0.50))
+                full_mm = float(sample.get("skin_gap_full_h_mm", 12.0))
+                emiss = float(sample.get("skin_emissivity", 0.80))
+                t_zone = t_nodes.get("gpu", t_amb)
+                numer = p_tot + g_conv * t_in + g_stag * t_zone
+                denom = g_conv + g_stag
+                for rec in washed:
+                    br = net.by_id(rec["id"])
+                    q_gap = flow.flow_m3s.get(rec["id"], 0.0) if br else 0.0
+                    rho_b = br.rho if br else rho
+                    mass_gap = abs(rho_b * q_gap)
+                    gap_m = max(float(rec["gap_mm"]), 0.3) / 1000.0
+                    h = gap_channel_h(
+                        mass_gap, rho_b, mu, k_air, gap_m, rec["span_m"], nu_skin_c, nu_skin_m
+                    )
+                    degrade = min(1.0, max(float(rec["gap_mm"]), 0.0) / max(full_mm, 0.5))
+                    h *= degrade
+                    g_i = _wall_conductance(h * float(rec["skin_m2"]), mass_gap)
+                    neighbor = rec["lower"] if rec["upper"] == gpu_id else rec["upper"]
+                    ua_c = 0.0
+                    if rec["kind"] == "shroud-crack":
+                        t_self = hs_prev.get(gpu_id, t_zone)
+                        t_other = hs_prev.get(neighbor, t_zone)
+                        ua_c = skin_couple_ua(gap_m, rec["skin_m2"], t_self, t_other, emiss, k_air)
+                        numer += ua_c * t_other
+                        denom += ua_c
+                    numer += g_i * t_zone
+                    denom += g_i
+                    skin_rows.append(
+                        {
+                            "id": rec["id"],
+                            "g": g_i,
+                            "h": h,
+                            "mass": mass_gap,
+                            "neighbor": neighbor,
+                            "ua": ua_c,
+                            "cfm": m3s_to_cfm(abs(q_gap)),
+                        }
+                    )
+                t_hs = numer / max(denom, 1e-6)
+                q_skin = 0.0
+                q_stag = g_stag * (t_hs - t_zone)
+                q_couple = 0.0
+                h_report = 0.0
+                for row_s in skin_rows:
+                    q_i = row_s["g"] * (t_hs - t_zone)
+                    h_report += row_s["h"]
+                    if row_s["mass"] < 1e-7:
+                        q_i = 0.0
+                    else:
+                        heat_branch[row_s["id"]] = heat_branch.get(row_s["id"], 0.0) + q_i
+                    q_skin += q_i
+                    if row_s["ua"] > 0.0:
+                        q_couple += row_s["ua"] * (t_hs - hs_prev.get(row_s["neighbor"], t_hs))
+                # Couple is metal-to-metal. Recompute it off this pass's own
+                # heatsinks once both cards exist; until then the previous
+                # pass is the other wall. The two directions cancel globally
+                # once the temperatures settle.
+                q_ext = q_stag
+                q_channel = p_tot - q_skin - q_stag - q_couple
+                if skin_rows:
+                    h_report /= len(skin_rows)
             per[gpu_id] = {
                 "p_tot": p_tot,
                 "p_die": p_die,
@@ -303,6 +406,11 @@ def solve_thermal(
                 "t_in": t_in,
                 "q_ext": q_ext,
                 "q_channel": q_channel,
+                "q_skin": q_skin,
+                "q_couple": q_couple,
+                "skin_h": h_report,
+                "bypass_cfm": sum(s["cfm"] for s in skin_rows),
+                "skins": skin_rows,
                 "mass": mass,
                 "q_vol": max(q_vol, 0.0),
                 "t_die": t_hs + p_die * params["r_tim"],
@@ -313,9 +421,29 @@ def solve_thermal(
                 "r_tim": params["r_tim"],
                 "r_mem": params["r_mem"],
                 "t_sink": t_sink_used,
+                "washed": bool(washed),
             }
             if blower is not None:
                 heat_branch[blower.id] = q_channel
+        # Skin-to-skin heat uses this pass's heatsinks, so what leaves one
+        # card arrives at the other and the air still sees the whole load.
+        for gpu_id, row in per.items():
+            skins = row.get("skins") or []
+            if not skins or not any(s["ua"] > 0 for s in skins):
+                continue
+            t_hs = row["t_hs"]
+            q_couple = 0.0
+            for skin in skins:
+                if skin["ua"] <= 0.0:
+                    continue
+                other = per[skin["neighbor"]]["t_hs"]
+                q_couple += skin["ua"] * (t_hs - other)
+            row["q_channel"] -= q_couple - row["q_couple"]
+            row["q_couple"] = q_couple
+            blower = net.by_id(f"blower-{gpu_id}")
+            if blower is not None:
+                heat_branch[blower.id] = row["q_channel"]
+        hs_prev = {gid: row["t_hs"] for gid, row in per.items()}
         # External heat leaves through the fan face (down) and the backplate (up).
         # A tight gap returns a share of that heat into the inlet that breathes it.
         # The rest warms the GPU zone. Nothing here is reserved for the lowest card.
@@ -381,6 +509,10 @@ def solve_thermal(
                 "t_ext_sink_c": row["t_sink"],
                 "q_channel_w": row["q_channel"],
                 "q_ext_w": row["q_ext"],
+                "q_skin_w": row.get("q_skin", 0.0),
+                "q_couple_w": row.get("q_couple", 0.0),
+                "skin_h_w_m2k": row.get("skin_h", 0.0),
+                "bypass_cfm": row.get("bypass_cfm", 0.0),
                 "t_heatsink_c": row["t_hs"],
                 "r_tim_k_per_w": row["r_tim"],
                 "p_die_w": row["p_die"],

@@ -303,6 +303,11 @@ def apply_scenario_step(build: BuildCfg, step, library: Library | None = None) -
         for gpu in out.gpus:
             gpu.fan_curve = "custom"
             gpu.custom_curve = [[0.0, duty], [100.0, duty]]
+    intake = getattr(step, "shroud_intake", None)
+    if intake:
+        if intake not in ("open", "taped"):
+            raise ValueError("shroud_intake must be open or taped")
+        out.shroud.intake = intake
     return out
 
 

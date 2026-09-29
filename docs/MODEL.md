@@ -33,7 +33,7 @@ Resolved with Stefano (SPEC rev 3), unchanged in rev 4:
 - Fan layout confirmed by Stefano (rev 4.1): 3× redux-1700 front intake, one redux-1700 **top intake at the front**, one redux-1700 **bottom intake at the front**, one rear exhaust. The rear GPU shroud's two iPPC-3000 fans sit side by side and the shroud covers every bracket, the vertical card's included.
 - The Phanteks multi-GPU preset is the **Enthoo Elite Server, 12 slots** (dimensions read as H × W × D).
 - Meshify 2 XL has 9 horizontal slots and 3 vertical slots off to the side. Stefano runs with **all slot brackets removed**.
-- The rear exhaust shroud covers the bracket plane and is pulled by **two NF-A14 industrialPPC-3000 PWM** fans. A passive duct is still runnable.
+- The rear exhaust shroud covers the bracket plane and is pulled by **two NF-A14 industrialPPC-3000 PWM** fans. A passive duct is still runnable. `shroud.intake` is `open` (printed plenum: interior gaps plus GPU mouths) or `taped` (GPU mouths plus a crack). Shroud off builds neither.
 - GPUs are 4× RTX PRO 6000 Blackwell Max-Q, 300 W, dual-slot blowers, in slots 1, 4 and 7 plus vertical slot `v2` (assumption). A rear 140 mm redux exhaust is assumed.
 - Anchor A (gaps, no shroud, stock curve) is the bench point at 86 °C. Anchor B (four horizontal cards, no gaps, stock curve) throttles at a 90 °C cutoff, middle cards hottest.
 
@@ -101,6 +101,18 @@ Dengen X Station** (4× RTX PRO 6000 Workstation touching, 275 W, unified GPU
 fans), which he published at 49 → 79 °C bottom to top with fans near 80 % and
 49 → 69 °C at 100 %. The model gives 46.7 → 78.1 °C and 44.6 → 69.4 °C
 (anchor C in [docs/CALIBRATION.md](CALIBRATION.md)).
+
+**Rear shroud mouths.** With the shroud on, the plenum is not one lumped leak from the
+GPU zone. Each interior gap between horizontal cards is an orifice,
+`A = gap height × card height`, `k = ρ / (2 Cd² A²)`, plus laminar friction
+along the card length `ΔP = 12 μ L Q / (g³ W)`. That branch is `gpu → plenum`.
+It bypasses the fins. The bracket mouth (`cex → plenum`) is still the
+through-GPU path. The top of the top card and the bottom of the bottom card
+are not inlets. `intake: taped` keeps the same gaps but sets the aperture to
+`shroud_crack_mm` (0.6 mm, assumed). Skin convection uses the mass flow on
+that bypass, not the blower flow; a taped crack also couples the two skins by
+conduction and radiation. Coefficients and the A/B table are in
+[docs/CALIBRATION.md](CALIBRATION.md). Removing the shroud deletes the branches.
 
 A **CPU** is air- or water-cooled. Water: its heat rides the radiator's air
 stream. Air: a tower cooler branch (fan plus fin stack) pulls case air through
@@ -309,8 +321,14 @@ Anchor B (four horizontal cards, no vertical, not a factorial row):
 unthrottled 99.9, 108.0, 107.9, 86.3 °C. The middle two are hottest; three
 cards throttle to the cutoff.
 
-The top two cells (shroud on, sealed or leaky) are a tie at 83.9–84.0 °C on
-every card, about 26.7 CFM each. The stock row's middle card runs about 14.9
+The table above is the rev 4.1 lumped-bypass shroud. Explicit gap mouths move
+the shroud-on cells and leave every shroud-off row, including anchor A at
+86.25 °C, where it was. Nominal shroud-on, standard, leaky is now **84.5 °C**
+gapped (26.0 CFM) and **103.2 °C** unthrottled stacked. Sealed gapped is 84.6 °C.
+Monte Carlo bands in the table were not re-run. The open-plenum versus taped-stack
+prediction is in [docs/CALIBRATION.md](CALIBRATION.md).
+
+The stock row's middle card runs about 14.9
 CFM: its fan faces the next card across 3.6 mm. Stock and the best gapped cell
 overlap only between about 94 and 97 °C in their Monte Carlo tails. The gapped
 layouts differ from each other by less than the noise.

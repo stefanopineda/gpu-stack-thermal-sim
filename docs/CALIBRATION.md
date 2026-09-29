@@ -140,8 +140,10 @@ dilutes the plume. Both cards still get cooler with spacing, through bigger inle
 
 ## Case-side knobs (rev 3, unchanged)
 
-Rear-slot reingestion fraction 0.22; shroud bypass fraction 0.04; shroud shell 8 cm²; plume-to-room 0.04 m²;
-blower short-circuit 1.1 cm²; direct-front spill 0.045 m², mixed 0.012 m². Orifice
+Rear-slot reingestion fraction 0.22; shroud shell 8 cm²; plume-to-room 0.04 m²;
+blower short-circuit 1.1 cm²; direct-front spill 0.045 m², mixed 0.012 m². The old shroud
+bypass fraction 0.04 is retired: with the shroud on, gap mouths are explicit branches
+(see "Rear shroud mouths" below). Orifice
 `ΔP = ρ Q|Q| / (2 Cd² A²)`, Idelchik's handbook as the method; no page number is invented here.
 
 ## Monte Carlo
@@ -150,6 +152,7 @@ Lognormal multipliers, seed 12345, default N = 200: `nu_C` σ 0.12, `nu_m` σ 0.
 resistance, fan Q and P, channel k, fin area, `r_ext`, every orifice k (σ 0.18), seal area (σ 0.20),
 ambient ±0.8 °C, blower short-circuit area (σ 0.25), NF-A14 iPPC static pressure uniform between the web
 page 6.58 and datasheet 10.52 mmH₂O, and (rev 4) `φ_max` uniform 0.70–0.95 and `L_plume` σ 0.25.
+Shroud-mouth draws, appended so they do not replace those: `shroud_crack_mm` and `skin_nu_C` (see below).
 
 Hottest unthrottled die, 5th–95th percentile (rev 4 sweep):
 
@@ -167,6 +170,46 @@ layout still throttles while the gapped one does not.
 The tornado on the stock cell (`plots/meshify2xl-stefano/tornado_stock.png`) is dominated by `nu_C`
 (−6.8 / +10.1 °C for ±20 %), the orifice-k scale (−4.5 / +4.9 °C) and TIM (±3.3 °C). Blower free-air
 flow barely moves the hottest card: it is inlet-starved.
+
+## Rear shroud mouths (orientation A vs B)
+
+The shroud-on path no longer uses one lumped fraction of every rear slot. Each interior gap between horizontal cards is its own orifice into the plenum, in parallel with that card's bracket mouth (`bracket-*`, the through-GPU path, unchanged). The top face of the top card and the bottom face of the bottom card are not mouths. A vertical card has no neighbour, so it is mouths only. Shroud off does not build these branches. Anchors A and B and anchor C are shroud-off (anchor C has no shroud) and are unchanged. Nothing here was fit to Mike Bradley's flow-through stack.
+
+Mouth area is `gap height × card height`. Card height is the rear-plane width of the gap (ELSA, 111.15 mm on the Max-Q). The 266.7 mm card length is the duct length in the laminar slit term `ΔP = 12 μ L Q / (g³ W)`, not the width of the mouth. A shroud sealed along the side of the card would be wider; this printed plenum sits on the bracket plane. That choice of span is an assumption about the printed part.
+
+| Knob | Value | Status |
+|---|---:|---|
+| Mouth span | card `height_mm` | measured (ELSA drawing on the card preset) |
+| Duct length | card `length_mm` | measured (same drawing) |
+| Gap height | slot map | measured pitch and thickness; slack is geometry |
+| `shroud_gap_cd` | 0.62 | **assumed**, to be fit to the live A/B. Same sharp-edge order as the bracket vent. Sets `k = ρ / (2 Cd² A²)`. |
+| `shroud_crack_mm` | 0.6 | **assumed**, to be fit to the live A/B. Residual mouth when the gaps are taped. Not the 3.6 mm slot slack (that slack is the blower inlet, upstream of the tape). |
+| `skin_nu_C` | 0.10 | **assumed**, to be fit to the live A/B. `Nu = C Re^m Pr^(1/3)` on one gap wall. Not the fin-channel `nu_C` (that one is the Max-Q anchor fit). |
+| `skin_nu_m` | 0.50 | **assumed**, to be fit to the live A/B. |
+| `skin_gap_full_h_mm` | 12 | **assumed**. Below this, h scales with gap/12 (opposing hot walls). |
+| `skin_emissivity` | 0.80 | **assumed**. Two gray planes. Used with `k_air / gap` only on a taped crack. |
+
+Monte Carlo draws `shroud_crack_mm` (lognormal σ 0.35, clipped 0.2–1.5 mm) and `skin_nu_C` (lognormal σ 0.35). Orifice k, including the gap mouths, is already inside `k_scale`.
+
+Slot covers close the rear opening the shroud would pull (rev 4.1): a covered gap keeps only the rear-slot seal fraction of the aperture. Stefano runs with brackets removed, so the mouths are the full gap.
+
+### Predicted A vs B
+
+Same load as `meshify2xl-stefano`: 4× RTX PRO 6000 Max-Q at 300 W, stock curve, 25 °C, leaky seals, the build's own fan directions, shroud 2× NF-A14 iPPC-3000. Unthrottled.
+
+| | A open plenum, slots 1/4/7 + v2 | B taped stack, slots 1/3/5/7 |
+|---|---|---|
+| Hottest die | **84.5 °C** | **103.7 °C** (throttled equilibrium ~89.5 °C) |
+| Die °C | 84.4, 84.4, 84.4, 84.5 | 96.6, 103.7, 103.0, 85.1 |
+| Memory °C | 83.2, 83.1, 83.1, 83.3 | 95.4, 102.5, 101.8, 83.8 |
+| Exhaust °C | 44.9, 44.8, 44.8, 44.9 | 53.0, 57.8, 57.5, 44.9 |
+| Through-GPU CFM | 26.0, 26.0, 26.0, 26.0 | 18.9, 15.7, 15.7, 26.8 |
+| Bypass | 46 CFM through two interior gaps (23 CFM each) | 2.7 CFM through three cracks (0.9 CFM each) |
+| Plenum | −28 Pa | −65 Pa |
+
+A is cooler. B's middle cards are inlet-starved (3.6 mm), so through-GPU CFM falls even though the plenum is pulled harder. At the **same** gap1 spacing, tape alone does the thing the hardware note describes: through-GPU flow rises from 26.0 to 26.9 CFM, the bypass falls from 46 CFM to a 1.6 CFM crack, and the plenum goes from −28 Pa to −50 Pa. That fixed-spacing tape changes the hottest die from 84.5 to 84.9 °C, inside the noise. Stacking is what makes B hotter, not the tape.
+
+Skin heat uses the bypass mass flow on that face (about 5.4 W/m²K and 7–14 W on A; about 2.1 W/m²K on the taped skins). The fin ε-NTU path still uses only the blower flow. Taped skins also exchange a few watts with the facing card by conduction plus radiation. Taking the shroud off this build is worth 1.8 °C (paired 8-draw band about 1.0–2.0 °C), inside the noise. The previous lumped-bypass estimate was 2.2 °C.
 
 ## nvidia-smi refit
 

@@ -32,16 +32,14 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
         library,
     )
     anchor_b = solve(close_packed(build, 4, library=library), library)
-    shroud_off = solve(
-        apply_cell(build, "gap1", "standard", "off", "leaky", library=library),
-        library,
-        do_throttle=False,
-    )
-    shroud_on = solve(
-        apply_cell(build, "gap1", "standard", "on", "leaky", library=library),
-        library,
-        do_throttle=False,
-    )
+    shroud_off_build = apply_cell(build, "gap1", "standard", "off", "leaky", library=library)
+    shroud_open_build = apply_cell(build, "gap1", "standard", "on", "leaky", library=library)
+    shroud_open_build.shroud.intake = "open"
+    shroud_taped_build = shroud_open_build.model_copy(deep=True)
+    shroud_taped_build.shroud.intake = "taped"
+    shroud_off = solve(shroud_off_build, library, do_throttle=False)
+    shroud_on = solve(shroud_open_build, library, do_throttle=False)
+    shroud_taped = solve(shroud_taped_build, library, do_throttle=False)
 
     open_die = open_air.cards[0].t_die_unthrottled_c
     aggr_die = aggressive.cards[0].t_die_unthrottled_c
@@ -58,6 +56,13 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
     )
     flow_off = sum(c.flow_cfm for c in shroud_off.cards) / len(shroud_off.cards)
     flow_on = sum(c.flow_cfm for c in shroud_on.cards) / len(shroud_on.cards)
+    flow_taped = sum(c.flow_cfm for c in shroud_taped.cards) / len(shroud_taped.cards)
+
+    def _positive(sol, kind: str) -> float:
+        return sum(b["flow_cfm"] for b in sol.branches if b["kind"] == kind and b["flow_cfm"] > 0)
+
+    bypass_open = _positive(shroud_on, "shroud-pull")
+    crack_taped = _positive(shroud_taped, "shroud-crack")
 
     checks = [
         _check(
@@ -89,8 +94,14 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
         ),
         _check(
             "shroud_raises_flow",
-            flow_on > flow_off,
-            f"mean blower flow {flow_off:.2f} CFM shroud off → {flow_on:.2f} CFM shroud on",
+            flow_taped > flow_off and flow_taped > flow_on,
+            f"mean blower flow shroud off {flow_off:.2f} → open plenum {flow_on:.2f} → "
+            f"taped mouths {flow_taped:.2f} CFM (same gap1 layout)",
+        ),
+        _check(
+            "open_shroud_bypasses",
+            bypass_open > crack_taped and bypass_open > 5.0,
+            f"gap bypass {bypass_open:.1f} CFM open plenum vs crack {crack_taped:.2f} CFM taped",
         ),
     ]
     # Flow-through cards: one card in open air, stock curve, against the review
@@ -115,7 +126,7 @@ def evaluate_bounds(build: BuildCfg, library=None) -> dict:
         "aggressive_c": aggr_die,
         "anchor_a_c": a_hot,
         "anchor_b_unthrottled_c": b_unth,
-        "shroud_flow_cfm": {"off": flow_off, "on": flow_on},
+        "shroud_flow_cfm": {"off": flow_off, "on": flow_on, "taped": flow_taped},
     }
 
 
