@@ -493,3 +493,27 @@ backplate hands it heat); `R_ext` (shroud/backplate to air) is a constant, not a
 speed; backplate heat captured by a neighbour's inlet depends on the gap only; the blower bracket
 short-circuit always flows outward-to-zone because a blower outlet (~80 Pa) is far above any case pressure;
 buoyancy is a small optional bias.
+
+### 16.3 "Worth it?" — single changes ranked (2026-09-29)
+
+`gpusim/worth.py`, `POST /api/worth`, `gpusim worth`, and the Worth it? panel. From the build as it stands,
+each applicable single change is built as a variant: all cards on Custom Accelerated; power limits at 80 % of
+the current limit (or TBP); rear shroud on (or off, if already on: the row then reports what the shroud is
+worth); sealed leakage levels (never lowering a seal already tighter); every case exhaust flipped to intake
+(radiator unchanged); every empty or plugged non-side mount in the active pattern filled with the fan model
+already used at that size (front and bottom intake, top and rear exhaust); and, when horizontal cards touch,
+the gap1 layout (the top card moves to a free vertical position when the slots run out). Effort tags: free
+(software), about 10 min, rebuild.
+
+Metric: the hottest unthrottled die (throttling would hide differences near the limit); the throttled value
+is reported alongside. Rows are ranked by the nominal gain. With `mc > 0` the same Monte Carlo draw is
+solved for the base and every variant, and the 5th–95th percentile of the per-draw gain is the band.
+
+**Inside the noise** when the paired band crosses zero or the nominal gain is under **3 °C**
+(`worth.NOISE_FLOOR_C`, approximate): the model's residuals against the one outside build with published
+numbers (anchor C, 1.1–2.3 °C at the end cards; the top card at 80 % fans was the fit) plus about ±1 °C of
+room drift during a real before/after test.
+
+The UI's "Test it for real" box compares a measured before/after hottest-GPU difference, less the change
+in room temperature, with the prediction; it calls a result inside the prediction when it lands within the
+paired band widened by ±1 °C for the reading itself. Measurements stay in the browser (localStorage).

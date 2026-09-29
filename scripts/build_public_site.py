@@ -7,8 +7,12 @@ in Pyodide. It is not served by `gpusim ui`.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import re
 import shutil
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,7 +69,62 @@ def main() -> None:
         "Regenerate this directory with `uv run python scripts/build_public_site.py` "
         "from the gpu-stack-thermal-sim repo.\n"
     )
-    print(f"wrote {SITE} ({len(files)} source files, bundle {bundle.stat().st_size} bytes)")
+    _static_api()
+    stamp = _stamp(bundle)
+    _version_assets(stamp)
+    print(f"wrote {SITE} ({len(files)} source files, bundle {bundle.stat().st_size} bytes, assets ?v={stamp})")
+
+
+def _static_api() -> None:
+    """Presets and saved builds as plain JSON, so the start screen and the 3D
+    case appear before the in-browser Python has finished loading."""
+    import sys
+
+    sys.path.insert(0, str(ROOT))
+    from gpusim.browser_api import build_payload, presets_payload
+
+    api = SITE / "static" / "api"
+    (api / "build").mkdir(parents=True, exist_ok=True)
+    presets = presets_payload()
+    (api / "presets.json").write_text(json.dumps(presets, ensure_ascii=False))
+    for build in presets["builds"]:
+        (api / "build" / f"{build['id']}.json").write_text(json.dumps(build_payload(build["id"]), ensure_ascii=False))
+
+
+def _stamp(bundle: Path) -> str:
+    """Commit id when there is one, else a hash of what was built."""
+    sha = os.environ.get("GITHUB_SHA", "")
+    if not sha:
+        try:
+            sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+        except (OSError, subprocess.CalledProcessError):
+            sha = ""
+    sha = sha.strip()[:10]
+    digest = hashlib.sha256(bundle.read_bytes())
+    for path in sorted((SITE / "static").rglob("*")):
+        if path.is_file():
+            digest.update(path.read_bytes())
+    return f"{sha}-{digest.hexdigest()[:8]}" if sha else digest.hexdigest()[:12]
+
+
+# Every relative module import gets the same ?v= stamp, so a returning visitor
+# never mixes a cached module with a new one (GitHub Pages caches 10 minutes).
+# The vendored three.js is stamped too, from every importer alike, so it is
+# still one module instance.
+_IMPORT = re.compile(r"""((?:from|import)\s*\(?\s*)(["'])(\.{1,2}/[^"'?]+\.js)\2""")
+
+
+def _version_assets(stamp: str) -> None:
+    for path in (SITE / "static").rglob("*.js"):
+        text = path.read_text()
+        text = _IMPORT.sub(lambda m: f"{m.group(1)}{m.group(2)}{m.group(3)}?v={stamp}{m.group(2)}", text)
+        text = text.replace('new URL("./browser-worker.js", import.meta.url)', f'new URL("./browser-worker.js?v={stamp}", import.meta.url)')
+        text = text.replace('new URL("../py-bundle.json", self.location.href)', f'new URL("../py-bundle.json?v={stamp}", self.location.href)')
+        path.write_text(text)
+    index = SITE / "index.html"
+    html = index.read_text()
+    html = re.sub(r'((?:src|href)="static/[^"?]+\.(?:js|css))"', lambda m: f'{m.group(1)}?v={stamp}"', html)
+    index.write_text(html)
 
 
 if __name__ == "__main__":

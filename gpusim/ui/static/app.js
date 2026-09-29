@@ -1390,6 +1390,9 @@ function applyWorth(row) {
   next.name = state.build.name;
   state.build = next;
   state.gaps = null;
+  // Drop the old ranking at once: it was relative to the build before the change.
+  worthSeq += 1;
+  Object.assign(state.worth, { sig: null, result: null, loading: true, bandsLoading: false });
   changed(true);
 }
 
@@ -1398,6 +1401,8 @@ function undoWorth() {
   state.build = state.worth.undo.build;
   state.worth.undo = null;
   state.gaps = null;
+  worthSeq += 1;
+  Object.assign(state.worth, { sig: null, result: null, loading: true, bandsLoading: false });
   changed(true);
 }
 

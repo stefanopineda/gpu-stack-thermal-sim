@@ -259,7 +259,9 @@ def _space_cards(build: BuildCfg, lib: Library) -> Candidate | None:
         detail + ": an empty slot under every card.",
         "rebuild",
         out,
-        note="Needs the free slots; check PCIe lane wiring on your board.",
+        note=(
+            "One card moves to a vertical mount on a riser cable. " if moved_vertical else ""
+        ) + "Needs the free slots; check PCIe lane wiring on your board.",
     )
 
 

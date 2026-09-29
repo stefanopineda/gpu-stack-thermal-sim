@@ -1,5 +1,45 @@
 # Demo run of show
 
+## Launch stream: "Would you rip the case apart for 5 °C?" (gpuism.com)
+
+Record and stream from **https://gpuism.com**, the page viewers will click. Before going live, open it
+once so the in-browser solver is loaded and cached (a cold load takes 7–10 s), click **Stefano's Meshify
+2 XL**, open **Worth it?**, and press **Present** (the Worth it? panel stays on screen in Present mode).
+
+### 60–90 s cut
+
+1. **Hook: Mike Bradley's stack.** Home → Mike Bradley's Dengen X Station. Four RTX PRO 6000
+   Workstation cards touching. "One number in this model was fit to his top card at 80 % fans, 79 °C.
+   Then it predicted his 100 % reading: he measured 69, the model says 69.3."
+2. **Your build.** Home → Stefano's Meshify 2 XL. Hover the hottest card (84.0 °C).
+3. **The answer.** Worth it? Walk down the list:
+   - Cap power at 80 %: −10.7 °C, free (costs performance).
+   - Aggressive fan curve: −8.7 °C, free (louder).
+   - Seal, fill the empty mount, flip exhausts: −0.1 °C each, inside the noise.
+   - The shroud: "Your shroud is worth 2.2 °C on this build" (90 %: 1.4–2.5), inside the noise.
+4. **Close.** "Model first. Here's what 5 °C costs you." Apply the fan curve: 84.0 → 75.3 °C.
+   Copy link: the whole build is in the URL.
+
+### Live shroud test (the part that might fail on stream)
+
+The model's prediction, stated before measuring: **with the shroud 84.0 °C, without 86.2 °C; the
+shroud is worth 2.2 °C (90 % band 1.4–2.5 °C), inside the noise.** The model is ±5–10 °C absolute, so
+compare the *difference*, not the absolute numbers.
+
+1. Same load both times, long enough to flatten (10–15 min): the same benchmark or a fixed power
+   limit on all four cards. Log with
+   `nvidia-smi --query-gpu=index,temperature.gpu,power.draw,fan.speed --format=csv -l 5`.
+2. Note the room temperature at the end of each run.
+3. Run without the shroud, then with it (or the other way round; the room correction handles drift).
+4. On the shroud row press **Test it for real** and type the hottest-GPU temperature and the room
+   temperature for both states. It shows measured vs predicted, with the room drift taken out, and
+   says whether the result is inside the prediction (band ± 1 °C for the reading).
+5. The verdict line: under 3 °C either way means not worth tearing the case apart for.
+
+---
+
+## Scripted demos (local)
+
 `uv run gpusim ui`, then Demo. Arrow keys step, or tick auto; Esc closes. The server prints
 `gpusim ui at http://127.0.0.1:8000`; if that port is taken it says so and moves to the next free port.
 For OBS, press Present (hides the left bar and panel) and use the window at 1920 × 1080.

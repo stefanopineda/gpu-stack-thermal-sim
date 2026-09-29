@@ -1,0 +1,65 @@
+# Tests on every push and pull request. A push to main that passes also
+# rebuilds the static site and publishes it to stefanopineda/gpuism, which
+# GitHub Pages serves at https://gpuism.com.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --extra dev
+      - name: Tests
+        run: uv run pytest -q
+
+  publish-site:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: publish-site
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Build site/
+        run: |
+          uv sync
+          uv run python scripts/build_public_site.py
+      - name: Push to stefanopineda/gpuism (GitHub Pages)
+        env:
+          DEPLOY_KEY: ${{ secrets.GPUISM_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/gpuism
+          chmod 600 ~/.ssh/gpuism
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/gpuism -o IdentitiesOnly=yes"
+          git clone --depth 1 git@github.com:stefanopineda/gpuism.git "$RUNNER_TEMP/gpuism"
+          rsync -a --delete --exclude .git site/ "$RUNNER_TEMP/gpuism/"
+          cd "$RUNNER_TEMP/gpuism"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Site unchanged."
+            exit 0
+          fi
+          git commit -m "Publish ${GITHUB_SHA::7} from stefanopineda/gpu-stack-thermal-sim" -m "$(git -C "$GITHUB_WORKSPACE" log -1 --format=%s)"
+          git push origin main
