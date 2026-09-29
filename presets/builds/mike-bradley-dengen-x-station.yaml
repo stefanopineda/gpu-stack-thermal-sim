@@ -13,7 +13,8 @@ _assumption: 'Modelled from Mike Bradley''s public posts, used with his permissi
   140 mm tower blowing upward with only its top fan fitted, per Stefano: the bottom fan would crowd
   the first GPU) and its load (250 W), card spacing (slots 1/3/5/7, touching — the
   only way four dual-slot cards fit a 7-slot WRX90E), and a 25 °C room. Layout checked by
-  Stefano against his build photos: 4×120 top exhaust, 2×120 rear exhaust stacked above the
+  Stefano against his build photos: 4×120 top exhaust in a 2×2 square pushed to the rear of
+  the 8×120 top grid (the other four top mounts covered), 2×120 rear exhaust stacked above the
   cards beside the CPU cooler, no side-wall fans, no rear GPU shroud, no radiator.'
 id: mike-bradley-dengen-x-station
 name: Mike Bradley's Dengen X Station — 4× RTX PRO 6000 Workstation
@@ -133,25 +134,73 @@ mounts:
 - id: top-1
   panel: top
   size_mm: 120
-  fan: noctua-nf-p12-redux-1700
-  state: fan
+  state: blanked
   direction: exhaust
   duty: 1.0
 - id: top-2
   panel: top
   size_mm: 120
-  fan: noctua-nf-p12-redux-1700
-  state: fan
+  state: blanked
   direction: exhaust
   duty: 1.0
 - id: top-3
+  panel: top
+  size_mm: 120
+  state: blanked
+  direction: exhaust
+  duty: 1.0
+- id: top-4
+  panel: top
+  size_mm: 120
+  state: blanked
+  direction: exhaust
+  duty: 1.0
+- id: top-8-1
+  panel: top
+  size_mm: 120
+  state: blanked
+  direction: exhaust
+  duty: 1.0
+- id: top-8-2
+  panel: top
+  size_mm: 120
+  state: blanked
+  direction: exhaust
+  duty: 1.0
+- id: top-8-3
+  panel: top
+  size_mm: 120
+  state: blanked
+  direction: exhaust
+  duty: 1.0
+- id: top-8-4
+  panel: top
+  size_mm: 120
+  state: blanked
+  direction: exhaust
+  duty: 1.0
+- id: top-8-5
   panel: top
   size_mm: 120
   fan: noctua-nf-p12-redux-1700
   state: fan
   direction: exhaust
   duty: 1.0
-- id: top-4
+- id: top-8-6
+  panel: top
+  size_mm: 120
+  fan: noctua-nf-p12-redux-1700
+  state: fan
+  direction: exhaust
+  duty: 1.0
+- id: top-8-7
+  panel: top
+  size_mm: 120
+  fan: noctua-nf-p12-redux-1700
+  state: fan
+  direction: exhaust
+  duty: 1.0
+- id: top-8-8
   panel: top
   size_mm: 120
   fan: noctua-nf-p12-redux-1700
@@ -198,7 +247,7 @@ mounts:
   duty: 1.0
 patterns:
   front: 8x120
-  top: 4x120
+  top: 8x120
   rear: 2x120
 radiator:
   model: null

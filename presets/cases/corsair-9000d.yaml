@@ -207,6 +207,94 @@ mounts:
   z_mm: 150
   pattern: 4x120
 - _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-1
+  panel: top
+  size_mm: 120
+  x_mm: 215
+  y_mm: 698
+  z_mm: 90
+  pattern: 8x120
+- _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-2
+  panel: top
+  size_mm: 120
+  x_mm: 215
+  y_mm: 698
+  z_mm: 215
+  pattern: 8x120
+- _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-3
+  panel: top
+  size_mm: 120
+  x_mm: 340
+  y_mm: 698
+  z_mm: 90
+  pattern: 8x120
+- _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-4
+  panel: top
+  size_mm: 120
+  x_mm: 340
+  y_mm: 698
+  z_mm: 215
+  pattern: 8x120
+- _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-5
+  panel: top
+  size_mm: 120
+  x_mm: 465
+  y_mm: 698
+  z_mm: 90
+  pattern: 8x120
+- _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-6
+  panel: top
+  size_mm: 120
+  x_mm: 465
+  y_mm: 698
+  z_mm: 215
+  pattern: 8x120
+- _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-7
+  panel: top
+  size_mm: 120
+  x_mm: 590
+  y_mm: 698
+  z_mm: 90
+  pattern: 8x120
+- _approximate: true
+  _assumption: Corsair lists the top as 8×120 (two 480 mm rows side by side). Modelled
+    as a 2-wide × 4-deep grid, the rear row about 50 mm from the rear wall; positions
+    are a schematic, not a factory drawing.
+  id: top-8-8
+  panel: top
+  size_mm: 120
+  x_mm: 590
+  y_mm: 698
+  z_mm: 215
+  pattern: 8x120
+- _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
     and the UI, not a factory drawing. Mount size is the published fan support for
     that position.
@@ -350,7 +438,7 @@ dimension_note: 'Corsair lists height 698 mm, length 698 mm, width 307 mm. Expan
   here as 8 horizontal + 2 vertical. Front/top 140 mm and 120 mm patterns are alternate
   InfiniRail layouts. Rev 4 models the front as the 8×120 pattern, 4 high × 2 wide
   (Corsair: "dual 480mm radiators side-by-side"), and the rear as 1×140 (Corsair:
-  rear 2×120 or 1×140), and the top as one row of 4×120 (Corsair: top 8×120). Bottom has no fan or radiator support. PSU max length 225
+  rear 2×120 or 1×140), and the top as one row of 4×120 by default, with the full 8×120 grid (2 wide × 4 deep, Corsair: top 8×120) as the `8x120` pattern. Bottom has no fan or radiator support. PSU max length 225
   mm. The rear 2×120 option is modelled as two fans stacked vertically above the
   slots, next to the CPU cooler (as in Mike Bradley''s build photos, per Stefano).
   Corsair lists "Included Fans: No Fans Included"; the 9000D template populates
