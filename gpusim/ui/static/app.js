@@ -187,7 +187,7 @@ function scratch(caseId) {
     gpus: [gpuTemplate("gpu1", "1", "rtx-pro-6000-blackwell-maxq")],
     mounts: kase.mounts.map((m) => ({ id: m.id, panel: m.panel, size_mm: m.size_mm, fan: null, state: "blanked", direction: "intake", duty: 1 })),
     radiator: { model: null, panel: "top", direction: "exhaust", arrangement: "push", fan: "generic-120", fan_count: 3, fan_duty: 1 },
-    cpu: { power_w: 150, cooling: "air", cooler_fan: "generic-140", cooler_fan_count: 1, cooler_duty: 0.8 },
+    cpu: { power_w: 150, cooling: "air", cooler_fan: "generic-140", cooler_fans: "both", cooler_airflow: "up", cooler_duty: 0.8 },
     shroud: { mode: "off", fan: "noctua-nf-a14-ippc-3000", count: 2, duty: 1 },
     seals: { ...DEFAULT_SEALS },
     filters: { front: "fine" },
@@ -600,6 +600,19 @@ function internalsPanel() {
   });
   out.push(el("label", { tip: TIPS.cpuCooling }, "CPU cooling", el("div", { class: "seg" }, ...coolBtns)));
   out.push(numberField("CPU heat, W", cpu, "power_w", TIPS.cpuPower, { min: 0, step: 5 }));
+  if (cpu.cooling === "air") {
+    cpu.cooler_fans ||= "both";
+    cpu.cooler_airflow ||= "up";
+    out.push(
+      selectField(
+        "Cooler fans",
+        cpu,
+        "cooler_fans",
+        [["both", "both (push-pull, stock)"], ["top", "top fan only"], ["bottom", "bottom fan only"]],
+        TIPS.cpuFans,
+      ),
+    );
+  }
   if (cpu.cooling === "water") out.push(el("p", { class: "fine" }, b.radiator.model ? `Heat leaves through the radiator on the ${b.radiator.panel} (${b.radiator.direction}).` : "Needs a radiator: add one on the front, top or bottom face."));
   out.push(
     el("div", { class: "row" },
@@ -614,9 +627,9 @@ function internalsPanel() {
     more.append(
       el("div", { class: "row" },
         selectField("Tower cooler fan", cpu, "cooler_fan", fans.map((f) => [f.id, f.name]), TIPS.cpuFan),
-        numberField("Fans", cpu, "cooler_fan_count", TIPS.cpuFan, { min: 1, max: 2 }),
         numberField("Speed %", cpu, "cooler_duty", TIPS.duty, { scale: 100, min: 0, max: 100, step: 5 }),
       ),
+      selectField("Cooler airflow", cpu, "cooler_airflow", [["up", "bottom → top (sTR5 / Threadripper)"], ["rear", "front → rear (classic tower)"]], TIPS.cpuAirflow),
     );
   }
   more.append(

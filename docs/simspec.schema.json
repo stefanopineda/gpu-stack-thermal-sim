@@ -301,10 +301,20 @@
             "title": "Cooler Fan",
             "type": "string"
           },
+          "cooler_fans": {
+            "default": "both",
+            "title": "Cooler Fans",
+            "type": "string"
+          },
           "cooler_fan_count": {
-            "default": 1,
+            "default": 2,
             "title": "Cooler Fan Count",
             "type": "integer"
+          },
+          "cooler_airflow": {
+            "default": "up",
+            "title": "Cooler Airflow",
+            "type": "string"
           },
           "cooler_duty": {
             "default": 0.8,
@@ -1009,10 +1019,20 @@
             "title": "Cooler Fan",
             "type": "string"
           },
+          "cooler_fans": {
+            "default": "both",
+            "title": "Cooler Fans",
+            "type": "string"
+          },
           "cooler_fan_count": {
-            "default": 1,
+            "default": 2,
             "title": "Cooler Fan Count",
             "type": "integer"
+          },
+          "cooler_airflow": {
+            "default": "up",
+            "title": "Cooler Airflow",
+            "type": "string"
           },
           "cooler_duty": {
             "default": 0.8,
@@ -1771,10 +1791,20 @@
             "title": "Cooler Fan",
             "type": "string"
           },
+          "cooler_fans": {
+            "default": "both",
+            "title": "Cooler Fans",
+            "type": "string"
+          },
           "cooler_fan_count": {
-            "default": 1,
+            "default": 2,
             "title": "Cooler Fan Count",
             "type": "integer"
+          },
+          "cooler_airflow": {
+            "default": "up",
+            "title": "Cooler Airflow",
+            "type": "string"
           },
           "cooler_duty": {
             "default": 0.8,

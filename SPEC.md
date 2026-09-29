@@ -483,6 +483,8 @@ crossflow rises", which is what the physics actually implies.
 | `network` PSU | `psu_fan` input and `psu_fan_up_k_mult` were never used | Fan up = exhaust from the GPU zone out the rear (generic 140 mm at 50 %, × 1.45 through the shroud cut-outs); fan down = outside air, no branch. |
 | Text: tooltip, demo, hypothesis, calib comment | "Open slots re-ingest the hot plume" stated unconditionally | The solver already sets that flow by pressure (−2.5 Pa: 5.9 CFM in; +7.7 Pa: 7.6 CFM out). Text now says re-ingestion only happens below room pressure. |
 | `thermal` plume | Fixed φ(gap) | Derived from flows (§16.1). |
+| `network._add_cpu_cooler` | A two-fan tower was two fans side by side (flow doubled) | Push-pull fans share one fin stack in series: same flow, pressure doubled. `cpu.cooler_fans` = both (stock default) / top / bottom. |
+| CPU cooler direction | Tower always blew front → rear into the rear fan; drawn blowing forward | `cpu.cooler_airflow` = up (default: sTR5 / SP6 towers on WRX90 run bottom → top; the rear-half top fans and the rear fan draw from the cooler outlet) or rear. Drawn with amber internal fans flat above / below the stack. Mike Bradley's build: top fan only (per Stefano, the bottom fan crowds GPU 1). |
 
 Known simplifications that remain, documented rather than changed: the GPU zone is one well-mixed air
 volume (no vertical stratification, so an upper card does not see warmer zone air unless the plume or a

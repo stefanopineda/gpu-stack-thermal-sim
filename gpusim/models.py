@@ -223,10 +223,22 @@ class CpuCfg(_Base):
     power_w: float = 150.0
     cooling: str = "water"  # water | air
     cooler_fan: str = "generic-140"
-    cooler_fan_count: int = 1
+    # Which fans the tower cooler has: both (push-pull, the stock default),
+    # top only, or bottom only. On a Threadripper board the bottom fan can
+    # crowd the first GPU, so some builders run the top fan alone.
+    cooler_fans: str = "both"
+    # Legacy count, kept so old builds load; cooler_fans decides the count.
+    cooler_fan_count: int = 2
+    # up: fins run bottom → top (sTR5 / SP6 towers on WRX90 boards, the
+    # default); rear: classic front → back tower.
+    cooler_airflow: str = "up"
     cooler_duty: float = 0.8
     # Tower fin-stack loss, Pa/(m³/s)². None → calib.GLOBAL["cpu_heatsink_k"].
     heatsink_k: float | None = None
+
+    @property
+    def fan_count(self) -> int:
+        return 2 if self.cooler_fans == "both" else 1
 
 
 class BuildCfg(_Base):

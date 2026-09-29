@@ -212,17 +212,36 @@ export class CaseScene {
     // CPU cooler on the socket.
     const cpu = build.cpu || { cooling: "water", power_w: 150 };
     if (cpu.cooling === "air") {
+      // Tower cooler. On sTR5 boards the fins run bottom → top, so the fans lie
+      // flat above and below the stack and blow up; a classic tower blows
+      // front → rear. Internal fans are drawn amber, not intake blue / exhaust red.
+      const upward = (cpu.cooler_airflow || "up") === "up";
+      const fans = cpu.cooler_fans || "both";
+      const fin = upward ? [0.15, 0.13, 0.14] : [0.11, 0.15, 0.15];
+      const cz = 0.014 + fin[2] / 2;
       add(
-        new THREE.BoxGeometry(0.11, 0.15, 0.15),
+        new THREE.BoxGeometry(...fin),
         new THREE.MeshStandardMaterial({ color: 0xb9c2c8, roughness: 0.35, metalness: 0.6 }),
-        sx, sy, 0.014 + 0.075,
-        `CPU tower cooler, ${Math.round(cpu.power_w)} W into the case air`,
+        sx, sy, cz,
+        `CPU tower cooler, ${Math.round(cpu.power_w)} W into the case air, blowing ${upward ? "up" : "toward the rear"}`,
       );
-      // Fan on the front face of the tower, blowing toward the rear.
-      this._fanDisc(new THREE.Vector3(sx - 0.055 - 0.008, sy, 0.089), new THREE.Vector3(-1, 0, 0), 0.07, "exhaust", {
-        kind: "part",
-        tip: "CPU cooler fan",
-      });
+      const r = 0.068;
+      const tip = (where) => `CPU cooler fan (${where}), blowing ${upward ? "up" : "toward the rear"}${fans === "both" ? ", push-pull pair" : ", single fan"}`;
+      if (upward) {
+        if (fans !== "bottom") {
+          this._fanDisc(new THREE.Vector3(sx, sy + fin[1] / 2 + 0.008, cz), new THREE.Vector3(0, 1, 0), r, "internal-out", { kind: "part", tip: tip("top, pulling") });
+        }
+        if (fans !== "top") {
+          this._fanDisc(new THREE.Vector3(sx, sy - fin[1] / 2 - 0.008, cz), new THREE.Vector3(0, -1, 0), r, "internal-in", { kind: "part", tip: tip("bottom, pushing") });
+        }
+      } else {
+        if (fans !== "bottom") {
+          this._fanDisc(new THREE.Vector3(sx + fin[0] / 2 + 0.008, sy, cz), new THREE.Vector3(1, 0, 0), r, "internal-out", { kind: "part", tip: tip("rear side, pulling") });
+        }
+        if (fans !== "top") {
+          this._fanDisc(new THREE.Vector3(sx - fin[0] / 2 - 0.008, sy, cz), new THREE.Vector3(-1, 0, 0), r, "internal-in", { kind: "part", tip: tip("front side, pushing") });
+        }
+      }
     } else {
       add(new THREE.BoxGeometry(0.07, 0.07, 0.03), new THREE.MeshStandardMaterial({ color: 0x3a3632, roughness: 0.5 }), sx, sy, 0.035, `AIO pump on the CPU, ${Math.round(cpu.power_w)} W to the radiator`);
     }
@@ -303,8 +322,9 @@ export class CaseScene {
 
   _fanDisc(center, normal, radius, dir, userData, thickness = 0.014) {
     if (dir === "gpu") return this._gpuFan(center, normal, radius, userData);
-    const color = dir === "intake" ? COLORS.intake : dir === "exhaust" ? COLORS.exhaust : COLORS.blank;
-    const blank = dir !== "intake" && dir !== "exhaust";
+    const internal = dir === "internal-in" || dir === "internal-out";
+    const color = internal ? 0xe0a15a : dir === "intake" ? COLORS.intake : dir === "exhaust" ? COLORS.exhaust : COLORS.blank;
+    const blank = !internal && dir !== "intake" && dir !== "exhaust";
     const group = new THREE.Group();
     const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal.clone().normalize());
     const body = new THREE.Mesh(
@@ -337,7 +357,8 @@ export class CaseScene {
       hub.userData = userData;
       group.add(hub);
       // Arrow: into the case for intake, out for exhaust.
-      const sign = dir === "intake" ? -1 : 1;
+      // Cone along −normal (into the panel / fin stack) or +normal (out of it).
+      const sign = dir === "intake" || dir === "internal-in" ? -1 : 1;
       const cone = new THREE.Mesh(
         new THREE.ConeGeometry(radius * 0.28, radius * 0.55, 20),
         new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }),

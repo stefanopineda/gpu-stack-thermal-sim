@@ -513,10 +513,16 @@ def _panel_target(panel: str, intake_node: str, air_cpu: bool = False) -> str:
 
 def _add_mounts(build, case, fans, intake_node, rho_ref, rho_for, ippc_scale, sample, add, air_cpu=False) -> None:
     cage = build.drive_cage == "present"
+    # An upward-blowing tower dumps its air under the rear half of the top panel,
+    # so those top fans (like the rear fan) draw from the cooler outlet.
+    xs = {m.id: m.x_mm for m in case.mounts}
+    up = air_cpu and build.cpu.cooler_airflow == "up"
     for mount in _resolved_mounts(build, case):
         if mount.state == "radiator":
             continue
         target = _panel_target(mount.panel, intake_node, air_cpu)
+        if up and mount.panel == "top" and xs.get(mount.id, 0.0) >= 0.5 * case.depth_mm:
+            target = "cpu"
         filt = build.filters.get(mount.panel, "none")
         k_extra = FILTER_K_AT_REF.get(filt, 0.0)
         if mount.panel == "front" and cage:
@@ -662,7 +668,10 @@ def _add_cpu_cooler(build, fans, rho_ref, rho_for, sample, add) -> None:
     fan_id = cpu.cooler_fan if cpu.cooler_fan in fans else "generic-140"
     fan = fans[fan_id]
     rpm = rpm_from_duty(fan.rpm_min, fan.rpm_max, cpu.cooler_duty)
-    q, p, rpm, rpm_ref = _fan_qp(fan, rpm, max(int(cpu.cooler_fan_count), 1), 1.0)
+    # Two fans on one fin stack sit in series (push-pull): same flow, pressure
+    # adds. Model them as one fan with twice the pressure at each flow.
+    count = cpu.fan_count
+    q, p, rpm, rpm_ref = _fan_qp(fan, rpm, 1, float(count))
     k_hs = float(cpu.heatsink_k if cpu.heatsink_k is not None else sample.get("cpu_heatsink_k", 2.5e4))
     add(
         Branch(
@@ -673,7 +682,10 @@ def _add_cpu_cooler(build, fans, rho_ref, rho_for, sample, add) -> None:
             k_lin=2.0,
             rho=rho_for("case"),
             kind="cpu-cooler",
-            label=f"CPU tower cooler, {cpu.cooler_fan_count}× {fan.name}, {cpu.power_w:.0f} W",
+            label=(
+                f"CPU tower cooler, {'push-pull 2×' if count == 2 else cpu.cooler_fans + ' fan only, 1×'} "
+                f"{fan.name}, blowing {cpu.cooler_airflow}, {cpu.power_w:.0f} W"
+            ),
             q_tab=q,
             p_tab=p,
             rpm=rpm,

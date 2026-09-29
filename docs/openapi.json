@@ -695,10 +695,20 @@
             "title": "Cooler Fan",
             "default": "generic-140"
           },
+          "cooler_fans": {
+            "type": "string",
+            "title": "Cooler Fans",
+            "default": "both"
+          },
           "cooler_fan_count": {
             "type": "integer",
             "title": "Cooler Fan Count",
-            "default": 1
+            "default": 2
+          },
+          "cooler_airflow": {
+            "type": "string",
+            "title": "Cooler Airflow",
+            "default": "up"
           },
           "cooler_duty": {
             "type": "number",

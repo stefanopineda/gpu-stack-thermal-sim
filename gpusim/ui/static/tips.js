@@ -33,7 +33,14 @@ export const TIPS = {
   cpuCooling:
     "Water: the CPU heat goes out through the radiator's air stream (needs a radiator). Air: a tower cooler's fan pulls case air " +
     "through its fin stack (a resistance ≈ 2.5e4 Pa/(m³/s)², approximate) and adds the CPU heat to the case air; the rear fan pulls from the cooler outlet.",
-  cpuFan: "Tower cooler fan model and count (push-pull = 2). Speed is a fraction of max RPM.",
+  cpuFan: "Tower cooler fan model. Speed is a fraction of max RPM.",
+  cpuFans:
+    "Fans on the tower cooler. Both = stock push-pull: two fans in series on one fin stack (same flow, twice the pressure). " +
+    "Top only = the pull fan alone, which some Threadripper builds use because the bottom fan crowds the first GPU " +
+    "(Mike Bradley's Degen X Station). Bottom only = the push fan alone.",
+  cpuAirflow:
+    "Direction the cooler blows. sTR5 / SP6 towers on WRX90 boards run bottom → top, so the cooler dumps its air under the rear " +
+    "half of the top panel: those top fans and the rear fan draw from the cooler outlet. A classic tower blows front → rear into the rear fan.",
   obstruction:
     "Internal obstruction between the intake and the cards. k multiplier on the internal branches (GPU zone → case, CPU cooler outlet): " +
     "low 1.0 (open interior), medium 2.5 (a drive cage or big cooler in the path), high 6.0 (cages, brackets, cables). Approximate.",
