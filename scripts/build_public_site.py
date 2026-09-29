@@ -38,9 +38,26 @@ def main() -> None:
     index = (PKG / "ui" / "static" / "index.html").read_text()
     index = index.replace(
         "<title>gpusim — air-cooled multi-GPU</title>",
-        "<title>gpuism — air-cooled multi-GPU</title>",
+        "<title>gpuism — model the case before you change the hardware</title>",
     )
     index = index.replace(">GPUSIM</button>", ">gpuism</button>")
+    # Link preview for X / Slack / iMessage.
+    meta = (
+        '<meta name="description" content="Would you rip your case apart for 5 °C? Model the airflow in your '
+        'air-cooled multi-GPU workstation, then see what each change is worth. Runs in your browser." />\n'
+        '  <meta property="og:title" content="gpuism — model the case before you change the hardware" />\n'
+        '  <meta property="og:description" content="Every change ranked by how many degrees it buys, how sure '
+        'the model is, and how much work it is. Air-cooled multi-GPU, runs in your browser." />\n'
+        '  <meta property="og:url" content="https://gpuism.com/" />\n'
+        '  <meta property="og:type" content="website" />\n'
+        '  <meta property="og:image" content="https://gpuism.com/static/og.png" />\n'
+        '  <meta property="og:image:width" content="1200" />\n'
+        '  <meta property="og:image:height" content="630" />\n'
+        '  <meta name="twitter:card" content="summary_large_image" />\n'
+        '  <meta name="twitter:image" content="https://gpuism.com/static/og.png" />\n'
+        "  <title>"
+    )
+    index = index.replace("<title>", meta, 1)
     index = index.replace('href="/static/style.css"', 'href="static/style.css"')
     index = index.replace(
         "Agents: <a href=\"/docs\">/docs</a>.",
