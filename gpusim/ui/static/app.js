@@ -11,7 +11,7 @@ const RADIATOR_FACES = ["front", "top", "bottom"];
 const SEAL_FOR_FACE = { front: "front", top: "top", bottom: "bottom", side: "side", rear: "rear_slots" };
 const FILTER_FACES = ["front", "top", "bottom"];
 const DEFAULT_SEALS = { front: 3, top: 3, bottom: 4, side: 5, seams: 4, rear_slots: 3 };
-const QUICK = { mike: "mike-bradley-powerhouse", meshify: "meshify2xl-stefano" };
+const QUICK = { mike: "mike-bradley-dengen-x-station", meshify: "meshify2xl-stefano" };
 
 const state = {
   presets: null,

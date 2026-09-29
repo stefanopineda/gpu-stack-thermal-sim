@@ -15,8 +15,8 @@ _assumption: 'Modelled from Mike Bradley''s public posts, used with his permissi
   only way four dual-slot cards fit a 7-slot WRX90E), and a 25 °C room. Layout checked by
   Stefano against his build photos: 4×120 top exhaust, 2×120 rear exhaust stacked above the
   cards beside the CPU cooler, no side-wall fans, no rear GPU shroud, no radiator.'
-id: mike-bradley-powerhouse
-name: Mike Bradley's Degen X Station — 4× RTX PRO 6000 Workstation
+id: mike-bradley-dengen-x-station
+name: Mike Bradley's Dengen X Station — 4× RTX PRO 6000 Workstation
 case: corsair-9000d
 ambient_c: 25
 altitude_m: 0

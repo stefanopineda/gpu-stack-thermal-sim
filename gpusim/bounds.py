@@ -135,12 +135,12 @@ def anchor_c_checks(library=None) -> list[dict]:
     from gpusim.models import ScenarioStep
 
     lib = library or get_library()
-    if "mike-bradley-powerhouse" not in lib.builds:
+    if "mike-bradley-dengen-x-station" not in lib.builds:
         return []
     out = []
     for duty, (bottom, top) in ANCHOR_C.items():
         step = ScenarioStep(id="c", title="c", talking_points=[], layout="keep", fan_duty=duty)
-        sol = solve(apply_scenario_step(lib.builds["mike-bradley-powerhouse"], step, lib), lib)
+        sol = solve(apply_scenario_step(lib.builds["mike-bradley-dengen-x-station"], step, lib), lib)
         temps = [c.t_die_unthrottled_c for c in sol.cards]
         rising = all(a > b for a, b in zip(temps, temps[1:]))
         ok = abs(temps[0] - top) <= 5.0 and abs(temps[-1] - bottom) <= 6.0 and rising

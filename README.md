@@ -94,7 +94,7 @@ When flow-through cards touch, the plume is not a side effect but the whole
 airflow: the lower card's backplate cutout breathes straight into the fans of
 the card above, so the stack runs as fans in series through a short duct
 (area fading as `exp(−gap / 8 mm)`). That is calibrated to **Mike Bradley's
-Degen X Station** (4× RTX PRO 6000 Workstation touching, 275 W, unified GPU
+Dengen X Station** (4× RTX PRO 6000 Workstation touching, 275 W, unified GPU
 fans), which he published at 49 → 79 °C bottom to top with fans near 80 % and
 49 → 69 °C at 100 %. The model gives 46.7 → 78.1 °C and 44.6 → 69.4 °C
 (anchor C in [docs/CALIBRATION.md](docs/CALIBRATION.md)).
@@ -170,7 +170,7 @@ uv run gpusim ui
 under `gpusim/ui/static/vendor` (the ES module, no CDN). Static files are served
 `no-cache`, so a restarted server is never stale in the browser.
 
-- **Start screen.** Two quick starts — Mike Bradley's Degen X Station (Corsair
+- **Start screen.** Two quick starts — Mike Bradley's Dengen X Station (Corsair
   9000D, four stacked RTX PRO 6000 Workstation cards) and Stefano's Meshify 2
   XL. Templates (9000D, generic ATX / mATX / E-ATX, Phanteks Enthoo Elite
   Server) and build-from-scratch sit behind "More".
@@ -204,7 +204,7 @@ under `gpusim/ui/static/vendor` (the ES module, no CDN). Static files are served
   assumption behind it.
 - Compare, Demo (arrow keys, auto), Present (hides controls for OBS),
   Optimize, °F.
-- **Shareable demo:** `/?demo=mike-bradley` walks Mike Bradley's Degen X
+- **Shareable demo:** `/?demo=mike-bradley` walks Mike Bradley's Dengen X
   Station (his published build, used with his permission; only his end-card
   temperatures are measurements). Other URL parameters: `?start=mike|meshify`, `?template=<build id>`,
   `?start=meshify|9000`, `?demo=stefano`, `?net=split|full`,

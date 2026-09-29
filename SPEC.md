@@ -114,9 +114,10 @@ Required cases (rev 3 list) with these rev 4 changes:
 - **Phanteks Enthoo Elite Server**: 12 slots, 582 × 261 × 721 mm read as H × W × D; one rear 140 modelled
   (only one fits above the 12-slot bracket area in the schematic); midplate fans spread.
 - Generic ATX / mATX / E-ATX: rear mounts moved above the slot area.
-- **Mike Bradley powerhouse** — 9000D-style mock: 8× AF120 RGB ELITE front, 3× RS120 side intake, top 360
-  exhaust, 2× iPPC shroud, four Max-Q on Custom Accelerated. Labelled everywhere as **"Illustrative mock —
-  not a measurement or claim about anyone's real build."**
+- **Mike Bradley's Dengen X Station** (rev 4.1; rev 4 had an illustrative 9000D mock here): his published
+  build, used with his permission: Corsair 9000D, 4× RTX PRO 6000 Workstation touching at 275 W, 8×120 front
+  intake, 4×120 top and 2×120 rear exhaust, air-cooled Threadripper PRO (top cooler fan only), no side fans,
+  no shroud, no radiator. Calibration anchor C (§16).
 
 ### 2.2 Fan library
 
@@ -424,7 +425,7 @@ Rev 4 decisions made without further questions, all documented as assumptions:
   `stack-<lower>-<upper>`: `cex(lower) → cin(upper)`, area `cutout · exp(−gap / 8 mm)`, lumped
   `C_d = 0.25` (cutout, fin exit, fan hub). It fades out as the gap opens; the plume overlay (§6.3) still
   handles the mixing at larger gaps. Global knobs `stack_length_mm`, `stack_cd`.
-- **Calibration anchor C — Mike Bradley's "Degen X Station"** (public posts, used with his permission):
+- **Calibration anchor C — Mike Bradley's "Dengen X Station"** (public posts, used with his permission):
   4× RTX PRO 6000 Workstation, touching (slots 1/3/5/7 — the only fit on a 7-slot WRX90E-SAGE SE),
   275 W caps, unified GPU fans. Published: bottom 49 °C / top 79 °C at ~80 % fans, 49 / 69 °C at 100 %.
   Model: 46.7 → 78.1 °C and 44.6 → 69.4 °C, rising card by card. Check: top ± 5 °C, bottom ± 6 °C (his
@@ -440,7 +441,7 @@ Rev 4 decisions made without further questions, all documented as assumptions:
 front/top 3×140 or 4×120, 9000D front 8×120 or 3×140, top 4×120 or 3×140. The Mike Bradley preset is his
 published build (not the rev 4 Max-Q mock). Scenario steps can pin `fan_duty` and `power_limit_w`.
 
-**UI.** Start screen is a funnel: two quick starts (Mike Bradley's Degen X Station, Stefano's Meshify 2 XL),
+**UI.** Start screen is a funnel: two quick starts (Mike Bradley's Dengen X Station, Stefano's Meshify 2 XL),
 templates and scratch behind "More". Left bar starts with **Case**. Each face shows one fan picker with 140
 mm / 120 mm option groups (picking the other size swaps the pattern), plus "set fans one by one", seal and
 filter behind expanders. "Blanked" is "cover plate (plugged)". No text over the 3D view: stats sit in the

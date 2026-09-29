@@ -77,7 +77,7 @@ Say: the search tried 48 air-cooled layouts on the Max-Q. The winner is gaps, ve
 normal fan directions, Custom Accelerated, 75.4 °C (Monte Carlo 68–88 °C). Water blocks were not in the
 search.
 
-## 2. Mike Bradley's Degen X Station (`?demo=mike-bradley`)
+## 2. Mike Bradley's Dengen X Station (`?demo=mike-bradley`)
 
 His public build, used with his permission: Corsair 9000D, four RTX PRO 6000 Workstation cards touching,
 275 W caps, unified GPU fans, air-cooled Threadripper PRO. Only the end-card temperatures he posted are

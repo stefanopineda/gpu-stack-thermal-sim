@@ -37,7 +37,7 @@ export const TIPS = {
   cpuFans:
     "Fans on the tower cooler. Both = stock push-pull: two fans in series on one fin stack (same flow, twice the pressure). " +
     "Top only = the pull fan alone, which some Threadripper builds use because the bottom fan crowds the first GPU " +
-    "(Mike Bradley's Degen X Station). Bottom only = the push fan alone.",
+    "(Mike Bradley's Dengen X Station). Bottom only = the push fan alone.",
   cpuAirflow:
     "Direction the cooler blows. sTR5 / SP6 towers on WRX90 boards run bottom → top, so the cooler dumps its air under the rear " +
     "half of the top panel: those top fans and the rear fan draw from the cooler outlet. A classic tower blows front → rear into the rear fan.",

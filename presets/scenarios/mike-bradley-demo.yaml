@@ -3,9 +3,9 @@ _assumption: Demo steps on Mike Bradley's published build (used with his permiss
   the end-card temperatures quoted as "his numbers" are measurements; the rest is the model.
 _source: https://x.com/MikeBradleyAI/status/2104206814577295513
 id: mike-bradley-demo
-title: Mike Bradley's Degen X Station
+title: Mike Bradley's Dengen X Station
 illustrative_mock: false
-base_build: mike-bradley-powerhouse
+base_build: mike-bradley-dengen-x-station
 disclaimer: 'Modelled from Mike Bradley''s public posts. His measured numbers: bottom 49 °C,
   top 79 °C at ~80 % fans; top 69 °C at 100 %.'
 steps:

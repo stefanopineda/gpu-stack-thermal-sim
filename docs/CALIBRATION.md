@@ -91,7 +91,7 @@ so the 5090 FE memory lands near the ~90 °C Gamers Nexus reports.
 With Custom Accelerated the same open-air cards run 65.6 (5090 FE), 66.1 (PRO 6000 WS) and 58.1 °C
 (3090 FE). These are checked in `bounds_check` as `open_air_<card>` with a ±5 °C band.
 
-## Anchor C — Mike Bradley's Degen X Station (rev 4.1)
+## Anchor C — Mike Bradley's Dengen X Station (rev 4.1)
 
 Four RTX PRO 6000 Workstation cards touching (slots 1/3/5/7 on an ASUS WRX90E-SAGE SE), 275 W caps,
 unified GPU fans, Corsair 9000D, air-cooled Threadripper PRO 7965WX. His posts
