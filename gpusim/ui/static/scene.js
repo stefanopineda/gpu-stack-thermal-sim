@@ -381,6 +381,9 @@ export class CaseScene {
     layouts.forEach((layout) => {
       const mount = byMount[layout.id] || { id: layout.id, state: "blanked" };
       if (mount.state === "radiator") return;
+      // An unused side-wall mount is just glass: draw nothing rather than a ring
+      // that reads as a fan.
+      if (layout.panel === "side" && mount.state !== "fan") return;
       const { pos, normal } = this._face(layout.panel, layout);
       const r = m(layout.size_mm) / 2;
       // Sit flush on the panel, the disc's thickness inside the case.

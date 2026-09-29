@@ -36,7 +36,7 @@ slot_pitch_mm:
   approximate: false
   source: PCI Express Card Electromechanical Specification, slot pitch 0.800 in (20.32
     mm)
-top_slot_y_mm: 520
+top_slot_y_mm: 450
 vertical_positions:
 - id: v1
   y_mm: 480
@@ -321,8 +321,8 @@ mounts:
   panel: rear
   size_mm: 120
   x_mm: 698
-  y_mm: 600
-  z_mm: 88
+  y_mm: 640
+  z_mm: 150
   pattern: 2x120
 - _approximate: true
   _assumption: Side-view coordinates and uncited areas are a schematic for the solver
@@ -332,8 +332,8 @@ mounts:
   panel: rear
   size_mm: 120
   x_mm: 698
-  y_mm: 600
-  z_mm: 219
+  y_mm: 520
+  z_mm: 150
   pattern: 2x120
 leak_areas_m2:
   _approximate: true
@@ -351,7 +351,9 @@ dimension_note: 'Corsair lists height 698 mm, length 698 mm, width 307 mm. Expan
   InfiniRail layouts. Rev 4 models the front as the 8×120 pattern, 4 high × 2 wide
   (Corsair: "dual 480mm radiators side-by-side"), and the rear as 1×140 (Corsair:
   rear 2×120 or 1×140), and the top as one row of 4×120 (Corsair: top 8×120). Bottom has no fan or radiator support. PSU max length 225
-  mm. Corsair lists "Included Fans: No Fans Included"; the 9000D template populates
+  mm. The rear 2×120 option is modelled as two fans stacked vertically above the
+  slots, next to the CPU cooler (as in Mike Bradley''s build photos, per Stefano).
+  Corsair lists "Included Fans: No Fans Included"; the 9000D template populates
   the front array with AF120 RGB ELITE as an assumption. The two extra vertical slots
   are, per Corsair, for a secondary motherboard; the model uses them as vertical GPU
   positions for convenience.'
