@@ -286,3 +286,5 @@ details.net-more p { font-size: 13px; color: var(--muted); line-height: 1.5; max
 .net-sym .inf { fill: var(--muted); font-size: 16px; }
 .net-sym .plume-path { stroke: var(--plume); stroke-width: 2.4; stroke-dasharray: 6 4; fill: none; }
 .net-sym .duct-path { stroke: #b58cff; stroke-width: 2.4; fill: none; }
+
+.load-error { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 50; max-width: 720px; padding: 12px 16px; border-radius: 8px; background: #3a1712; border: 1px solid #e24b3b; color: #ffe2dc; font-size: 14px; cursor: pointer; }

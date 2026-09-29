@@ -169,11 +169,34 @@ function buildStartScreen() {
 }
 
 async function loadBuild(id) {
-  state.build = await (await fetch(`/api/build/${id}`)).json();
+  const res = await fetch(`/api/build/${id}`);
+  if (!res.ok) {
+    // Usually a server started before this build preset existed: the page is
+    // newer than the process serving it. Say so instead of drawing nothing.
+    showLoadError(
+      `Build "${id}" is not on this server (HTTP ${res.status}). The gpusim ui process is older than this page — ` +
+        "restart it (Ctrl-C, then `uv run gpusim ui`) and reload.",
+    );
+    return;
+  }
+  state.build = await res.json();
   state.gaps = null;
   state.notice = null;
   enterApp();
   await solveNow();
+}
+
+function showLoadError(text) {
+  let box = document.getElementById("load-error");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "load-error";
+    box.className = "load-error";
+    document.body.append(box);
+  }
+  box.textContent = text;
+  box.classList.remove("hidden");
+  box.onclick = () => box.classList.add("hidden");
 }
 
 function scratch(caseId) {

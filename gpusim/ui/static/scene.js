@@ -2,22 +2,32 @@
  * (0 floor → H top), z = width (0 motherboard tray → W glass side). The scene
  * works in metres. The root group is mirrored in x so that, looking through
  * the glass, the front of the case is on the right and the rear I/O on the
- * left — the way a real ATX board sits. Fans are flat discs lying in the plane
- * of their panel, so a 3/4 camera shows them as ovals on their face. No text
- * is drawn over the scene; hovering an object reports it instead. */
+ * left — the way a real ATX board sits.
+ *
+ * Parts are drawn as the real hardware (PBR materials lit by a studio
+ * environment, soft shadows; see parts.js). Colour is kept only as a cue: a
+ * lit ring on each fan (blue intake, red exhaust, amber internal) and a light
+ * bar on each GPU in its die-temperature colour. No text is drawn over the
+ * scene; hovering an object reports it instead. */
 import * as THREE from "./vendor/three.module.js";
-
-const COLORS = {
-  intake: 0x3c8dff,
-  exhaust: 0xe24b3b,
-  blank: 0x8d877e,
-  shell: 0x2a241c,
-  edge: 0xf0e2cf,
-  psu: 0x2d2a26,
-  shroudOn: 0xb8433a,
-  shroudPassive: 0x8d877e,
-  mobo: 0x1f3b35,
-};
+import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
+import {
+  CUE,
+  MAT,
+  coverPlate,
+  cpuAreaModel,
+  fanModel,
+  gpuModel,
+  isShared,
+  meshPanelMaterial,
+  motherboardModel,
+  openHole,
+  orient,
+  psuModel,
+  radiatorModel,
+  tag,
+  tube,
+} from "./parts.js";
 
 const VIEWS = {
   front34: new THREE.Vector3(0.62, 0.38, 1.0),
@@ -26,7 +36,11 @@ const VIEWS = {
 };
 
 const RADIATOR_PANELS = ["front", "top", "bottom"];
+const FEET = 0.014;
 const m = (mm) => mm / 1000;
+
+/* Noctua redux fans are grey; everything else is drawn black. */
+const fanStyle = (fan) => (/redux/i.test(`${fan?.id || ""} ${fan?.name || ""}`) ? "grey" : "black");
 
 export class CaseScene {
   constructor(canvas, labelsEl, callbacks = {}) {
@@ -38,20 +52,59 @@ export class CaseScene {
     this.zoom = 1;
     this.orbit = null;
     this.ctx = null;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    r.toneMapping = THREE.ACESFilmicToneMapping;
+    r.toneMappingExposure = 0.95;
+    r.outputColorSpace = THREE.SRGBColorSpace;
+    r.shadowMap.enabled = true;
+    r.shadowMap.type = THREE.PCFSoftShadowMap;
+    r.shadowMap.autoUpdate = false; // parts only move on update()
+    this.renderer = r;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color("#0c0b09");
+    this.scene.background = new THREE.Color("#0d0e10");
+    const pmrem = new THREE.PMREMGenerator(r);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(r), 0.04).texture;
+    pmrem.dispose();
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.02, 30);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-    const key = new THREE.DirectionalLight(0xfff2e0, 0.95);
-    key.position.set(-2, 3, 4);
-    this.scene.add(key);
-    const rim = new THREE.DirectionalLight(0xbcd4ff, 0.35);
-    rim.position.set(3, 1, -2);
+    this.scene.add(new THREE.HemisphereLight(0xdfe6ee, 0x1a1712, 0.35));
+    // Key light from above the glass, front side; it throws the shadows.
+    this.key = new THREE.DirectionalLight(0xfff4e8, 2.2);
+    this.key.castShadow = true;
+    this.key.shadow.mapSize.set(2048, 2048);
+    this.key.shadow.bias = -0.0004;
+    this.key.shadow.normalBias = 0.0015;
+    this.key.shadow.radius = 3;
+    this.scene.add(this.key, this.key.target);
+    // Cool rim from behind the tray so dark parts keep an edge.
+    const rim = new THREE.DirectionalLight(0xbcd4ff, 0.6);
+    rim.position.set(-2, 1.5, -3);
     this.scene.add(rim);
+    // Floor: matte, catches the case's shadow.
+    // Radial fade so the floor melts into the background instead of ending
+    // at a hard horizon.
+    const fade = document.createElement("canvas");
+    fade.width = fade.height = 256;
+    const g = fade.getContext("2d");
+    const grad = g.createRadialGradient(128, 128, 8, 128, 128, 128);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.55, "#8a8a8a");
+    grad.addColorStop(1, "#000000");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    const floorFade = new THREE.CanvasTexture(fade);
+    floorFade.colorSpace = THREE.SRGBColorSpace;
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(3, 3),
+      new THREE.MeshLambertMaterial({ color: 0x2a2b2e, map: floorFade }),
+    );
+    this.floor = floor;
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    this.scene.add(floor);
     this.root = new THREE.Group();
     this.root.scale.x = -1; // front on the right as seen through the glass
+    this.root.position.y = FEET;
     this.scene.add(this.root);
     this.drag = null;
     this.labels = [];
@@ -103,21 +156,43 @@ export class CaseScene {
     while (this.root.children.length) {
       const child = this.root.children.pop();
       child.traverse?.((o) => {
-        o.geometry?.dispose?.();
-        if (o.material?.map) o.material.map.dispose();
-        o.material?.dispose?.();
+        if (o.geometry && !isShared(o.geometry)) o.geometry.dispose();
+        const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+        mats.forEach((mat) => {
+          if (isShared(mat)) return;
+          ["map", "alphaMap"].forEach((k) => mat[k] && !isShared(mat[k]) && mat[k].dispose());
+          mat.dispose();
+        });
       });
     }
     this.labels = [];
     if (!ctx || !ctx.build || !ctx.kase) return;
-    this.root.position.x = m(ctx.kase.depth_mm);
+    const { W, H, D } = this._dims();
+    this.root.position.x = D;
     this._shell();
     this._internals();
     this._mounts();
     this._radiator();
     this._gpus();
     this._shroud();
+    // Lights follow the case (world x = D − local x; the mirror keeps D/2).
+    const c = new THREE.Vector3(D / 2, FEET + H / 2, W / 2);
+    this.key.target.position.copy(c);
+    this.floor.position.set(D / 2, 0, W / 2);
+    this.key.position.copy(c).add(new THREE.Vector3(0.55, 1.3, 1.1));
+    const cam = this.key.shadow.camera;
+    const span = Math.max(W, H, D) * 0.85;
+    Object.assign(cam, { left: -span, right: span, top: span, bottom: -span, near: 0.2, far: 4 });
+    cam.updateProjectionMatrix();
+    this.renderer.shadowMap.needsUpdate = true;
     this._frame();
+  }
+
+  /* Add a part: every mesh in it carries the same hover / pick data. */
+  _add(object, userData = {}) {
+    tag(object, userData);
+    this.root.add(object);
+    return object;
   }
 
   /* ------------------------------------------------------------ geometry */
@@ -127,162 +202,106 @@ export class CaseScene {
     return { W: m(k.width_mm), H: m(k.height_mm), D: m(k.depth_mm) };
   }
 
+  /* Steel chassis: solid tray, floor and rear; perforated front and top;
+   * a tempered-glass side (or mesh, if the case has a mesh side panel). */
   _shell() {
     const { W, H, D } = this._dims();
-    const geo = new THREE.BoxGeometry(D, H, W);
-    const shell = new THREE.Mesh(
-      geo,
-      new THREE.MeshStandardMaterial({ color: COLORS.shell, transparent: true, opacity: 0.12, roughness: 0.9, depthWrite: false }),
-    );
-    shell.position.set(D / 2, H / 2, W / 2);
-    this.root.add(shell);
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: COLORS.edge }));
-    edges.position.copy(shell.position);
-    this.root.add(edges);
-    // Mesh-textured front and top, so the faces read as faces.
-    const mesh = this._meshTexture();
-    const front = new THREE.Mesh(
-      new THREE.PlaneGeometry(W, H),
-      new THREE.MeshBasicMaterial({ map: mesh, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }),
-    );
-    front.rotation.y = -Math.PI / 2;
-    front.position.set(-0.001, H / 2, W / 2);
-    this.root.add(front);
-    const top = new THREE.Mesh(
-      new THREE.PlaneGeometry(D, W),
-      new THREE.MeshBasicMaterial({ map: this._meshTexture(), transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
-    );
-    top.rotation.x = -Math.PI / 2;
-    top.position.set(D / 2, H + 0.001, W / 2);
-    this.root.add(top);
-  }
-
-  _meshTexture() {
-    const c = document.createElement("canvas");
-    c.width = 64;
-    c.height = 64;
-    const g = c.getContext("2d");
-    g.fillStyle = "rgba(0,0,0,0)";
-    g.fillRect(0, 0, 64, 64);
-    g.fillStyle = "rgba(240,226,207,0.55)";
-    for (let y = 2; y < 64; y += 6) for (let x = (y / 6) % 2 ? 5 : 2; x < 64; x += 6) g.fillRect(x, y, 2, 2);
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(6, 8);
-    return tex;
+    const t = 0.0012;
+    const panel = (w, h, mat, pos, rot, shadow = false) => {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+      p.position.copy(pos);
+      p.rotation.set(...rot);
+      p.receiveShadow = shadow;
+      this.root.add(p);
+      return p;
+    };
+    const tray = new THREE.Mesh(new THREE.BoxGeometry(D, H, t), MAT.steel);
+    tray.position.set(D / 2, H / 2, -t / 2);
+    tray.receiveShadow = true;
+    this.root.add(tray);
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(D, t, W), MAT.steel);
+    floor.position.set(D / 2, -t / 2, W / 2);
+    floor.receiveShadow = true;
+    this.root.add(floor);
+    panel(W, H, meshPanelMaterial(W, H, 0.8), new THREE.Vector3(D + t, H / 2, W / 2), [0, Math.PI / 2, 0]);
+    panel(W, H, meshPanelMaterial(W, H, 0.92), new THREE.Vector3(-t, H / 2, W / 2), [0, -Math.PI / 2, 0]);
+    panel(D, W, meshPanelMaterial(D, W, 0.9), new THREE.Vector3(D / 2, H + t, W / 2), [-Math.PI / 2, 0, 0]);
+    const side = this.ctx.build.side_panel === "mesh" ? meshPanelMaterial(D, H, 0.85) : MAT.glass;
+    panel(D - 0.02, H - 0.02, side, new THREE.Vector3(D / 2, H / 2, W + t), [0, 0, 0]);
+    // Frame rails on all twelve edges, and rubber feet.
+    const rail = 0.009;
+    const rails = new THREE.Group();
+    const beam = (sx, sy, sz, x, y, z) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), MAT.steelMid);
+      b.position.set(x, y, z);
+      rails.add(b);
+    };
+    for (const y of [0, H]) for (const z of [0, W]) beam(D + rail, rail, rail, D / 2, y, z);
+    for (const x of [0, D]) for (const z of [0, W]) beam(rail, H + rail, rail, x, H / 2, z);
+    for (const x of [0, D]) for (const y of [0, H]) beam(rail, rail, W + rail, x, y, W / 2);
+    for (const x of [0.04, D - 0.04]) {
+      for (const z of [0.03, W - 0.03]) {
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, FEET, 24), MAT.rubber);
+        foot.position.set(x, -FEET / 2, z);
+        rails.add(foot);
+      }
+    }
+    rails.traverse((o) => {
+      o.castShadow = true;
+      o.receiveShadow = true;
+    });
+    this.root.add(rails);
   }
 
   _internals() {
     const { build, kase } = this.ctx;
     const { W, H, D } = this._dims();
     const board = this._board();
-    const add = (geo, mat, x, y, z, tip) => {
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(x, y, z);
-      mesh.userData = { kind: "part", tip };
-      this.root.add(mesh);
-      return mesh;
-    };
-    const boardTip = "Motherboard: ASUS Pro WS WRX90E-SAGE SE layout (EEB 12 × 13 in, sTR5 socket, 8 DIMM slots, 7 PCIe 5.0 x16). Schematic, not a drawing.";
-    const bx = board.rear - board.depth / 2;
-    const by = board.top - board.height / 2;
-    add(new THREE.BoxGeometry(board.depth, board.height, 0.003), new THREE.MeshStandardMaterial({ color: 0x2c5a4c, roughness: 0.8, emissive: 0x0d2019 }), bx, by, 0.012, boardTip);
-    // sTR5 socket and retention frame.
+    const slots = Math.min(7, kase.horizontal_slots);
+    const slotYs = [];
+    for (let s = 1; s <= slots; s += 1) slotYs.push(this.slotY(s) + 0.004);
+    this._add(motherboardModel({ ...board, slotYs }), {
+      kind: "part",
+      tip: "Motherboard: ASUS Pro WS WRX90E-SAGE SE layout (EEB 12 × 13 in, sTR5 socket, 8 DIMM slots, 7 PCIe 5.0 x16). Proportions, not a drawing.",
+    });
+
+    // Socket, RAM and CPU cooler.
     const sx = board.rear - board.depth * 0.46;
     const sy = board.top - 0.085;
-    add(new THREE.BoxGeometry(0.078, 0.078, 0.01), new THREE.MeshStandardMaterial({ color: 0xa9b0b5, metalness: 0.7, roughness: 0.35 }), sx, sy, 0.019, "sTR5 socket (Threadripper PRO)");
-    // Eight DIMM slots, four each side of the socket, running top to bottom.
-    const dimm = new THREE.MeshStandardMaterial({ color: 0x6b7178, roughness: 0.5, metalness: 0.3 });
-    for (let k = 0; k < 4; k += 1) {
-      for (const side of [-1, 1]) {
-        add(new THREE.BoxGeometry(0.006, 0.133, 0.03), dimm, sx + side * (0.058 + k * 0.0095), sy, 0.029, "DDR5 RDIMM slot (8 on WRX90E-SAGE SE)");
-      }
-    }
-    // VRM heatsinks above the socket and along the I/O edge.
-    const vrm = new THREE.MeshStandardMaterial({ color: 0x55504a, metalness: 0.5, roughness: 0.5 });
-    add(new THREE.BoxGeometry(0.15, 0.022, 0.028), vrm, sx, board.top - 0.02, 0.028, "VRM heatsink");
-    add(new THREE.BoxGeometry(0.03, 0.12, 0.03), vrm, board.rear - 0.03, board.top - 0.09, 0.03, "VRM heatsink / rear I/O shroud");
-    // Seven PCIe x16 slots, lined up with case slots 1–7.
-    const pcie = new THREE.MeshStandardMaterial({ color: 0xc9c2b6, roughness: 0.6 });
-    const slots = Math.min(7, kase.horizontal_slots);
-    for (let s = 1; s <= slots; s += 1) {
-      add(new THREE.BoxGeometry(0.089, 0.0075, 0.011), pcie, board.rear - 0.044 - 0.0445, this.slotY(s) + 0.004, 0.019, `PCIe 5.0 x16 slot ${s}`);
-    }
-
-    // CPU cooler on the socket.
+    this.socket = new THREE.Vector3(sx, sy, 0.01);
     const cpu = build.cpu || { cooling: "water", power_w: 150 };
-    if (cpu.cooling === "air") {
-      // Tower cooler. On sTR5 boards the fins run bottom → top, so the fans lie
-      // flat above and below the stack and blow up; a classic tower blows
-      // front → rear. Internal fans are drawn amber, not intake blue / exhaust red.
-      const upward = (cpu.cooler_airflow || "up") === "up";
-      const fans = cpu.cooler_fans || "both";
-      // Noctua NH-U14S TR5-SP6 class: a 52 mm-thick fin stack, 150 mm wide,
-      // standing 165 mm off the board, fans on its two broad faces.
-      const fin = upward ? [0.15, 0.052, 0.165] : [0.052, 0.15, 0.165];
-      const cz = 0.014 + fin[2] / 2;
-      add(
-        new THREE.BoxGeometry(...fin),
-        new THREE.MeshStandardMaterial({ color: 0xb9c2c8, roughness: 0.35, metalness: 0.6 }),
-        sx, sy, cz,
-        `CPU tower cooler, ${Math.round(cpu.power_w)} W into the case air, blowing ${upward ? "up" : "toward the rear"}`,
-      );
-      const r = 0.068;
-      const tip = (where) => `CPU cooler fan (${where}), blowing ${upward ? "up" : "toward the rear"}${fans === "both" ? ", push-pull pair" : ", single fan"}`;
-      if (upward) {
-        if (fans !== "bottom") {
-          this._fanDisc(new THREE.Vector3(sx, sy + fin[1] / 2 + 0.008, cz), new THREE.Vector3(0, 1, 0), r, "internal-out", { kind: "part", tip: tip("top, pulling") });
-        }
-        if (fans !== "top") {
-          this._fanDisc(new THREE.Vector3(sx, sy - fin[1] / 2 - 0.008, cz), new THREE.Vector3(0, -1, 0), r, "internal-in", { kind: "part", tip: tip("bottom, pushing") });
-        }
-      } else {
-        if (fans !== "bottom") {
-          this._fanDisc(new THREE.Vector3(sx + fin[0] / 2 + 0.008, sy, cz), new THREE.Vector3(1, 0, 0), r, "internal-out", { kind: "part", tip: tip("rear side, pulling") });
-        }
-        if (fans !== "top") {
-          this._fanDisc(new THREE.Vector3(sx - fin[0] / 2 - 0.008, sy, cz), new THREE.Vector3(-1, 0, 0), r, "internal-in", { kind: "part", tip: tip("front side, pushing") });
-        }
-      }
-    } else {
-      add(new THREE.BoxGeometry(0.07, 0.07, 0.03), new THREE.MeshStandardMaterial({ color: 0x3a3632, roughness: 0.5 }), sx, sy, 0.035, `AIO pump on the CPU, ${Math.round(cpu.power_w)} W to the radiator`);
-    }
+    const upward = (cpu.cooler_airflow || "up") === "up";
+    const fans = cpu.cooler_fans || "both";
+    const cooler = cpuAreaModel({ cooling: cpu.cooling, fans, upward, cue: CUE.internal });
+    cooler.position.copy(this.socket);
+    const tip =
+      cpu.cooling === "air"
+        ? `CPU tower cooler, ${Math.round(cpu.power_w)} W into the case air, blowing ${upward ? "up" : "toward the rear"}` +
+          `${fans === "both" ? ", push-pull pair" : `, ${fans} fan only`}. sTR5 socket, 8 DDR5 RDIMMs.`
+        : `AIO pump on the CPU, ${Math.round(cpu.power_w)} W to the radiator. sTR5 socket, 8 DDR5 RDIMMs.`;
+    this._add(cooler, { kind: "part", tip });
 
     // PSU and its shroud, bottom rear.
     const n = kase.horizontal_slots;
     const lowest = this.slotY(n) - m(kase.slot_pitch_mm);
     const shrouded = kase.psu_shroud && build.psu_location !== "open";
     const shroudTop = Math.max(0.1, Math.min(lowest - m(kase.psu_shroud_clearance_mm || 40), H * 0.36));
-    if (shrouded) {
-      const box = new THREE.Mesh(
-        new THREE.BoxGeometry(D - 0.004, shroudTop, W - 0.004),
-        new THREE.MeshStandardMaterial({ color: 0x3a332b, transparent: true, opacity: 0.28, depthWrite: false }),
-      );
-      box.position.set(D / 2, shroudTop / 2, W / 2);
-      this.root.add(box);
-      const edge = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(D - 0.004, shroudTop, W - 0.004)),
-        new THREE.LineBasicMaterial({ color: 0x6d6254 }),
-      );
-      edge.position.copy(box.position);
-      this.root.add(edge);
-    }
-    const psu = new THREE.Mesh(
-      new THREE.BoxGeometry(0.17, 0.086, 0.15),
-      new THREE.MeshStandardMaterial({ color: COLORS.psu, roughness: 0.6, metalness: 0.3 }),
-    );
-    psu.position.set(D - 0.012 - 0.085, 0.012 + 0.043, W / 2);
-    this.root.add(psu);
     const psuFanUp = build.psu_fan === "up";
-    this._fanDisc(
-      new THREE.Vector3(D - 0.012 - 0.085, psuFanUp ? 0.012 + 0.087 : 0.011, W / 2),
-      new THREE.Vector3(0, psuFanUp ? 1 : -1, 0),
-      0.06,
-      "blank",
-      { kind: "part", tip: `PSU, bottom rear${shrouded ? ", under the PSU shroud" : ""}, fan ${psuFanUp ? "up" : "down"}` },
-      0.006,
-    );
-    this._label(new THREE.Vector3(D - 0.1, 0.13, W / 2), `PSU${shrouded ? " (shrouded)" : ""} · fan ${psuFanUp ? "up" : "down"}`, "tag");
+    const psu = psuModel(psuFanUp);
+    psu.position.set(D - 0.012 - 0.085, 0.012 + 0.043, W / 2);
+    this._add(psu, { kind: "part", tip: `PSU, bottom rear${shrouded ? ", under the PSU shroud" : ""}, fan ${psuFanUp ? "up" : "down"}` });
+    if (shrouded) {
+      const g = new THREE.Group();
+      const top = new THREE.Mesh(new THREE.BoxGeometry(D - 0.01, 0.0015, W - 0.01), meshPanelMaterial(D, W, 0.95));
+      top.position.set(D / 2, shroudTop, W / 2);
+      g.add(top);
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.01, shroudTop), MAT.smoke);
+      face.position.set(D / 2, shroudTop / 2, W - 0.006);
+      g.add(face);
+      g.userData = { kind: "part", tip: "PSU shroud: perforated top, closed below" };
+      g.traverse((o) => (o.userData = g.userData));
+      this.root.add(g);
+    }
   }
 
   /* ASUS Pro WS WRX90E-SAGE SE, EEB 12 × 13 in: schematic placement. */
@@ -322,80 +341,13 @@ export class CaseScene {
     }
   }
 
-  _fanDisc(center, normal, radius, dir, userData, thickness = 0.014) {
-    if (dir === "gpu") return this._gpuFan(center, normal, radius, userData);
-    const internal = dir === "internal-in" || dir === "internal-out";
-    const color = internal ? 0xe0a15a : dir === "intake" ? COLORS.intake : dir === "exhaust" ? COLORS.exhaust : COLORS.blank;
-    const blank = !internal && dir !== "intake" && dir !== "exhaust";
-    const group = new THREE.Group();
-    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal.clone().normalize());
-    const body = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius, radius, thickness, 40),
-      new THREE.MeshStandardMaterial({
-        color,
-        transparent: blank,
-        opacity: blank ? 0.35 : 0.92,
-        roughness: 0.5,
-        depthWrite: !blank,
-      }),
-    );
-    body.quaternion.copy(q);
-    body.userData = userData;
-    group.add(body);
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(radius, Math.max(radius * 0.05, 0.003), 8, 48),
-      new THREE.MeshBasicMaterial({ color: blank ? 0xc9c1b6 : 0xf3efe6 }),
-    );
-    ring.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal.clone().normalize()));
-    ring.position.copy(normal.clone().multiplyScalar(thickness / 2 + 0.001));
-    ring.userData = userData;
-    group.add(ring);
-    if (!blank) {
-      const hub = new THREE.Mesh(
-        new THREE.CylinderGeometry(radius * 0.32, radius * 0.32, thickness * 1.15, 24),
-        new THREE.MeshStandardMaterial({ color: 0x1a1714, roughness: 0.7 }),
-      );
-      hub.quaternion.copy(q);
-      hub.userData = userData;
-      group.add(hub);
-      // Arrow: into the case for intake, out for exhaust.
-      // Cone along −normal (into the panel / fin stack) or +normal (out of it).
-      const sign = dir === "intake" || dir === "internal-in" ? -1 : 1;
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(radius * 0.28, radius * 0.55, 20),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }),
-      );
-      cone.quaternion.copy(
-        new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal.clone().multiplyScalar(sign).normalize()),
-      );
-      cone.position.copy(normal.clone().multiplyScalar(sign * (thickness / 2 + radius * 0.3)));
-      cone.userData = userData;
-      group.add(cone);
-    }
-    group.position.copy(center);
-    this.root.add(group);
-    return group;
-  }
-
-  /* A GPU's own fan: dark disc with a light rim, so it never reads as a case fan. */
-  _gpuFan(center, normal, radius, userData) {
-    const group = new THREE.Group();
-    const disc = new THREE.Mesh(
-      new THREE.CircleGeometry(radius, 32),
-      new THREE.MeshBasicMaterial({ color: 0x1b1916, side: THREE.DoubleSide }),
-    );
-    disc.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal.clone().normalize()));
-    disc.userData = userData;
-    group.add(disc);
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(radius, 0.0025, 6, 40),
-      new THREE.MeshBasicMaterial({ color: 0xd9cfc2 }),
-    );
-    ring.quaternion.copy(disc.quaternion);
-    group.add(ring);
-    group.position.copy(center);
-    this.root.add(group);
-    return group;
+  /* A real fan on a panel. `normal` points out of the case. The motor struts
+   * sit on the downstream side, as on the hardware. */
+  _caseFan(center, normal, sizeM, direction, fan, userData, depth = 0.025) {
+    const f = fanModel(sizeM, { cue: CUE[direction] ?? null, style: fanStyle(fan), depth });
+    orient(f, direction === "exhaust" ? normal.clone().negate() : normal);
+    f.position.copy(center);
+    return this._add(f, userData);
   }
 
   _mounts() {
@@ -405,14 +357,10 @@ export class CaseScene {
     layouts.forEach((layout) => {
       const mount = byMount[layout.id] || { id: layout.id, state: "blanked" };
       if (mount.state === "radiator") return;
-      // An unused side-wall mount is just glass: draw nothing rather than a ring
-      // that reads as a fan.
+      // An unused side-wall mount is just glass: draw nothing.
       if (layout.panel === "side" && mount.state !== "fan") return;
       const { pos, normal } = this._face(layout.panel, layout);
-      const r = m(layout.size_mm) / 2;
-      // Sit flush on the panel, the disc's thickness inside the case.
-      const center = pos.clone().add(normal.clone().multiplyScalar(-0.007 + 0.002));
-      const dir = mount.state === "fan" ? mount.direction : "blank";
+      const size = m(layout.size_mm);
       const fan = presets.fans.find((f) => f.id === mount.fan);
       const tip =
         mount.state === "fan"
@@ -420,8 +368,17 @@ export class CaseScene {
           : mount.state === "empty"
             ? `${cap(layout.panel)} ${layout.size_mm} mm mount: open hole, no fan`
             : `${cap(layout.panel)} ${layout.size_mm} mm mount: cover plate (plugged)`;
-      const g = this._fanDisc(center, normal, r * 0.96, dir, { kind: "fan", id: mount.id, panel: layout.panel, tip });
-      if (this.ctx.selectedMount === mount.id) g.scale.setScalar(1.08);
+      const ud = { kind: "fan", id: mount.id, panel: layout.panel, tip };
+      let obj;
+      if (mount.state === "fan") {
+        obj = this._caseFan(pos.clone().addScaledVector(normal, -0.0155), normal, size * 0.98, mount.direction, fan, ud);
+      } else {
+        obj = mount.state === "empty" ? openHole(size) : coverPlate(size);
+        orient(obj, normal);
+        obj.position.copy(pos.clone().addScaledVector(normal, -0.003));
+        this._add(obj, ud);
+      }
+      if (this.ctx.selectedMount === mount.id) obj.scale.setScalar(1.08);
     });
   }
 
@@ -449,6 +406,7 @@ export class CaseScene {
       if (rad.offset === "front") return 0.015 + length / 2;
       return null;
     };
+    const slab = radiatorModel(Math.min(len, (panel === "front" ? H : D) - 0.04), wid, t);
     if (panel === "top") {
       size = [Math.min(len, D - 0.04), t, wid];
       const x = slideTo(size[0], D) ?? (layouts.length ? mean("x_mm") : D / 2);
@@ -458,64 +416,48 @@ export class CaseScene {
       size = [t, Math.min(len, H - 0.04), wid];
       pos = new THREE.Vector3(t / 2 + 0.004, layouts.length ? mean("y_mm") : H / 2, layouts.length ? mean("z_mm") : W / 2);
       inward = new THREE.Vector3(1, 0, 0);
+      slab.rotation.z = Math.PI / 2;
     } else {
       size = [Math.min(len, D - 0.04), t, wid];
       const x = slideTo(size[0], D) ?? (layouts.length ? mean("x_mm") : D / 2);
       pos = new THREE.Vector3(x, t / 2 + 0.004, layouts.length ? mean("z_mm") : W / 2);
       inward = new THREE.Vector3(0, 1, 0);
     }
-    const geo = new THREE.BoxGeometry(...size);
-    const slab = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: this._finTexture(panel), roughness: 0.6, metalness: 0.3 }));
     slab.position.copy(pos);
-    slab.userData = { kind: "radiator", tip: `Radiator: ${model.name}, ${rad.direction}, fans on its inner face` };
-    this.root.add(slab);
-    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xe0a15a }));
-    edge.position.copy(pos);
-    this.root.add(edge);
+    const ud = { kind: "radiator", tip: `Radiator: ${model.name}, ${rad.direction}, fans on its inner face` };
+    this._add(slab, ud);
     // Fans sit directly on the radiator's inner face.
     const count = rad.fan_count || model.fan_count || 3;
     const fan = presets.fans.find((f) => f.id === (rad.fan || model.default_fan));
-    const r = m(fan ? fan.size_mm : model.fan_size_mm) / 2;
+    const fanSize = m(fan ? fan.size_mm : model.fan_size_mm);
     const along = panel === "front" ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
     const span = panel === "front" ? size[1] : size[0];
-    const faceOffset = (panel === "front" ? size[0] : size[1]) / 2 + 0.008;
+    const faceOffset = (panel === "front" ? size[0] : size[1]) / 2 + 0.0125;
+    const outward = inward.clone().negate();
     for (let i = 0; i < count; i += 1) {
       const u = (i + 0.5) / count - 0.5;
-      const c = pos.clone().add(along.clone().multiplyScalar(u * span)).add(inward.clone().multiplyScalar(faceOffset));
-      this._fanDisc(c, inward.clone().multiplyScalar(-1), r * 0.95, rad.direction === "intake" ? "intake" : "exhaust", {
+      const c = pos.clone().addScaledVector(along, u * span).addScaledVector(inward, faceOffset);
+      this._caseFan(c, outward, fanSize * 0.98, rad.direction === "intake" ? "intake" : "exhaust", fan, {
         kind: "radiator",
         tip: `Radiator fan: ${fan ? fan.name : "fan"}, ${rad.direction}`,
       });
     }
-    const labelAt = pos.clone().add(inward.clone().multiplyScalar(faceOffset + 0.05));
-    this._label(
-      labelAt,
-      `Radiator ${model.name} · ${count}× ${fan ? fan.name : "fan"} · ${rad.direction}`,
-      "tag rad-tag",
-    );
-  }
-
-  _finTexture(panel) {
-    const c = document.createElement("canvas");
-    c.width = 256;
-    c.height = 32;
-    const g = c.getContext("2d");
-    g.fillStyle = "#cfd6db";
-    g.fillRect(0, 0, 256, 32);
-    g.strokeStyle = "#7c8a93";
-    g.lineWidth = 1;
-    for (let x = 2; x < 256; x += 4) {
-      g.beginPath();
-      g.moveTo(x, 0);
-      g.lineTo(x, 32);
-      g.stroke();
+    // Hoses from the pump to the end tank nearest the socket.
+    if (this.socket && (build.cpu?.cooling || "water") === "water") {
+      const ends = [-1, 1].map((sgn) => pos.clone().addScaledVector(along, sgn * (span / 2 - 0.012)));
+      const tank = ends.sort((a, b) => a.distanceTo(this.socket) - b.distanceTo(this.socket))[0];
+      [-0.012, 0.012].forEach((dz) => {
+        const pump = this.socket.clone().add(new THREE.Vector3(dz, 0, 0.05));
+        const end = tank.clone().add(new THREE.Vector3(0, 0, dz)).addScaledVector(inward, size[panel === "front" ? 0 : 1] / 2);
+        const pts = [
+          pump,
+          pump.clone().add(new THREE.Vector3(0, 0, 0.05)),
+          end.clone().addScaledVector(inward, 0.07).add(new THREE.Vector3(0, 0, 0.02)),
+          end,
+        ];
+        this._add(tube(pts), { kind: "part", tip: "AIO hoses, pump to radiator" });
+      });
     }
-    g.strokeStyle = "#e0a15a";
-    g.lineWidth = 3;
-    g.strokeRect(1.5, 1.5, 253, 29);
-    const tex = new THREE.CanvasTexture(c);
-    if (panel === "front") tex.rotation = Math.PI / 2;
-    return tex;
   }
 
   cardBox(gpu, card) {
@@ -562,73 +504,39 @@ export class CaseScene {
       const box = this.cardBox(gpu, card);
       if (!box) return;
       const res = cards[gpu.id];
-      const geo = new THREE.BoxGeometry(...box.size);
-      const mesh = new THREE.Mesh(
-        geo,
-        new THREE.MeshStandardMaterial({
-          color: new THREE.Color(tempColor(res ? res.t_die_c : 60)),
-          roughness: 0.45,
-          metalness: 0.2,
-          transparent: box.vertical,
-          opacity: box.vertical ? 0.78 : 1,
-        }),
-      );
-      mesh.position.copy(box.center);
-      const order = this.ctx.order?.[gpu.id];
-      const where = box.vertical ? `vertical ${gpu.slot}` : `slot ${gpu.slot}`;
-      const tip = `GPU ${order ?? ""} · ${card ? card.name : gpu.card} · ${where}` +
-        (res ? ` · ${fmt(res.t_die_c)}${res.throttle ? " (throttling)" : ""} · ${res.flow_cfm.toFixed(0)} CFM` : "");
-      mesh.userData = { kind: "gpu", id: gpu.id, tip };
-      this.root.add(mesh);
-      const edge = new THREE.LineSegments(
-        new THREE.EdgesGeometry(geo),
-        new THREE.LineBasicMaterial({ color: box.vertical ? 0xf3efe6 : 0x14120e }),
-      );
-      edge.position.copy(box.center);
-      this.root.add(edge);
-      // Fan face: one blower eye, or two axial fans.
       const through = card?.cooler === "flow_through";
       const L = box.size[0];
-      const halfT = (box.vertical ? box.size[2] : box.size[1]) / 2;
-      const fanCenters = through ? [-L / 2 + 0.07, L / 2 - 0.07] : [-L / 2 + 0.05];
-      fanCenters.forEach((dx) => {
-        const c = box.center.clone().add(new THREE.Vector3(dx, 0, 0)).add(box.fanNormal.clone().multiplyScalar(halfT + 0.002));
-        this._fanDisc(c, box.fanNormal, through ? 0.045 : 0.03, "gpu", { kind: "gpu", id: gpu.id, tip });
-      });
-      // Blowers that also breathe through the backplate side (Max-Q: about a
-      // quarter of the eye) get a smaller inlet drawn on the top face too.
-      if (!through && (card?.inlet_faces === "both" || card?.inlet_faces === "cpu")) {
-        const share = card.inlet_faces === "cpu" ? 1 : Math.max(0.1, 1 - (card.inlet_split ?? 0.75));
-        const c = box.center.clone().add(new THREE.Vector3(fanCenters[0], 0, 0)).add(box.exhaustNormal.clone().multiplyScalar(halfT + 0.002));
-        this._fanDisc(c, box.exhaustNormal, 0.03 * Math.sqrt(share / (1 - share || 1)), "gpu", { kind: "gpu", id: gpu.id, tip: `${tip} · top-side inlet (${Math.round(share * 100)} % of the blower eye)` });
-      }
-      // Flow-through exhaust plume above the card; stronger when the card above breathes it.
+      const T = box.vertical ? box.size[2] : box.size[1];
+      const Hc = box.vertical ? box.size[1] : box.size[2];
+      const faces = card?.inlet_faces;
+      const topInletShare = !through && (faces === "both" || faces === "cpu") ? (faces === "cpu" ? 0.5 : Math.max(0.1, 1 - (card.inlet_split ?? 0.75))) : 0;
+      const model = gpuModel(card, { L, T, H: Hc, tempColor: tempColor(res ? res.t_die_c : 60), topInletShare });
+      // Local card frame: X length, Y thickness (fan face −Y), Z height (gold
+      // fingers −Z). A vertical card stands on edge with its fans toward the glass.
+      if (box.vertical) model.rotation.x = -Math.PI / 2;
+      model.position.copy(box.center);
+      const order = this.ctx.order?.[gpu.id];
+      const where = box.vertical ? `vertical ${gpu.slot}` : `slot ${gpu.slot}`;
+      const tip =
+        `GPU ${order ?? ""} · ${card ? card.name : gpu.card} · ${where}` +
+        (res ? ` · ${fmt(res.t_die_c)}${res.throttle ? " (throttling)" : ""} · ${res.flow_cfm.toFixed(0)} CFM` : "") +
+        (topInletShare && faces === "both" ? ` · breathes ${Math.round(topInletShare * 100)} % through the backplate side` : "");
+      this._add(model, { kind: "gpu", id: gpu.id, tip });
+      // Flow-through exhaust: a faint warm haze above the card, stronger when
+      // the card above breathes it.
       if (through) {
         const plume = plumeByLower[gpu.id];
         const share = plume ? plume.share_of_upper_intake : 0.15;
-        const h = 0.05;
-        const cone = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.035, 0.07, h, 24, 1, true),
-          new THREE.MeshBasicMaterial({
-            color: 0xe24b3b,
-            transparent: true,
-            opacity: 0.18 + 0.5 * share,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-          }),
+        const h = 0.045;
+        const haze = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.03, 0.06, h, 24, 1, true),
+          new THREE.MeshBasicMaterial({ color: CUE.exhaust, transparent: true, opacity: 0.06 + 0.22 * share, side: THREE.DoubleSide, depthWrite: false }),
         );
-        cone.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), box.exhaustNormal));
-        cone.position.copy(
-          box.center.clone().add(new THREE.Vector3(L / 2 - 0.09, 0, 0)).add(box.exhaustNormal.clone().multiplyScalar(halfT + h / 2)),
-        );
-        this.root.add(cone);
+        haze.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), box.exhaustNormal);
+        haze.position.copy(box.center).add(new THREE.Vector3(L / 2 - 0.09, 0, 0)).addScaledVector(box.exhaustNormal, T / 2 + h / 2);
+        haze.userData = { kind: "part", tip: `${gpu.id} exhaust plume${plume ? `: ${Math.round(share * 100)} % of the next card's intake` : ""}` };
+        this.root.add(haze);
       }
-      const t = res ? fmt(res.t_die_c) : "…";
-      const thr = res && res.throttle ? " · THROTTLE" : "";
-      const plumeNote = (solution?.plume || []).find((p) => p.upper === gpu.id && p.share_of_upper_intake > 0.01);
-      const extra = plumeNote ? ` · breathes ${Math.round(plumeNote.share_of_upper_intake * 100)}% of ${plumeNote.lower}'s exhaust` : "";
-      const at = box.center.clone().add(new THREE.Vector3(-L / 2 - 0.01, 0, box.vertical ? 0 : box.size[2] / 2));
-      this._label(at, `${gpu.id} · ${t}${thr}${extra}`, "tag gpu-tag" + (res?.throttle ? " hot" : ""));
     });
   }
 
@@ -648,31 +556,33 @@ export class CaseScene {
     const h = Math.max(top - bottom, fanD + 0.02);
     const wid = Math.max(W - 0.01, count * fanD + 0.02);
     const depth = 0.07;
-    const geo = new THREE.BoxGeometry(depth, h, wid);
-    const box = new THREE.Mesh(
-      geo,
-      new THREE.MeshStandardMaterial({
-        color: mode === "on" ? COLORS.shroudOn : COLORS.shroudPassive,
-        transparent: true,
-        opacity: 0.5,
-        roughness: 0.5,
-      }),
-    );
-    box.position.set(D + depth / 2, (top + bottom) / 2, W / 2);
-    box.userData = { kind: "part", tip: mode === "on" ? `Rear GPU shroud: one plenum over every bracket outlet, ${count} fans side by side pulling on it` : "Passive rear duct over the bracket outlets" };
-    this.root.add(box);
-    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xf0c8b8 }));
-    edge.position.copy(box.position);
-    this.root.add(edge);
+    const g = new THREE.Group();
+    const wall = 0.002;
+    const plate = (sx, sy, sz, x, y, z) => {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), MAT.black);
+      p.position.set(x, y, z);
+      g.add(p);
+    };
+    const cy = (top + bottom) / 2;
+    const cx = D + depth / 2;
+    plate(depth, wall, wid, cx, cy + h / 2, W / 2);
+    plate(depth, wall, wid, cx, cy - h / 2, W / 2);
+    plate(depth, h, wall, cx, cy, W / 2 - wid / 2);
+    plate(depth, h, wall, cx, cy, W / 2 + wid / 2);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(wall, h, wid), count ? MAT.smoke : MAT.black);
+    back.position.set(D + depth, cy, W / 2);
+    g.add(back);
+    this._add(g, {
+      kind: "part",
+      tip: mode === "on" ? `Rear GPU shroud: one plenum over every bracket outlet, ${count} fans side by side pulling on it` : "Passive rear duct over the bracket outlets",
+    });
     for (let i = 0; i < count; i += 1) {
       const z = W / 2 + (i - (count - 1) / 2) * (fanD + 0.004);
-      this._fanDisc(new THREE.Vector3(D + depth - 0.006, (top + bottom) / 2, z), new THREE.Vector3(1, 0, 0), fanD / 2 - 0.002, "exhaust", {
+      this._caseFan(new THREE.Vector3(D + depth - 0.0145, cy, z), new THREE.Vector3(1, 0, 0), fanD * 0.98, "exhaust", fan, {
         kind: "shroud",
         tip: `Rear shroud fan: ${fan ? fan.name : "fan"}`,
       });
     }
-    const label = mode === "on" ? `Rear shroud · ${count}× ${fan ? fan.name : "fan"}` : "Rear duct (passive)";
-    this._label(new THREE.Vector3(D + depth + 0.03, top + 0.02, box.position.z), label, "tag shroud-tag");
   }
 
   /* ------------------------------------------------------------ camera, labels */
