@@ -83,6 +83,11 @@ def test_visualizer_modules_and_rev4_payload():
         assert res.headers.get("cache-control") == "no-cache"
     tips = client.get("/static/tips.js").text
     assert "0 % open" in tips and "70 °C" in tips  # seal and custom-accelerated assumptions
+    network = client.get("/static/network.js").text
+    assert "This is solved by assuming" in network
+    assert "convection coefficient" in network
+    assert '<details class="net-more"><summary>More detail</summary>' in network
+    assert "<summary>How it works</summary>" not in network
     presets = client.get("/api/presets").json()
     assert {c["cooler"] for c in presets["cards"]} == {"blower", "flow_through"}
     assert presets["seal_levels"][0]["level"] == 1
