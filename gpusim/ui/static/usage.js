@@ -136,6 +136,12 @@ export function flush(unload = false) {
   return deliver(events, unload);
 }
 
+/** Close the current dwell slice before the app changes tab or view. */
+export function touchSurface() {
+  if (!started) return;
+  accumulate();
+}
+
 export function track(name, props) {
   if (!usageEnabled()) return;
   queue.push({ sid: sessionId(), name, props: props || {} });
@@ -192,6 +198,6 @@ export function installUsage(getSurface) {
   setInterval(() => {
     accumulate();
     if (acc.ms >= 10000) flush(false);
-  }, 1000);
+  }, 500);
   track("page_view", pageContext());
 }

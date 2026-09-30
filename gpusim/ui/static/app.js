@@ -6,7 +6,7 @@
 import { CaseScene, activeLayouts, faceFanLabel, facePatterns } from "./scene.js";
 import { renderNetwork } from "./network.js";
 import { SEAL_TEXT, TIPS, installTips } from "./tips.js";
-import { flush as usageFlush, installUsage, track } from "./usage.js";
+import { flush as usageFlush, installUsage, touchSurface, track } from "./usage.js";
 
 const FACES = ["front", "top", "rear", "bottom", "side"];
 const RADIATOR_FACES = ["front", "top", "bottom"];
@@ -102,6 +102,7 @@ async function boot() {
   applyStaticTips();
   buildStartScreen();
   $("home").onclick = () => {
+    touchSurface();
     stopDemo();
     history.replaceState(null, "", location.pathname + location.search);
     $("app").classList.add("hidden");
@@ -394,6 +395,7 @@ function applyMobileClasses() {
 }
 
 function enterApp() {
+  touchSurface();
   $("start").classList.add("hidden");
   $("app").classList.remove("hidden");
   if (!state.scene) {
@@ -441,6 +443,7 @@ function enterApp() {
 /* ------------------------------------------------------------------ layout */
 
 function setFace(face) {
+  touchSurface();
   state.face = face;
   renderPanel();
   if (face === "worth") runWorth();
@@ -456,6 +459,7 @@ function setView(view, quiet) {
 }
 
 function syncMobileChrome() {
+  touchSurface();
   const on = isNarrow();
   if (on && state.mtab === "split") state.mtab = "network";
   if (on && !state.mtabChosen) state.mtab = state.net === "full" || state.net === "split" ? "network" : state.mtab || "pc";
@@ -464,6 +468,7 @@ function syncMobileChrome() {
 }
 
 function setMobileTab(tab) {
+  touchSurface();
   if (isNarrow() && tab === "split") tab = "network";
   state.mtab = tab;
   state.mtabChosen = true;
@@ -500,6 +505,7 @@ function renderMobileTemps() {
 }
 
 function setNet(mode, quiet) {
+  touchSurface();
   if (!["off", "split", "full"].includes(mode)) return;
   if (mode === "split" && isNarrow()) {
     mode = "full";
@@ -942,7 +948,7 @@ function gpusPanel() {
   const vertical = orderedGpus().filter((g) => isVertical(g.slot)).length;
   if (vertical) out.push(el("p", { class: "fine" }, `${vertical} card${vertical > 1 ? "s" : ""} on a vertical mount: ${vertical > 1 ? "they don't" : "it doesn't"} fit in the horizontal slots at this spacing.`));
   if (state.notice) out.push(el("p", { class: "fine warn" }, state.notice));
-  const curve = el("select", { tip: TIPS.curve }, [el("option", { value: "" }, "Mixed / custom — set each card below"), el("option", { value: "stock" }, "Stock"), el("option", { value: "custom_accelerated" }, "Custom Accelerated (0 % @ 25 °C → 100 % @ 70 °C)")]);
+  const curve = el("select", { tip: TIPS.curve, "data-control": "GPU fan curve" }, [el("option", { value: "" }, "Mixed / custom — set each card below"), el("option", { value: "stock" }, "Stock"), el("option", { value: "custom_accelerated" }, "Custom Accelerated (0 % @ 25 °C → 100 % @ 70 °C)")]);
   const curves = new Set(b.gpus.map((g) => g.fan_curve));
   curve.value = curves.size === 1 && [...curves][0] !== "custom" ? [...curves][0] : "";
   curve.onchange = () => {

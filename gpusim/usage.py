@@ -281,10 +281,11 @@ def aggregate(events: list[dict]) -> dict:
 
 
 def _display_path(path: Path) -> str:
+    resolved = path.resolve()
     try:
-        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+        return resolved.relative_to(Path.cwd().resolve()).as_posix()
     except ValueError:
-        return path.name
+        return str(resolved)
 
 
 def read_events(path: Path | None = None) -> list[dict]:
