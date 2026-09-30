@@ -1,0 +1,43 @@
+_source: https://web.archive.org/web/20221027182404/https://www.fractal-design.com/app/uploads/2019/06/Dynamic-X2_Product-sheet.pdf
+id: fractal-dynamic-x2-gp-14
+name: Fractal Dynamic X2 GP-14
+size_mm: 140
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 1000
+airflow_m3h: 116.2
+airflow_cfm: 68.4
+static_pressure_mmh2o: 0.71
+noise_dba: 18.9
+power_w: 1.32
+approximate: false
+notes: '3-pin DC Dynamic X2 GP-14, the 140 mm fan included with the non-RGB Meshify
+  2 Compact. Not the PWM SKU (1700 RPM, 105.9 CFM) and not an Aspect 12. Fractal
+  publishes only the free-air and dead-head intercepts. The P–Q shape is a quadratic
+  stand-in between those intercepts, not a measured curve. 68.4 CFM × 1.699 = 116.2 m³/h.
+  rpm_min is 0 because the sheet gives a 4 V startup, not a minimum RPM.'
+pq_points_m3h_mmh2o:
+  value:
+  - - 0.0
+    - 0.71
+  - - 14.525
+    - 0.6989
+  - - 29.05
+    - 0.6656
+  - - 43.575
+    - 0.6102
+  - - 58.1
+    - 0.5325
+  - - 72.625
+    - 0.4327
+  - - 87.15
+    - 0.3106
+  - - 101.675
+    - 0.1664
+  - - 116.2
+    - 0.0
+  _approximate: true
+  _assumption: 'Only the free-air point (68.4 CFM) and the dead-head point (0.71 mmH2O)
+    are on the Dynamic X2 product sheet. Intermediate points use P = Pmax * (1 - (Q/Qmax)^2).
+    This is a labeled stand-in, not a measured P–Q curve.'
+  source: https://web.archive.org/web/20221027182404/https://www.fractal-design.com/app/uploads/2019/06/Dynamic-X2_Product-sheet.pdf

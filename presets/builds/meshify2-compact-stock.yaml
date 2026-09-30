@@ -1,0 +1,97 @@
+_approximate: true
+_assumption: 'Stock fan map for the non-RGB Meshify 2 Compact, with a sample GPU
+  population so the preset solves. The case does not ship with graphics cards.
+  Not someone''s measured PC.'
+id: meshify2-compact-stock
+name: Meshify 2 Compact — stock fans
+case: meshify2-compact
+ambient_c: 25
+altitude_m: 0
+gpus:
+- id: gpu1
+  slot: '1'
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+- id: gpu2
+  slot: '4'
+  card: rtx-pro-6000-blackwell-maxq
+  fan_curve: stock
+  power_limit_w: 300
+  memory_clock_offset_mhz: 0
+  core_clock_offset_mhz: 0
+  undervolt_mv: 0
+patterns:
+  front: 2x140
+mounts:
+- id: front-1
+  panel: front
+  size_mm: 140
+  fan: fractal-dynamic-x2-gp-14
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: front-2
+  panel: front
+  size_mm: 140
+  fan: fractal-dynamic-x2-gp-14
+  state: fan
+  direction: intake
+  duty: 1.0
+- id: rear-1
+  panel: rear
+  size_mm: 120
+  fan: fractal-dynamic-x2-gp-12
+  state: fan
+  direction: exhaust
+  duty: 1.0
+radiator:
+  model: null
+  panel: top
+  direction: exhaust
+  arrangement: push
+  fan: generic-120
+  fan_count: 2
+  fan_duty: 1.0
+cpu:
+  power_w: 125
+  cooling: air
+  cooler_fan: generic-120
+  cooler_fans: both
+  cooler_airflow: up
+  cooler_duty: 0.8
+shroud:
+  mode: 'off'
+  fan: noctua-nf-a14-ippc-3000
+  count: 2
+  duty: 1
+seals:
+  # Rev 4 scale: 1 fully open (100 %), 2 open grille / missing covers (70 %),
+  # 3 typical mesh + filter (45 %), 4 restricted seams (5 %), 5 sealed (0 %).
+  front: 3
+  top: 3
+  bottom: 4
+  side: 5
+  seams: 4
+  rear_slots: 3
+filters:
+  front: fine
+obstruction: low
+cables: clean
+psu_location: bottom_shroud
+psu_fan: down
+drive_cage: removed
+side_panel: tempered_glass
+brackets_removed: false
+room_reingestion_c: 0
+illustrative_mock: false
+notes: 'Non-RGB Meshify 2 Compact stock airflow. Front 2× Dynamic X2 GP-14 intake,
+  rear 1× Dynamic X2 GP-12 exhaust. Top ships empty. The bottom 120 mm mount needs
+  the HDD cage removed, so it is left empty; drive_cage is removed only as the
+  solver''s front-intake penalty, because that cage sits under the shroud and does
+  not stand in front of these intakes. Two sample Max-Q cards in slots 1 and 4
+  (one empty slot between the dual-slot cards) on the case''s 20.32 mm pitch.
+  Not the four-card Meshify 2 XL layout. No radiator. Air-cooled CPU.'

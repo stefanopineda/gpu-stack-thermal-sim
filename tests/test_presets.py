@@ -23,6 +23,8 @@ REQUIRED_FANS = [
     "corsair-af120-rgb-elite",
     "silverstone-rm52-included-140",
     "silverstone-rm52-included-80",
+    "fractal-dynamic-x2-gp-14",
+    "fractal-dynamic-x2-gp-12",
 ]
 
 REQUIRED_CARDS = {
@@ -52,6 +54,7 @@ def test_library_loads_required_presets():
         "generic-eatx",
         "phanteks-enthoo-elite-server",
         "silverstone-rm52",
+        "meshify2-compact",
     ):
         assert case_id in lib.cases
     assert lib.cases["meshify2xl"].horizontal_slots == 9
@@ -140,6 +143,57 @@ def test_rm52_preloads_included_fans_and_solves_four_maxq():
     sol = solve(build, lib, do_throttle=False, outer=8)
     assert sol.converged
     assert len(sol.cards) == 4
+    assert all(c.t_die_unthrottled_c > 25 for c in sol.cards)
+
+
+def test_meshify2_compact_stock_is_seven_slots_and_three_included_fans():
+    from gpusim.solve import solve
+
+    lib = load_library()
+    case = lib.cases["meshify2-compact"]
+    # Headline product dimensions (LxWxH, feet included), same convention as Meshify 2 XL.
+    assert case.depth_mm == 424
+    assert case.width_mm == 210
+    assert case.height_mm == 475
+    assert case.horizontal_slots == 7
+    assert case.vertical_slots == 0
+    assert case.motherboards == ["ATX", "mATX", "Mini-ITX"]
+    assert case.face_patterns("front")[0] == "2x140"
+    assert case.gpu_max_length_mm == 341
+    assert case.cpu_cooler_max_mm == 169
+    # Seven centers on the ATX connector edge, lowest one pitch above the board bottom.
+    board_top = case.height_mm - 25
+    assert abs((board_top - case.top_slot_y_mm) - (304.8 - 7 * case.slot_pitch_mm)) < 0.02
+    slot7 = case.top_slot_y_mm - 6 * case.slot_pitch_mm
+    assert slot7 > board_top - 304.8
+    layout = {m.id: m for m in case.mounts}
+    rear = layout["rear-1"]
+    assert rear.size_mm == 120 and rear.panel == "rear"
+    # The rear disk sits above slot 1, clear of the GPU row.
+    assert rear.y_mm - rear.size_mm / 2 > case.top_slot_y_mm + 8
+    assert layout["front-1"].size_mm == layout["front-2"].size_mm == 140
+    assert layout["front-1"].y_mm < layout["front-2"].y_mm
+    assert "bottom-1" in layout and layout["bottom-1"].size_mm == 120
+    gp14 = lib.fans["fractal-dynamic-x2-gp-14"]
+    gp12 = lib.fans["fractal-dynamic-x2-gp-12"]
+    assert gp14.size_mm == 140 and gp14.airflow_cfm == 68.4 and gp14.static_pressure_mmh2o == 0.71
+    assert gp12.size_mm == 120 and gp12.airflow_cfm == 52.3 and gp12.static_pressure_mmh2o == 0.88
+    assert "stand-in" in gp14.notes and "stand-in" in gp12.notes
+    assert "PWM" in gp14.notes and "Aspect" in gp14.notes
+    build = lib.builds["meshify2-compact-stock"]
+    assert build.case == "meshify2-compact"
+    assert [g.slot for g in build.gpus] == ["1", "4"]
+    assert {(m.id, m.fan, m.direction, m.state) for m in build.mounts} == {
+        ("front-1", "fractal-dynamic-x2-gp-14", "intake", "fan"),
+        ("front-2", "fractal-dynamic-x2-gp-14", "intake", "fan"),
+        ("rear-1", "fractal-dynamic-x2-gp-12", "exhaust", "fan"),
+    }
+    assert not any(m.panel == "bottom" for m in build.mounts)
+    assert build.radiator.model is None
+    assert build.cpu.cooling == "air"
+    sol = solve(build, lib, do_throttle=False, outer=8)
+    assert sol.converged
+    assert len(sol.cards) == 2
     assert all(c.t_die_unthrottled_c > 25 for c in sol.cards)
 
 

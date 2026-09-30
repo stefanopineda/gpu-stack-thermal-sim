@@ -185,7 +185,7 @@ function buildStartScreen() {
   $("quick-meshify").onclick = () => loadBuild(QUICK.meshify, "quick");
   const grid = $("template-grid");
   grid.innerHTML = "";
-  const order = ["silverstone-rm52-4x-maxq", "corsair-9000d-sample", "generic-atx-sample", "generic-matx-sample", "generic-eatx-sample", "phanteks-enthoo-sample"];
+  const order = ["meshify2-compact-stock", "silverstone-rm52-4x-maxq", "corsair-9000d-sample", "generic-atx-sample", "generic-matx-sample", "generic-eatx-sample", "phanteks-enthoo-sample"];
   order
     .map((id) => state.presets.builds.find((b) => b.id === id))
     .filter(Boolean)
@@ -243,6 +243,11 @@ function showLoadError(text) {
 }
 
 const STOCK_FANS = {
+  "meshify2-compact": {
+    "front-1": { fan: "fractal-dynamic-x2-gp-14", state: "fan", direction: "intake" },
+    "front-2": { fan: "fractal-dynamic-x2-gp-14", state: "fan", direction: "intake" },
+    "rear-1": { fan: "fractal-dynamic-x2-gp-12", state: "fan", direction: "exhaust" },
+  },
   "silverstone-rm52": {
     // Chosen default, not a fan the RM52 includes. The case ships the six 120 mm
     // mounts empty. NF-P12 redux-1700 is the highest-airflow 120 mm in the library
@@ -286,7 +291,7 @@ function scratch(caseId) {
     shroud: { mode: "off", intake: "open", fan: "noctua-nf-a14-ippc-3000", count: 2, duty: 1 },
     seals: { ...DEFAULT_SEALS },
     filters: { front: "fine" },
-    patterns: caseId === "silverstone-rm52" ? { rear: "1x140", front: "6x120" } : {},
+    patterns: caseId === "silverstone-rm52" ? { rear: "1x140", front: "6x120" } : caseId === "meshify2-compact" ? { front: "2x140" } : {},
     obstruction: "low",
     cables: "clean",
     psu_location: "bottom_shroud",
