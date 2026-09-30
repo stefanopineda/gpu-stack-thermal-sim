@@ -1,14 +1,14 @@
 _source: docs/CALIBRATION.md rear shroud mouths
 _approximate: true
 _assumption: Demo script for the shroud A/B. Temperatures are the nominal model at
-  25 °C, stock curve, 300 W, leaky seals, standard fan directions. Gap Cd, crack
-  height, skin Nu and emissivity are assumed and are not fit to a measurement.
-  Not fit to Mike Bradley's flow-through stack.
+  25 °C, stock curve, 300 W, leaky seals, standard fan directions, after the
+  2026-09-30 Meshify soak fit (docs/CALIBRATION.md). The taped-crack height was
+  not refit. Not fit to Mike Bradley's flow-through stack.
 id: shroud-ab
 title: Rear shroud A/B — open plenum vs taped stack
 illustrative_mock: false
 base_build: meshify2xl-stefano
-disclaimer: 'Predicted, ahead of the live test. Orientation A is the printed shroud on the gapped Meshify. Orientation B stacks the four cards and tapes the shroud down to the GPU exhaust openings. Absolute temperatures are ±5–10 °C; the ranking is what the hardware A/B should check.'
+disclaimer: 'Fit to Stefano''s four Meshify soaks on 2026-09-30. Orientation A is the printed shroud on the gapped layout (79 °C). Orientation B stacks the four cards and tapes the shroud down to the GPU exhaust openings (91 °C). A layout that was not one of those soaks is still ±5–10 °C.'
 steps:
 - id: orientation-a
   title: A — printed shroud, open plenum
@@ -20,9 +20,9 @@ steps:
   fan_curve: stock
   advance_s: 24
   talking_points:
-  - 'Slots 1/4/7 plus vertical v2, shroud on. Hottest die 84.5 °C. Dies 84.4, 84.4, 84.4, 84.5 °C. Memory 83.2, 83.1, 83.1, 83.3 °C. Exhaust 44.9, 44.8, 44.8, 44.9 °C. Through-GPU 26.0 CFM on every card.'
-  - 'The two interior gaps bypass 23 CFM each (46 CFM together) into the plenum at about −28 Pa. The four GPU mouths carry about 28 CFM of hot exhaust each. The shroud does not pull the top of the top card, the bottom of the bottom card, or either face of the vertical card.'
-  - 'Skin convection uses that bypass, about 5.4 W/m²K, roughly 7 W on an end card and 14 W on the middle card. It does not use the fin flow.'
+  - 'Slots 1/4/7 plus vertical v2, shroud on. Hottest die 79.0 °C. Dies 79.0, 72.9, 79.0, 79.0 °C. Memory 77.8, 71.7, 77.7, 77.8 °C. Exhaust 39.7, 37.4, 39.7, 39.7 °C. Through-GPU about 28, 27, 28, 28 CFM.'
+  - 'The two interior gaps bypass about 29 CFM each (58 CFM together) into the plenum at about −20 Pa. The shroud does not pull the top of the top card or the bottom of the bottom card. The vertical card has no mouth of its own; one face is washed by the open-gap stream.'
+  - 'That open-gap convection is the 2026-09-30 spaced soak (79 °C with the shroud, 89 °C without). It does not use the fin flow. The taped crack was not refit.'
 - id: orientation-b
   title: B — stacked and taped to the GPU mouths
   layout: close4
@@ -33,6 +33,6 @@ steps:
   fan_curve: stock
   advance_s: 26
   talking_points:
-  - 'Four cards in slots 1/3/5/7, gaps taped. Hottest unthrottled die 103.7 °C on the second card; the stack throttles near 89.5 °C. Unthrottled dies 96.6, 103.7, 103.0, 85.1 °C. Memory 95.4, 102.5, 101.8, 83.8 °C. Exhaust 53.0, 57.8, 57.5, 44.9 °C.'
-  - 'Through-GPU flow 18.9, 15.7, 15.7, 26.8 CFM. The middle cards are inlet-starved across 3.6 mm, so they move less air than in A even though the plenum is pulled to about −65 Pa. Crack flow is 0.9 CFM per gap, 2.7 CFM total, against about 84 CFM through the exhaust openings.'
-  - 'At the same gap1 spacing, tape alone raises through-GPU flow from 26.0 to 26.9 CFM and cuts the bypass from 46 CFM to a 1.6 CFM crack (plenum −28 Pa to −50 Pa). Stacking, not the tape, is what makes B hotter. Facing skins exchange a few watts by conduction and radiation; h there is about 2.1 W/m²K.'
+  - 'Four cards in slots 1/3/5/7, gaps taped. Hottest die 91.1 °C at full board power. Dies 89.1, 91.1, 91.1, 87.1 °C. Memory 87.9, 89.9, 89.8, 85.9 °C. Exhaust 43.6, 44.5, 44.5, 42.3 °C. The stacked shroud-off soak is 93.1 °C, so the shroud is worth 2 °C here.'
+  - 'Through-GPU flow about 28, 27, 27, 30 CFM. Crack flow is about 2 CFM total into a plenum near −47 Pa. The crack coefficient and the 0.6 mm crack height were not refit on 2026-09-30.'
+  - 'Stacking, not the tape, is what makes B hotter than A. The open plenum on the spaced layout is 79 °C; this taped stack is 91 °C.'

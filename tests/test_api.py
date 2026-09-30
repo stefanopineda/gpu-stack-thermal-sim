@@ -21,7 +21,8 @@ def test_simulate_saved_meshify_matches_the_solver():
     out = body.json()
     assert out["api_version"] == "1" and out["spec_revision"] == 4
     assert len(out["cards"]) == 4
-    assert 80 < out["summary"]["hottest_die_c"] < 90
+    # Spaced, shroud on: the 2026-09-30 soak is 79 °C.
+    assert 74 < out["summary"]["hottest_die_c"] < 84
     assert out["summary"]["energy_balance_error"] < 0.02
     assert "±5–10 °C" in out["accuracy"]
     assert "network" not in out  # summary detail

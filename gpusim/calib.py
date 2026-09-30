@@ -86,18 +86,32 @@ GLOBAL = {
     # (shroud_gap_cd, shroud_crack_mm). Kept so an old sample key does not
     # crash a merge; the network does not read it.
     "shroud_bypass_fraction": 0.04,
-    # Sharp-edge discharge coefficient for a shroud gap mouth. Same order as
-    # the bracket vent (0.62). Assumed, to be fit to the live shroud A/B.
-    "shroud_gap_cd": 0.62,
+    # Discharge coefficient for an OPEN shroud gap mouth (orientation A).
+    # Referenced to gap height × card height. Calibrated to Stefano's
+    # Meshify soaks on 2026-09-30: spaced + shroud hottest die 79 °C, about
+    # 10 °C below spaced with the shroud off. The taped crack does not use
+    # this number (see shroud_crack_cd).
+    "shroud_gap_cd": 0.95,
+    # Sharp-edge coefficient for the TAPE crack only. Left at the pre-soak
+    # assumption: the stacked shroud moved the hottest die about 2 °C, which
+    # this crack already does. Not refit on 2026-09-30.
+    "shroud_crack_cd": 0.62,
     # Residual rear opening when the gaps are taped (orientation B), millimetres.
     # Not the 3.6 mm slot slack — that slack is the blower inlet, ahead of the
-    # tape. Assumed, to be fit to the live shroud A/B.
+    # tape. Not refit on 2026-09-30.
     "shroud_crack_mm": 0.6,
-    # Skin convection in the gap the shroud pulls: Nu = C Re^m Pr^(1/3).
-    # Not the fin-channel nu_C / nu_m (those are the Max-Q anchor fit).
-    # Assumed, to be fit to the live shroud A/B.
+    # Skin convection on a TAPE crack: Nu = C Re^m Pr^(1/3).
+    # Not the fin-channel nu_C / nu_m, and not the open-gap coefficient below.
+    # Left at the pre-soak assumption.
     "skin_nu_C": 0.10,
     "skin_nu_m": 0.50,
+    # Open-gap skin convection while the shroud is pulling (kind shroud-pull
+    # only). Same correlation, higher C: the open gap was thermally too
+    # resistive, so spaced + shroud sat near spaced with the shroud off.
+    # Calibrated to the 2026-09-30 spaced + shroud soak (hottest die 79 °C).
+    # A card with no inter-card mouth (the vertical card) is washed by one
+    # face of that same stream. The tape crack keeps skin_nu_C.
+    "open_gap_nu_C": 1.15,
     # Below this gap, skin h is scaled by gap/this. Opposing hot walls in a
     # tight slot do not see the fresh-stream correlation. Assumed.
     "skin_gap_full_h_mm": 12.0,
@@ -111,8 +125,27 @@ GLOBAL = {
     # Bleed orifice on every node so the Jacobian stays nonsingular.
     # ~0.1 CFM at 100 Pa. Numerical regularisation, not a modelled leak path.
     "bleed_area_m2": 8.0e-6,
-    "nu_C": 0.100,
+    # Fin-channel Nusselt prefactor, Nu = C Re^m Pr^(1/3), shared by every
+    # card. Calibrated to Stefano's four Meshify soaks on 2026-09-30 (hottest
+    # dies 89 / 79 / 93 / 91 °C). Slightly lower than the rev-3 value 0.100:
+    # the in-card fin path was a little too effective on the three runs the
+    # shroud barely helped. nu_m is unchanged.
+    "nu_C": 0.082,
     "nu_m": 0.60,
+    # Blower inlet orifice, referenced to the slot-map slit (gap × inlet
+    # width, capped by that face's share of the eye). The old sharp-edge
+    # 0.62 made a taped stack ~15 °C too hot at full board power; the 90 °C
+    # cutoff was hiding that by folding every stacked soak onto ~89.5 °C.
+    # The 2026-09-30 soaks sit at 93 °C (stacked, shroud off) and 91 °C
+    # (stacked, shroud on) at full power, about 4 °C apart from the spaced
+    # shroud-off soak, so the slit has to pass more air than a sharp orifice
+    # of the projected gap. Cd > 1 means the eye draws from a wider approach
+    # than that rectangle (card ends and the open side of the slot). This is
+    # not a change to slot pitch, card thickness, or the taped-crack height.
+    # Flow-through axial inlets do not use it; they stay at 0.62. Applying
+    # 2.0 there inverted the spacing trend (a closer pair ran cooler relative
+    # to the card below than a wider pair).
+    "inlet_cd": 2.0,
     # Drive cage parked in the front intake.
     "drive_cage_k": 6.0e4,
     # PSU fan facing up, pulling case air through the PSU-shroud cut-outs:

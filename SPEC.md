@@ -300,8 +300,10 @@ Only global or per-card-type parameters; never per-cell. Checked by `gpusim/boun
 | RTX PRO 6000 Workstation, open air, 600 W, stock | ~76 ± 5 °C (5090 FE fit) | — | 76.35 | new |
 | RTX 3090 FE, open air, 350 W, stock | ~68 ± 5 °C (reviews) | — | 68.04 | new |
 
-The small anchor moves come from the seal re-map (§5), not from a retune; no global knob was changed for
-the Max-Q. Monte Carlo (N = 200, seed 12345) now also varies the plume term; bands in `docs/CALIBRATION.md`.
+The small anchor moves in that table come from the seal re-map (§5), not from a retune. On 2026-09-30
+the fin-path and open-gap resistances were refit to four Meshify soaks (hottest dies 89 / 79 / 93 / 91 °C);
+those coefficients and the moved open-air check are in `docs/CALIBRATION.md`. Monte Carlo (N = 200, seed
+12345) also varies the plume term; bands in that same note.
 **Typical accuracy ±5–10 °C absolute; better for ranking configurations than for absolute temperatures.**
 Method citations as rev 3 (Ellison; Idelchik; flow-network modelling for electronics cooling), no invented
 page numbers.

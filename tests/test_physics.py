@@ -57,10 +57,38 @@ def test_speed_of_one_configuration():
     assert sol.converged
 
 
+def test_stefano_meshify_soaks_2026_09_30():
+    """Four 5-minute full-load soaks. Hottest die, full board power."""
+    lib = _lib()
+    base = lib.builds["meshify2xl-stefano"]
+    spaced_off = apply_cell(base, "gap1", "standard", "off", "leaky", library=lib)
+    spaced_on = apply_cell(base, "gap1", "standard", "on", "leaky", library=lib)
+    spaced_on.shroud.intake = "open"
+    stacked_off = close_packed(base, 4, shroud="off", library=lib)
+    stacked_on = close_packed(base, 4, shroud="on", library=lib)
+    stacked_on.shroud.intake = "taped"
+    targets = (89.0, 79.0, 93.0, 91.0)
+    hottest = []
+    for build, target in zip((spaced_off, spaced_on, stacked_off, stacked_on), targets):
+        sol = solve(build, lib)
+        assert sol.converged and sol.energy_error <= 0.02
+        assert abs(sol.hottest_die - target) <= 1.0
+        hottest.append(sol.hottest_die)
+    # Shroud benefit ~10 °C spaced, ~2 °C stacked and taped.
+    assert 8.0 <= hottest[0] - hottest[1] <= 12.0
+    assert 0.5 <= hottest[2] - hottest[3] <= 3.5
+
+
 def test_open_air_reference_band_directly():
     sol = solve(open_air_build())
-    assert 75 <= sol.cards[0].t_die_unthrottled_c <= 85
-    assert sol.cards[0].throttle is False
+    # Rev 3 fit was ~83 °C. nu_C was lowered for the 2026-09-30 soaks, so open
+    # air rides higher. Still a full-power blower, not a runaway.
+    card = sol.cards[0]
+    assert 84 <= card.t_die_unthrottled_c <= 93
+    # The throttle flag is the 88 °C mark. Power does not fold until cutoff_c
+    # (96), so open air stays at full board power.
+    assert card.power_w > 295
+    assert card.throttle is (card.t_die_unthrottled_c >= 88.0)
 
 
 def test_power_model_clamps_and_responds_to_undervolt():

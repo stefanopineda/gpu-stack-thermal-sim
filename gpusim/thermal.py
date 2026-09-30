@@ -245,6 +245,27 @@ def _wash(net: Network, gpu_id: str) -> list[dict]:
     return [g for g in (getattr(net, "shroud_gaps", None) or []) if gpu_id in (g["upper"], g["lower"])]
 
 
+def _washes_for(net: Network, gpu_id: str) -> list[dict]:
+    """Gap walls this card gives heat to.
+
+    Inter-card mouths are the card's own shroud branches. A card with no
+    mouth (the vertical card) still has one face in the plenum stream when
+    the shroud is pulling an open gap, so it borrows that stream. A taped
+    crack does not lend its stream: the crack resistance is unchanged.
+    """
+    own = _wash(net, gpu_id)
+    if own:
+        return own
+    pulls = [g for g in (getattr(net, "shroud_gaps", None) or []) if g.get("kind") == "shroud-pull"]
+    if not pulls:
+        return []
+    donor = max(pulls, key=lambda g: float(g.get("area_m2") or 0.0))
+    guest = dict(donor)
+    guest["upper"] = gpu_id
+    guest["guest"] = True
+    return [guest]
+
+
 def _wall_conductance(ua: float, mass_kg_s: float) -> float:
     """W/K this wall can put into its half of the bypass stream (ε-NTU)."""
     cap = 0.5 * max(float(mass_kg_s), 0.0) * CP_AIR
@@ -314,7 +335,7 @@ def solve_thermal(
                 t_sink = t_nodes.get("gpu", t_amb)
             r_ext = max(params["r_ext"], 0.05)
             t_sink_used = t_sink
-            washed = _wash(net, gpu_id)
+            washed = _washes_for(net, gpu_id)
             skin_rows: list[dict] = []
             q_couple = 0.0
             h_report = 0.0
@@ -335,7 +356,6 @@ def solve_thermal(
                 g_stag = (1.0 / r_ext) * (2 - n_wash) / 2.0
                 k_air = air_conductivity(t_film)
                 mu = air_viscosity(t_film)
-                nu_skin_c = float(sample.get("skin_nu_C", 0.10))
                 nu_skin_m = float(sample.get("skin_nu_m", 0.50))
                 full_mm = float(sample.get("skin_gap_full_h_mm", 12.0))
                 emiss = float(sample.get("skin_emissivity", 0.80))
@@ -347,6 +367,12 @@ def solve_thermal(
                     q_gap = flow.flow_m3s.get(rec["id"], 0.0) if br else 0.0
                     rho_b = br.rho if br else rho
                     mass_gap = abs(rho_b * q_gap)
+                    # Open-gap C is the 2026-09-30 soak fit. The tape crack
+                    # keeps the old skin_nu_C so its resistance does not move.
+                    if rec["kind"] == "shroud-pull":
+                        nu_skin_c = float(sample.get("open_gap_nu_C", sample.get("skin_nu_C", 0.10)))
+                    else:
+                        nu_skin_c = float(sample.get("skin_nu_C", 0.10))
                     gap_m = max(float(rec["gap_mm"]), 0.3) / 1000.0
                     h = gap_channel_h(
                         mass_gap, rho_b, mu, k_air, gap_m, rec["span_m"], nu_skin_c, nu_skin_m
