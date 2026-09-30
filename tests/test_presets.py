@@ -126,6 +126,15 @@ def test_rm52_preloads_included_fans_and_solves_four_maxq():
     front = [m for m in build.mounts if m.panel == "front"]
     assert len(front) == 6
     assert all(m.fan == "noctua-nf-p12-redux-1700" and m.state == "fan" and m.direction == "intake" for m in front)
+    layout = {m.id: m for m in lib.cases["silverstone-rm52"].mounts}
+    # Cage fans are on the outer face, stacked over the slot exhaust. The
+    # internal intakes stay in the front bay, ahead of a 267 mm card bracketed
+    # on the 560 mm I/O panel.
+    assert layout["rear-80-1"].x_mm == layout["rear-80-2"].x_mm == 605
+    assert layout["rear-80-1"].z_mm == layout["rear-80-2"].z_mm
+    assert layout["rear-80-1"].y_mm < layout["rear-80-2"].y_mm < layout["rear-140"].y_mm
+    assert layout["front-1"].x_mm == 0
+    assert 80 < layout["front-4"].x_mm < 560 - 267
     assert lib.fans["noctua-nf-p12-redux-1700"].approximate is False
     assert lib.fans["noctua-nf-p12-redux-1700"].airflow_cfm == 70.75
     sol = solve(build, lib, do_throttle=False, outer=8)
