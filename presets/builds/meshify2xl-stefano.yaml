@@ -122,6 +122,9 @@ cpu:
   cooling: water
 shroud:
   mode: 'on'
+  # open = orientation A: the printed plenum pulls interior gaps and the GPU
+  # mouths. taped = orientation B (the hardware A/B).
+  intake: open
   fan: noctua-nf-a14-ippc-3000
   count: 2
   duty: 1.0

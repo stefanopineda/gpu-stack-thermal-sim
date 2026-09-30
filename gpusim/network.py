@@ -26,9 +26,18 @@ from gpusim.calib import (
     SEAL_OPEN_FRACTION,
 )
 from gpusim.flow import Branch
-from gpusim.layout import exit_area_m2, gap_table, inlet_area_m2, sort_gpus
+from gpusim.layout import exit_area_m2, gap_table, inlet_area_m2, is_vertical, sort_gpus
 from gpusim.models import BuildCfg, CaseModel
-from gpusim.physics import air_density, fan_tables, orifice_k, quadratic_curve, rpm_from_duty, scale_parallel
+from gpusim.physics import (
+    air_density,
+    air_viscosity,
+    fan_tables,
+    orifice_k,
+    quadratic_curve,
+    rpm_from_duty,
+    scale_parallel,
+    shroud_mouth_loss,
+)
 
 AMB = "amb"
 
@@ -50,6 +59,8 @@ ROLE = {
     "reingest": "rear-slot reingestion of the exhaust plume",
     "shroud-fan": "rear shroud fans (pressure source)",
     "shroud-leak": "rear shroud shell leakage",
+    "shroud-pull": "inter-card gap into the rear shroud (bypass, not through the fins)",
+    "shroud-crack": "taped inter-card crack into the rear shroud (high resistance)",
     "radiator": "radiator core + its fans",
     "cpu-cooler": "CPU tower cooler: fan + fin stack",
     "cpu-exit": "internal resistance: CPU cooler outlet → case",
@@ -112,6 +123,9 @@ class Network:
         # Cross-section the zone's fresh air crosses on its way past the cards.
         self.sweep_area_m2: float = 0.05
         self.cooler: dict[str, str] = {}
+        # One record per interior inter-card gap the shroud can see. Empty when
+        # the shroud is off (those branches must not linger).
+        self.shroud_gaps: list[dict] = []
 
     def by_id(self, ident: str) -> Branch | None:
         for br in self.branches:
@@ -217,6 +231,7 @@ def build_network(
 
     _add_rear_slots(build, case, rho_ref, seal_scale, shroud_on, sample, add)
     _add_psu_fan(build, case, fans, rho_ref, rho_for, sample, add)
+    shroud_gaps: list[dict] = []
 
     cooler: dict[str, str] = {}
     for gpu in sort_gpus(build):
@@ -342,6 +357,11 @@ def build_network(
                     )
                 )
 
+    if shroud_on:
+        shroud_gaps = _add_shroud_gap_mouths(
+            build, cards, gaps, rho_ref, air_viscosity(t_ref), sample, add
+        )
+
     if build.buoyancy:
         _apply_buoyancy(branches, node_temp, t_ref, case)
 
@@ -353,6 +373,7 @@ def build_network(
     # front-to-back air has to pass the cards through.
     net.sweep_area_m2 = (case.width_mm / 1000.0) * ((case.horizontal_slots * case.slot_pitch_mm + 60.0) / 1000.0)
     net.cooler = cooler
+    net.shroud_gaps = shroud_gaps
     return net
 
 
@@ -763,33 +784,109 @@ def _add_psu_fan(build, case, fans, rho_ref, rho_for, sample, add) -> None:
     )
 
 
+def _horizontal_pairs(build, gaps) -> list[tuple]:
+    """Consecutive horizontal cards, top to bottom, with the gap between them.
+
+    The top face of the top card and the bottom face of the bottom card have
+    no neighbour, so they are not pairs. A vertical card is off to the side
+    and is not in this stack.
+    """
+    ordered = [g for g in sort_gpus(build) if not is_vertical(g.slot)]
+    pairs = []
+    for upper, lower in zip(ordered, ordered[1:]):
+        below = (gaps.get(upper.id) or {}).get("below") or {}
+        if below.get("neighbor") != lower.id:
+            continue
+        pairs.append((upper, lower, float(below.get("gap_mm", 0.0)), str(below.get("state") or "open_slot")))
+    return pairs
+
+
+def _add_shroud_gap_mouths(build, cards, gaps, rho_ref, mu, sample, add) -> list[dict]:
+    """Explicit plenum inlets through the interior inter-card gaps.
+
+    Orientation A (``intake=open``): one orifice per interior gap, area =
+    gap height × card height (the rear-plane width the plenum sees). The card
+    length is the duct length in the laminar term. GPU bracket mouths are the
+    separate ``bracket-*`` branches; this path bypasses the fins.
+
+    Orientation B (``intake=taped``): the same gaps, but the aperture is the
+    crack height, not the slot slack. Still not zero.
+
+    Slot covers close the rear opening (rev 4.1), so a covered gap is only
+    the seam fraction of that aperture. Removing the shroud does not call
+    this function, so the branches are absent.
+    """
+    intake = build.shroud.intake if build.shroud.intake in ("open", "taped") else "open"
+    cd = float(sample.get("shroud_gap_cd", 0.62))
+    crack_mm = float(sample.get("shroud_crack_mm", 0.6))
+    kind = "shroud-crack" if intake == "taped" else "shroud-pull"
+    cover = 1.0
+    if not build.brackets_removed:
+        cover = float(SEAL_OPEN_FRACTION[seal_level(build, "rear_slots")])
+    records = []
+    for upper, lower, gap_mm, state in _horizontal_pairs(build, gaps):
+        upper_card = cards[upper.card]
+        lower_card = cards[lower.card]
+        span_m = min(float(upper_card.height_mm), float(lower_card.height_mm)) / 1000.0
+        length_m = min(float(upper_card.length_mm), float(lower_card.length_mm)) / 1000.0
+        aperture_mm = crack_mm if intake == "taped" else gap_mm
+        if state == "blocked_slot":
+            aperture_mm *= 0.22
+        aperture_mm *= cover
+        loss = shroud_mouth_loss(aperture_mm, gap_mm, span_m, length_m, rho_ref, mu, cd)
+        if loss is None:
+            continue
+        k, k_lin, area = loss
+        ident = f"{kind}-{upper.id}-{lower.id}"
+        if intake == "taped":
+            label = (
+                f"Taped crack between {upper.id} and {lower.id} "
+                f"({crack_mm:.2f} mm mouth, {gap_mm:.1f} mm skins, {area * 1e4:.2f} cm²)"
+            )
+        else:
+            label = (
+                f"Shroud pulls the gap between {upper.id} and {lower.id} "
+                f"({gap_mm:.1f} mm × {span_m * 1000:.0f} mm card height, {area * 1e4:.1f} cm²)"
+            )
+        add(
+            Branch(
+                id=ident,
+                a="gpu",
+                b="plenum",
+                k=k,
+                k_lin=max(k_lin, 0.2),
+                rho=rho_ref,
+                kind=kind,
+                label=label,
+            )
+        )
+        records.append(
+            {
+                "id": ident,
+                "kind": kind,
+                "upper": upper.id,
+                "lower": lower.id,
+                "gap_mm": gap_mm,
+                "mouth_mm": aperture_mm,
+                "span_m": span_m,
+                "length_m": length_m,
+                "skin_m2": span_m * length_m,
+                "area_m2": area,
+            }
+        )
+    return records
+
+
 def _add_rear_slots(build, case, rho_ref, seal_scale, shroud_on, sample, add) -> None:
     n_slots = case.horizontal_slots + case.vertical_slots
     geometric = n_slots * case.rear_slot_area_m2
     if shroud_on:
-        frac = float(sample.get("shroud_bypass_fraction", 0.04))
-        # Tape still closes holes the shroud would otherwise inhale.
-        area, cd = _seal_area(build, "rear_slots", geometric, seal_scale)
-        area = max(area, geometric * 1e-4)
-        # Taped slots (level 4–5) keep the seal result. Otherwise the open
-        # mouths bypass into the plenum through the shroud's baffled fraction.
-        level = seal_level(build, "rear_slots")
-        if level >= 4:
-            mouth = area
-        else:
-            mouth = geometric * frac
-        add(
-            Branch(
-                id="rear-slots",
-                a="gpu",
-                b="plenum",
-                k=orifice_k(mouth, rho_ref, 0.7),
-                k_lin=0.4,
-                rho=rho_ref,
-                kind="rear-slot",
-                label="Open slot mouths into the rear shroud plenum",
-            )
-        )
+        # The plenum's inlets are the GPU bracket mouths plus the explicit
+        # inter-card gap branches (_add_shroud_gap_mouths). A single lumped
+        # fraction of every rear slot would count those gaps twice and would
+        # also pull the exterior faces (top of the top card, bottom of the
+        # bottom card), which the printed shroud does not.
+        return
     else:
         area, cd = _seal_area(build, "rear_slots", geometric, seal_scale)
         if area <= 0.0:

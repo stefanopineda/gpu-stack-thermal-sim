@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from gpusim.factors import LEAKAGE_SEALS, layout_slots
+from gpusim.layout import is_vertical, sort_gpus
 from gpusim.library import Library, get_library
 from gpusim.models import BuildCfg, MountCfg
 from gpusim.solve import sample_tuning, solve
@@ -58,7 +59,83 @@ class Candidate:
 
 
 def _is_vertical(slot: str) -> bool:
-    return str(slot).lower().startswith("v")
+    return is_vertical(slot)
+
+
+def _taped_stack(build: BuildCfg, lib: Library) -> bool:
+    """Orientation B: every card horizontal, touching, shroud suction taped to the mouths."""
+    if build.shroud.intake != "taped" or build.shroud.mode == "off":
+        return False
+    ordered = sort_gpus(build)
+    if any(is_vertical(g.slot) for g in ordered) or len(ordered) < 2:
+        return False
+    width = max(lib.cards[g.card].slots for g in ordered)
+    return all(int(b.slot) - int(a.slot) <= width for a, b in zip(ordered, ordered[1:]))
+
+
+def _assign_slots(build: BuildCfg, slots: list[str]) -> None:
+    ordered = sort_gpus(build)
+    for gpu, slot in zip(ordered, slots):
+        gpu.slot = slot
+
+
+def _shroud_orientation(build: BuildCfg, lib: Library) -> Candidate | None:
+    """Hardware A/B: printed open plenum versus a taped, close-packed stack.
+
+    A is the gapped layout (one card vertical when four dual-slot cards do not
+    fit with a gap). B stacks every card and tapes the shroud so it can pull
+    only the GPU exhaust openings. Same fans, seals, power and fan curve.
+    """
+    if build.open_air or build.case not in lib.cases:
+        return None
+    case = lib.cases[build.case]
+    ordered = sort_gpus(build)
+    if len(ordered) < 2:
+        return None
+    width = max(lib.cards[g.card].slots for g in ordered)
+    out = build.model_copy(deep=True)
+    out.shroud.mode = "on"
+    if out.shroud.count <= 0:
+        out.shroud.count = 2
+    if _taped_stack(build, lib):
+        n = len(ordered)
+        slots = layout_slots(n, "gap1", case.horizontal_slots, width)
+        if len(slots) == n:
+            _assign_slots(out, [str(s) for s in slots])
+        elif case.vertical_positions and n >= 2:
+            horiz = layout_slots(n - 1, "gap1", case.horizontal_slots, width)
+            if len(horiz) != n - 1:
+                return None
+            vertical = case.vertical_positions[min(1, len(case.vertical_positions) - 1)].id
+            _assign_slots(out, [str(s) for s in horiz] + [vertical])
+        else:
+            return None
+        out.shroud.intake = "open"
+        return Candidate(
+            "shroud_orientation",
+            "Open the shroud and space the cards (orientation A)",
+            "Printed rear plenum: it pulls the interior gaps between cards as well as the GPU exhaust openings. "
+            "Top of the top card and bottom of the bottom card stay outside the mouth.",
+            "rebuild",
+            out,
+            framing="shroud_ab",
+            note="The other half of the shroud A/B. Predicted, not a measured temperature.",
+        )
+    slots = layout_slots(len(ordered), "stacked", case.horizontal_slots, width)
+    if len(slots) < len(ordered):
+        return None
+    _assign_slots(out, [str(s) for s in slots])
+    out.shroud.intake = "taped"
+    return Candidate(
+        "shroud_orientation",
+        "Stack the cards and tape the shroud (orientation B)",
+        "Cards touching. Tape every gap so the shroud pulls only the GPU exhaust openings; "
+        "a crack remains between the skins, and those skins face each other.",
+        "rebuild",
+        out,
+        framing="shroud_ab",
+        note="Hardware A/B against the printed shroud. Predicted, not a measured temperature.",
+    )
 
 
 def _fan_curve(build: BuildCfg) -> Candidate | None:
@@ -271,6 +348,7 @@ def candidates(build: BuildCfg, lib: Library | None = None) -> list[Candidate]:
         lambda: _fan_curve(build),
         lambda: _power_cap(build, lib),
         lambda: _shroud(build, lib),
+        lambda: _shroud_orientation(build, lib),
         lambda: _seal(build),
         lambda: _flip_to_intake(build),
         lambda: _add_fans(build, lib),

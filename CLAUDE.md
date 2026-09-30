@@ -45,11 +45,11 @@ uv run gpusim ui
 uv run gpusim schema
 ```
 
-Latest sweep (rev 4.1, confirmed layout, mc 200, seed 12345): best cells gap1 / standard / shroud on, sealed 83.9 / leaky 84.0 °C (a tie, MC 76–98). Stock unthrottled hottest 108.2 °C (100.2, 108.2, 86.6, 86.0), throttled ~89.5 °C (MC 94–126). Anchor A 86.25, B 99.9/108.0/107.9/86.3. Optimizer: gap + vertical, shroud on, sealed, Custom Accelerated, 75.3 °C. `pressure=standard` keeps the build's own fan directions. Bounds check overall PASS.
+Latest sweep (rev 4.1, confirmed layout, mc 200, seed 12345) is the lumped-bypass shroud: best cells gap1 / standard / shroud on, sealed 83.9 / leaky 84.0 °C. Explicit gap mouths (see docs/CALIBRATION.md) move shroud-on nominals to leaky 84.5 / sealed 84.6 °C and leave shroud-off rows, including anchor A 86.25 and anchor B 99.9/108.0/107.9/86.3. Stock unthrottled hottest 108.2 °C. `pressure=standard` keeps the build's own fan directions. Bounds check overall PASS.
 
 ## Worth it? (2026-09-29)
 
-`gpusim/worth.py` (+ `POST /api/worth`, `gpusim worth`, UI panel): single changes to the current build ranked by the drop in the hottest unthrottled die, paired-MC band, effort tag, "inside the noise" = band crosses zero or gain < 3 °C (SPEC §16.3). On `meshify2xl-stefano` the shroud is worth 2.2 °C (84.0 with, 86.2 without; band 1.4–2.5), inside the noise; this is the prediction for Stefano's launch-stream shroud test (DEMO.md top section). The build rides in the URL fragment (`#b=` + deflate-raw base64url); Copy link shares it.
+`gpusim/worth.py` (+ `POST /api/worth`, `gpusim worth`, UI panel): single changes to the current build ranked by the drop in the hottest unthrottled die, paired-MC band, effort tag, "inside the noise" = band crosses zero or gain < 3 °C (SPEC §16.3). On `meshify2xl-stefano` the shroud is worth 1.8 °C (84.5 with, 86.3 without; short paired band about 1.0–2.0), inside the noise; this is the prediction for Stefano's launch-stream shroud test (DEMO.md top section). Orientation B (stacked and taped) is a Worth-it row and the `shroud-ab` scenario: unthrottled hottest 103.7 °C versus 84.5 °C for the open plenum. The build rides in the URL fragment (`#b=` + deflate-raw base64url); Copy link shares it.
 
 ## Public site (gpuism.com)
 

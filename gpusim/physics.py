@@ -48,6 +48,88 @@ def orifice_k(area_m2: float, rho: float, cd: float = 0.65) -> float:
     return float(rho) / (2.0 * cda * cda)
 
 
+def shroud_mouth_loss(
+    aperture_mm: float,
+    duct_gap_mm: float,
+    span_m: float,
+    length_m: float,
+    rho: float,
+    mu: float,
+    cd: float,
+) -> tuple[float, float, float] | None:
+    """Rear-shroud mouth: orifice on the aperture plus laminar slit friction.
+
+    The aperture is the opening the plenum actually sees,
+    ``A = (aperture_mm / 1000) × span``. ``k`` is Idelchik's sharp-edge
+    orifice, ``ΔP = ρ Q|Q| / (2 Cd² A²)``. The duct term is plane-Poiseuille
+    flow along the card, ``ΔP = 12 μ L Q / (g³ W)``, with ``g`` the mechanical
+    gap the air travels through and ``W`` the span. Returns ``(k, k_lin, area)``
+    or None when the aperture is closed.
+    """
+    span = max(float(span_m), 1e-6)
+    aperture_m = max(float(aperture_mm), 0.0) / 1000.0
+    area = aperture_m * span
+    if area < 1e-8:
+        return None
+    k = orifice_k(area, rho, cd)
+    duct_m = max(float(duct_gap_mm), 0.3) / 1000.0
+    k_lin = 12.0 * float(mu) * max(float(length_m), 0.01) / (duct_m**3 * span)
+    return float(k), float(k_lin), float(area)
+
+
+def gap_channel_h(
+    mass_kg_s: float,
+    rho: float,
+    mu: float,
+    k_air: float,
+    gap_m: float,
+    span_m: float,
+    nu_c: float,
+    nu_m: float,
+) -> float:
+    """Convective coefficient on one wall of a parallel-plate gap, W/(m²·K).
+
+    ``Nu = C Re^m Pr^(1/3)``, ``Dh = 2 g``. ``C`` and ``m`` are assumed
+    (``skin_nu_C``, ``skin_nu_m``); they are not the fin-channel fit.
+    """
+    gap = max(float(gap_m), 1e-5)
+    span = max(float(span_m), 1e-6)
+    if mass_kg_s <= 1e-8 or rho <= 0 or mu <= 0:
+        return 0.0
+    area = gap * span
+    dh = 2.0 * gap
+    velocity = (float(mass_kg_s) / float(rho)) / area
+    re = max(float(rho) * velocity * dh / float(mu), 1.0)
+    nu = float(nu_c) * (re ** float(nu_m)) * (PR_AIR ** (1.0 / 3.0))
+    return float(nu * k_air / dh)
+
+
+def skin_couple_ua(
+    gap_m: float,
+    area_m2: float,
+    t_a_c: float,
+    t_b_c: float,
+    emissivity: float,
+    k_air: float,
+) -> float:
+    """Conduction plus radiation across a thin air gap between two skins, W/K.
+
+    Two infinite gray planes, view factor 1. Conduction is ``k_air / g``.
+    No flow term: a taped crack does not carry useful convection.
+    """
+    gap = max(float(gap_m), 3.0e-4)
+    area = max(float(area_m2), 0.0)
+    if area <= 0.0:
+        return 0.0
+    eps = min(max(float(emissivity), 0.05), 0.98)
+    eps_eff = 1.0 / (2.0 / eps - 1.0)
+    ta = float(t_a_c) + 273.15
+    tb = float(t_b_c) + 273.15
+    h_rad = eps_eff * 5.670374419e-8 * (ta + tb) * (ta * ta + tb * tb)
+    h_cond = float(k_air) / gap
+    return float((h_cond + h_rad) * area)
+
+
 def m3h_to_m3s(value: float) -> float:
     return float(value) / 3600.0
 

@@ -632,6 +632,11 @@
             "title": "Mode",
             "type": "string"
           },
+          "intake": {
+            "default": "open",
+            "title": "Intake",
+            "type": "string"
+          },
           "fan": {
             "default": "noctua-nf-a14-ippc-3000",
             "title": "Fan",
@@ -1348,6 +1353,11 @@
           "mode": {
             "default": "off",
             "title": "Mode",
+            "type": "string"
+          },
+          "intake": {
+            "default": "open",
+            "title": "Intake",
             "type": "string"
           },
           "fan": {
@@ -2120,6 +2130,11 @@
           "mode": {
             "default": "off",
             "title": "Mode",
+            "type": "string"
+          },
+          "intake": {
+            "default": "open",
+            "title": "Intake",
             "type": "string"
           },
           "fan": {

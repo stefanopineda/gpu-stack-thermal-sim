@@ -47,11 +47,13 @@ steps:
   fan_curve: stock
   advance_s: 20
   talking_points:
-  - The shroud is a shared plenum over every bracket. Two industrial 140s pull on it,
-    in series with the blowers.
-  - Hottest die 84.2 °C. Mean blower flow rises from 25.7 to 26.5 CFM. The bigger effect
-    is that the case sits slightly below room pressure here, so without the shroud some
-    exhaust plume comes back in through the open slot mouths; the plenum stops that.
+  - The shroud is a shared plenum over every bracket. Two industrial 140s pull on it.
+    Interior gaps between the cards are their own orifices into that plenum, in parallel
+    with the GPU exhaust openings. The top of the top card and the bottom of the bottom
+    card are not inlets.
+  - Hottest die 84.5 °C. Mean blower flow rises from 25.8 to 26.0 CFM. About 46 CFM
+    bypasses through the two gaps and cools the skins; it does not go through the fins.
+    The plenum stops plume re-ingestion through the open slot mouths.
 - id: high-pressure
   title: Positive pressure, interfaces taped
   layout: gap1_vertical

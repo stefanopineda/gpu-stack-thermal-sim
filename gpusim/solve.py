@@ -423,6 +423,9 @@ def sample_tuning(rng, build: BuildCfg, library: Library | None = None) -> dict:
         "recirc_area_m2": GLOBAL["recirc_area_m2"] * ln(0.25),
         "plume_entrainment": GLOBAL["plume_entrainment"] * ln(0.35),
         "plume_sweep_scale": ln(0.30),
+        # Assumed shroud-mouth knobs. Orifice k is already inside k_scale.
+        "shroud_crack_mm": float(min(1.5, max(0.2, GLOBAL["shroud_crack_mm"] * ln(0.35)))),
+        "skin_nu_C": GLOBAL["skin_nu_C"] * ln(0.35),
     }
 
 

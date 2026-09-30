@@ -206,9 +206,20 @@ class RadiatorCfg(_Base):
 
 class ShroudCfg(_Base):
     mode: str = "off"  # off | on | passive
+    # open: printed plenum (orientation A) pulls interior inter-card gaps and
+    # the GPU mouths. taped: orientation B, suction only through the GPU
+    # exhaust openings, plus a crack between stacked cards.
+    intake: str = "open"  # open | taped
     fan: str = "noctua-nf-a14-ippc-3000"
     count: int = 2
     duty: float = 1.0
+
+    @field_validator("intake")
+    @classmethod
+    def _intake(cls, value: str) -> str:
+        if value not in ("open", "taped"):
+            raise ValueError("shroud.intake must be 'open' or 'taped'")
+        return value
 
 
 class CpuCfg(_Base):
@@ -295,6 +306,8 @@ class ScenarioStep(_Base):
     layout: str = "keep"
     pressure: str | None = None
     shroud: str | None = None
+    # open | taped. Applied after the layout. None leaves the build's intake.
+    shroud_intake: str | None = None
     leakage: str | None = None
     fan_curve: str | None = None
     # Swap every card to this model (power limit follows the card's TBP).

@@ -1136,6 +1136,11 @@
             "title": "Mode",
             "default": "off"
           },
+          "intake": {
+            "type": "string",
+            "title": "Intake",
+            "default": "open"
+          },
           "fan": {
             "type": "string",
             "title": "Fan",

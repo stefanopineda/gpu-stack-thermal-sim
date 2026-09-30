@@ -32,14 +32,18 @@ Meshify 2 XL with four RTX PRO 6000 Max-Q cards:
 
 ```text
 $ uv run gpusim worth --build meshify2xl-stefano
-hottest GPU 84.0 °C
+hottest GPU 84.5 °C
    -10.7 °C [-13.7…-9.3]  Free · software   Cap GPU power at 80 %
     -8.7 °C [-9.6…-7.9]   Free · software   Aggressive GPU fan curve
     -0.1 °C [-0.1…-0.1]   About 10 min      Seal the gaps                    inside the noise
     -0.1 °C [-0.1…-0.1]   About 10 min      Fill the empty fan mounts (1)    inside the noise
     -0.1 °C [-0.1…-0.0]   About 10 min      Flip the exhaust fans to intake  inside the noise
-    +2.2 °C [+1.4…+2.5]   About 10 min      Take the rear shroud off         inside the noise
+    +1.8 °C [+1.0…+2.0]   About 10 min      Take the rear shroud off         inside the noise
+   +19.2 °C              Rebuild           Stack and tape the shroud (B)    hotter
 ```
+
+The shroud band is a short paired draw after the gap-mouth split, not the old 200-draw
+lumped-bypass band. Orientation B is the taped stack (unthrottled hottest about 104 °C).
 
 So on this build the printed rear shroud and its two iPPC-3000 fans are worth about 2 °C —
 real, but inside the noise — and the two free software changes are worth four times that. On
