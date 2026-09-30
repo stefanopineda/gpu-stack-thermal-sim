@@ -113,12 +113,13 @@ mounts:
 - _approximate: true
   _assumption: 'Internal radiator bracket, the other three of the published 6×120.
     The manual has a removable internal bracket behind the front bracket (positions
-    A and B) and does not publish the setback. 130 mm is a schematic gap in front
-    of a 267 mm card in a 605 mm depth. Same Y/Z as the front column.'
+    A and B) and does not publish the setback. 90 mm keeps this row in the front
+    bay, one fan behind the skin, and clear of a 267 mm card whose bracket is on
+    the 560 mm I/O panel (the nose is at 293 mm). Same Y/Z as the front column.'
   id: front-4
   panel: front
   size_mm: 120
-  x_mm: 130
+  x_mm: 90
   y_mm: 100
   z_mm: 110
   pattern: 6x120
@@ -127,7 +128,7 @@ mounts:
   id: front-5
   panel: front
   size_mm: 120
-  x_mm: 130
+  x_mm: 90
   y_mm: 220
   z_mm: 110
   pattern: 6x120
@@ -136,7 +137,7 @@ mounts:
   id: front-6
   panel: front
   size_mm: 120
-  x_mm: 130
+  x_mm: 90
   y_mm: 340
   z_mm: 110
   pattern: 6x120
@@ -163,24 +164,27 @@ mounts:
   z_mm: 110
   pattern: 1x120
 - _approximate: true
-  _assumption: 'One of the two included 80 mm fans in the external rear fan cage.
-    x = 605 mm is the published depth including the cage. Side-by-side rather than
-    stacked is not stated; Z is a schematic pair across the 220 mm upright width.
-    Y is a schematic below the 140 mm I/O fan. Direction is not printed.'
+  _assumption: 'One of the two included 80 mm fans, on the outer face of the
+    external rear fan cage. x = 605 mm is the published depth including the cage,
+    so the fan is behind the slot brackets (the main rear panel is at 560 mm).
+    Stood up, a side-by-side pair across the slot row becomes a vertical stack
+    over the card exhaust. This is the lower fan. Z is the card centreline
+    (20 mm tray clearance + half of a 111.15 mm card). Direction is not printed.'
   id: rear-80-1
   panel: rear
   size_mm: 80
   x_mm: 605
-  y_mm: 120
-  z_mm: 55
+  y_mm: 118
+  z_mm: 76
 - _approximate: true
-  _assumption: 'The other included 80 mm cage fan. See rear-80-1.'
+  _assumption: 'The other included 80 mm cage fan, stacked above rear-80-1 so the
+    pair covers the slot exhaust from behind the brackets. See rear-80-1.'
   id: rear-80-2
   panel: rear
   size_mm: 80
   x_mm: 605
-  y_mm: 120
-  z_mm: 165
+  y_mm: 198
+  z_mm: 76
 leak_areas_m2:
   _approximate: true
   _assumption: 'SilverStone does not publish grille free area. Front is the vented
