@@ -6,10 +6,11 @@ is the local server.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -27,6 +28,7 @@ from gpusim.browser_api import (
 from gpusim.calib import GLOBAL_FAN_CURVES
 from gpusim.library import get_library
 from gpusim.models import BuildCfg
+from gpusim.usage import country_from_headers, log_path, record_events, summary_for
 
 STATIC = Path(__file__).resolve().parent / "static"
 DESCRIPTION = """
@@ -52,7 +54,7 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 async def _revalidate_static(request, call_next):
     """Browsers revalidate the page and its modules, so a restarted server is never stale."""
     response = await call_next(request)
-    if request.url.path == "/" or request.url.path.startswith("/static/"):
+    if request.url.path == "/" or request.url.path.startswith("/static/") or request.url.path.startswith("/usage"):
         response.headers["Cache-Control"] = "no-cache"
     return response
 
@@ -221,6 +223,41 @@ def v1_build(build_id: str):
 def v1_schema():
     """JSON Schemas for the request bodies (same as docs/simspec.schema.json)."""
     return simapi_schemas()
+
+
+@app.post("/usage/collect", include_in_schema=False)
+async def usage_collect(request: Request):
+    """Append a batch of usage events. The body is not copied into the error or the access record."""
+    raw = await request.body()
+    if len(raw) > 32_000:
+        return Response(status_code=413)
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return Response(status_code=400)
+    events = payload.get("events") if isinstance(payload, dict) else None
+    if not isinstance(events, list):
+        return Response(status_code=400)
+    record_events(events, country_from_headers(request.headers))
+    return Response(status_code=204)
+
+
+@app.get("/usage/summary.json", include_in_schema=False)
+def usage_summary():
+    return summary_for()
+
+
+@app.get("/usage/events.jsonl", include_in_schema=False)
+def usage_events():
+    path = log_path()
+    if not path.is_file():
+        return Response(status_code=404)
+    return FileResponse(path, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/usage", include_in_schema=False)
+def usage_page():
+    return FileResponse(STATIC / "usage.html")
 
 
 def simapi_schemas() -> dict:

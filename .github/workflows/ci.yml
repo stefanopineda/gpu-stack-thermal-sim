@@ -52,7 +52,9 @@ jobs:
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/gpuism -o IdentitiesOnly=yes"
           git clone --depth 1 git@github.com:stefanopineda/gpuism.git "$RUNNER_TEMP/gpuism"
-          rsync -a --delete --exclude .git site/ "$RUNNER_TEMP/gpuism/"
+          # usage/events.jsonl is not in site/. Leave a copy on the Pages repo
+          # alone if one was placed there. Pages cannot append visitor beacons.
+          rsync -a --delete --exclude .git --exclude 'usage/events.jsonl' site/ "$RUNNER_TEMP/gpuism/"
           cd "$RUNNER_TEMP/gpuism"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

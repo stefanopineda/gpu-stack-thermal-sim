@@ -107,6 +107,35 @@ uv run gpusim sweep --build meshify2xl-stefano --mc 200
 `gpusim ui` also serves a JSON API (`/api/v1/simulate`, `/rank`, `/sweep`, docs at `/docs`);
 schemas are in [docs/openapi.json](docs/openapi.json).
 
+## Usage
+
+The page records how it is used, on gpuism.com and on local `gpusim ui` only. There is no
+Google Analytics and no other third party. A random session id lives in the browser's
+localStorage. Names, email addresses, IP addresses, and full query strings are not collected.
+Country is stored only when the host already sent a two-letter country header. GitHub Pages
+does not send one.
+
+What is counted: page views, time on the site, time on PC / Customize / Worth it? / Resistor /
+Split and on desktop Case / Split / Network, tab changes, case selection, preset and template
+picks, dropdown changes (the control and the choice), Worth it? row clicks, the front / side /
+rear view buttons, the °F toggle, Copy link, and Optimize.
+
+Read the totals:
+
+- Local server: open [http://127.0.0.1:8000/usage](http://127.0.0.1:8000/usage) or
+  [http://127.0.0.1:8000/usage/summary.json](http://127.0.0.1:8000/usage/summary.json), or run
+  `gpusim usage`. The log is `usage/events.jsonl` in the directory where you started the server
+  (`GPUSIM_USAGE_LOG` overrides the path). The raw lines are at `/usage/events.jsonl`.
+- Public site: open [https://gpuism.com/usage/](https://gpuism.com/usage/). The footer link
+  **Usage** goes there.
+
+The browser beacons `POST /usage/collect`. `gpusim ui` appends that body to the log. GitHub
+Pages cannot run the endpoint and cannot append a file, so a visit to gpuism.com is recorded
+in that browser and the usage page reads it back from localStorage. The publish workflow
+leaves an existing `usage/events.jsonl` on the Pages repo in place, and the usage page totals
+that file when it is present. The deploy does not write visitor beacons into it. A file on
+Pages is public.
+
 ## More
 
 - [docs/MODEL.md](docs/MODEL.md) — method, build assumptions, hardware sources, the visualizer

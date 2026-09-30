@@ -89,7 +89,26 @@ def main() -> None:
     _static_api()
     stamp = _stamp(bundle)
     _version_assets(stamp)
+    _write_usage_page(stamp)
     print(f"wrote {SITE} ({len(files)} source files, bundle {bundle.stat().st_size} bytes, assets ?v={stamp})")
+
+
+def write_usage_page(html: str, dest: Path, stamp: str) -> None:
+    """Publish /usage/ as a static page. Script and style URLs are relative to that directory."""
+    html = html.replace('href="/static/', 'href="../static/')
+    html = html.replace('src="/static/', 'src="../static/')
+    html = re.sub(
+        r'((?:src|href)="\.\./static/[^"?]+\.(?:js|css))"',
+        lambda match: f"{match.group(1)}?v={stamp}\"",
+        html,
+    )
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "index.html").write_text(html)
+
+
+def _write_usage_page(stamp: str) -> None:
+    html = (PKG / "ui" / "static" / "usage.html").read_text()
+    write_usage_page(html, SITE / "usage", stamp)
 
 
 def _static_api() -> None:
