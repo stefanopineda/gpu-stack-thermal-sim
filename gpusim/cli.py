@@ -282,6 +282,39 @@ def choose_port(host: str, requested: int) -> tuple[int, bool]:
 
 
 @app.command()
+def usage(
+    log: Path | None = typer.Option(None, help="events.jsonl. Default: ./usage/events.jsonl or $GPUSIM_USAGE_LOG."),
+    as_json: bool = typer.Option(False, "--json", help="Print the summary JSON."),
+) -> None:
+    """Print first-party usage totals from the local log."""
+    from gpusim.usage import aggregate, log_path, read_events
+
+    path = log or log_path()
+    summary = aggregate(read_events(path))
+    summary["log"] = str(path)
+    summary["source"] = "server"
+    if as_json:
+        import json
+
+        typer.echo(json.dumps(summary, indent=2))
+        return
+    if not path.is_file():
+        typer.echo(f"No usage log at {path}.")
+        typer.echo("Start `gpusim ui`, use the app, then open /usage or run this again.")
+        return
+    dwell_s = round(summary["dwell_ms"] / 1000)
+    typer.echo(f"Log: {path}")
+    typer.echo(f"Page views: {summary['page_views']}   Sessions: {summary['sessions']}   Time on site: {dwell_s} s")
+    typer.echo("Tabs (seconds): " + ", ".join(f"{key} {round(ms / 1000)}" for key, ms in summary["dwell_tabs_ms"].items()))
+    counts = summary["counts"]
+    typer.echo(
+        "Actions: "
+        + ", ".join(f"{name} {counts[name]}" for name in counts)
+    )
+    typer.echo("Open /usage on gpusim ui, or /usage/summary.json, for the full breakdown.")
+
+
+@app.command()
 def ui(
     host: str = typer.Option("127.0.0.1"),
     port: int = typer.Option(8000),
