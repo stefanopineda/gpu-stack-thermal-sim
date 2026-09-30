@@ -3,7 +3,7 @@
 [![CI](https://github.com/stefanopineda/gpu-stack-thermal-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/stefanopineda/gpu-stack-thermal-sim/actions/workflows/ci.yml)
 [![Try it: gpuism.com](https://img.shields.io/badge/try%20it-gpuism.com-e0a15a)](https://gpuism.com)
 
-![Stefano's Meshify 2 XL with four RTX PRO 6000 Max-Q cards: Worth it? ranks every change, then applies the free fan curve and the hottest GPU drops from 84 °C to 75 °C](docs/media/worth-it.gif)
+![Stefano's Meshify 2 XL with four RTX PRO 6000 Max-Q cards: Worth it? ranks every change, then applies the free fan curve and the hottest GPU drops from 79 °C to 73.5 °C](docs/media/worth-it.gif)
 
 **Would you rip your case apart for 5 °C?** gpuism models the airflow and heat inside an
 air-cooled multi-GPU workstation, then ranks every change you could make — fan curve, power

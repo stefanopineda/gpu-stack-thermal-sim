@@ -14,14 +14,16 @@ def _rows(result):
     return {r["id"]: r for r in result["rows"]}
 
 
-def test_meshify_shroud_is_worth_about_two_degrees_and_inside_the_noise():
+def test_meshify_shroud_is_worth_about_ten_degrees():
     lib = get_library()
     result = worth_it(lib.builds["meshify2xl-stefano"], lib, mc=4)
     rows = _rows(result)
     shroud = rows["shroud"]
     assert shroud["framing"] == "shroud_on"  # his build has it on: the row takes it off
-    assert -3.5 < shroud["gain_c"] < -1.0
-    assert shroud["inside_noise"]
+    # 2026-09-30 spaced soak: shroud on 79 °C, shroud off 89 °C. Removing it
+    # warms the hottest die by about 10 °C, which is outside the noise floor.
+    assert -12.0 < shroud["gain_c"] < -8.0
+    assert not shroud["inside_noise"]
     assert rows["fan_curve"]["gain_c"] > NOISE_FLOOR_C and not rows["fan_curve"]["inside_noise"]
     gains = [r["gain_c"] for r in result["rows"]]
     assert gains == sorted(gains, reverse=True)

@@ -246,7 +246,20 @@ def build_network(
         cooler[gpu.id] = card.cooler
         gap = gaps[gpu.id]
         bleed(f"cin-{gpu.id}")
-        _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add, CABLE_INLET_K.get(build.cables, 1.0))
+        # inlet_cd is the blower slit, fit to the Max-Q soaks. A flow-through
+        # axial inlet keeps the sharp-edge 0.62: Cd 2 on that large face made
+        # a closer pair run a smaller die delta than a wider pair.
+        inlet_cd = 0.62 if through else float(sample.get("inlet_cd", 0.62))
+        _add_inlet_sides(
+            gpu,
+            gap,
+            params,
+            rho_ref,
+            rho_for,
+            add,
+            CABLE_INLET_K.get(build.cables, 1.0),
+            inlet_cd,
+        )
         q, p, rpm, rpm_ref = _blower_qp(params, duties.get(gpu.id, 0.7))
         add(
             Branch(
@@ -470,7 +483,7 @@ def _open_air(build, cards, duties, sample, rho_ref, add, bleed, nodes, branches
     return net
 
 
-def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add, k_mult: float = 1.0) -> None:
+def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add, k_mult: float = 1.0, inlet_cd: float = 0.62) -> None:
     """One orifice per inlet face. Area is the slot-map slit, capped by that face's share of the eye."""
     eye = float(params["inlet_eye_m2"])
     width = float(params["inlet_width_m"])
@@ -486,7 +499,7 @@ def _add_inlet_sides(gpu, gap, params, rho_ref, rho_for, add, k_mult: float = 1.
                 id=f"gap-{gpu.id}-{side['name']}",
                 a="gpu",
                 b=f"cin-{gpu.id}",
-                k=orifice_k(area, rho_ref, 0.62) * k_mult,
+                k=orifice_k(area, rho_ref, inlet_cd) * k_mult,
                 k_lin=2.0,
                 rho=rho_for("gpu"),
                 kind="gap",
@@ -817,7 +830,12 @@ def _add_shroud_gap_mouths(build, cards, gaps, rho_ref, mu, sample, add) -> list
     this function, so the branches are absent.
     """
     intake = build.shroud.intake if build.shroud.intake in ("open", "taped") else "open"
-    cd = float(sample.get("shroud_gap_cd", 0.62))
+    # Open mouths and the tape crack do not share a discharge coefficient.
+    # The crack stays at shroud_crack_cd (not refit). Only the open gap moves.
+    if intake == "taped":
+        cd = float(sample.get("shroud_crack_cd", 0.62))
+    else:
+        cd = float(sample.get("shroud_gap_cd", 0.62))
     crack_mm = float(sample.get("shroud_crack_mm", 0.6))
     kind = "shroud-crack" if intake == "taped" else "shroud-pull"
     cover = 1.0

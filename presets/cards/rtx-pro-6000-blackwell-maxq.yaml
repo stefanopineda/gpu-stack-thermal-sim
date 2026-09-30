@@ -35,9 +35,14 @@ throttle_c:
   assumption: SPEC rev 3 default throttle flag, configurable about 87–90 °C. Not printed
     as a single number on the NVIDIA datasheet.
 cutoff_c:
-  value: 90
+  value: 96
   approximate: true
-  assumption: 'Stefano''s anchor B: close-packed cards hit a 90 °C cutoff.'
+  assumption: 'Power folds back above the 2026-09-30 full-load band. Those
+    Meshify soaks stabilized at 93 °C stacked with the shroud off and 91 °C
+    stacked with the shroud on, at full board power (the two differ, so they
+    are not sitting on one shared temperature target). The previous 90 °C
+    cutoff forced every stacked run onto ~89.5 °C and hid the fin-path
+    solution. Throttle flag stays 88 °C.'
 fan_curves:
   _approximate: true
   _assumption: 'stock: duty rises with die temperature but caps at 70% from 88 °C

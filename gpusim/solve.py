@@ -426,6 +426,7 @@ def sample_tuning(rng, build: BuildCfg, library: Library | None = None) -> dict:
         # Assumed shroud-mouth knobs. Orifice k is already inside k_scale.
         "shroud_crack_mm": float(min(1.5, max(0.2, GLOBAL["shroud_crack_mm"] * ln(0.35)))),
         "skin_nu_C": GLOBAL["skin_nu_C"] * ln(0.35),
+        "open_gap_nu_C": GLOBAL["open_gap_nu_C"] * ln(0.35),
     }
 
 

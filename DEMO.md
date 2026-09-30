@@ -10,22 +10,23 @@ once so the in-browser solver is loaded and cached (a cold load takes 7–10 s),
 
 1. **Hook: Mike Bradley's stack.** Home → Mike Bradley's Dengen X Station. Four RTX PRO 6000
    Workstation cards touching. "One number in this model was fit to his top card at 80 % fans, 79 °C.
-   Then it predicted his 100 % reading: he measured 69, the model says 69.3."
-2. **Your build.** Home → Stefano's Meshify 2 XL. Hover the hottest card (84.5 °C).
+   Then it predicted his 100 % reading: he measured 69, the model says 71.1. That duct was not refit today."
+2. **Your build.** Home → Stefano's Meshify 2 XL. Hover the hottest card (79 °C). That number is the spaced, shroud-on soak from 2026-09-30.
 3. **The answer.** Worth it? Walk down the list:
-   - Cap power at 80 %: −10.7 °C, free (costs performance).
-   - Aggressive fan curve: −8.7 °C, free (louder).
-   - Seal, fill the empty mount, flip exhausts: −0.1 °C each, inside the noise.
-   - The shroud: "Your shroud is worth 1.8 °C on this build" (short paired band about 1.0–2.0), inside the noise.
-   - Stack and tape (orientation B) is the hardware A/B, about 19 °C hotter unthrottled. That is the inlet gap, not a reason to skip the live test.
-4. **Close.** "Model first. Here's what 5 °C costs you." Apply the fan curve: 84.5 → 75.4 °C.
+   - Cap power at 80 %: −10 °C, free (costs performance).
+   - Aggressive fan curve: −5.6 °C, free (louder).
+   - Seal, fill the empty mount, flip exhausts: a few tenths, inside the noise.
+   - The shroud: taking it off warms the hottest die by 10 °C (79 → 89), which is the spaced pair of soaks. Not inside the noise.
+   - Stack and tape (orientation B) is 91 °C, 12 °C hotter than this layout. The stacked soaks only moved 2 °C when the shroud went on.
+4. **Close.** Apply the fan curve: 79 → 73.5 °C.
    Copy link: the whole build is in the URL.
 
 ### Live shroud test (the part that might fail on stream)
 
-The model's prediction, stated before measuring: **with the shroud 84.5 °C, without 86.3 °C; the
-shroud is worth 1.8 °C (short paired band about 1.0–2.0 °C), inside the noise.** The model is ±5–10 °C absolute, so
-compare the *difference*, not the absolute numbers.
+Fit to the four soaks on 2026-09-30: **spaced, shroud on 79 °C; spaced, shroud off 89 °C
+(a 10 °C benefit). Stacked and taped, shroud off 93 °C; stacked and taped, shroud on 91 °C
+(a 2 °C benefit).** The model is still ±5–10 °C on a layout it was not fit to. Compare the
+*difference* when you try something new.
 
 1. Same load both times, long enough to flatten (10–15 min): the same benchmark or a fixed power
    limit on all four cards. Log with
@@ -64,43 +65,42 @@ written out as `T_in + Q·R_conv + P·R_tim`.
 Four horizontal Max-Q blowers, no empty slot, stock fan curve, shroud off.
 
 Say: each fan face points down at the card below across about 3.6 mm. The stock curve is already capped
-near 70 % duty, so a hot card cannot spin out of the hole. Unthrottled dies, top to bottom: 100.8, 109.0,
-108.8 and 87.2 °C. The middle two are the hot ones, about 15 CFM each. Three cards cross the 90 °C cutoff
-and throttle. The bottom card's fan sees about 40 mm of PSU-shroud clearance, holds 26 CFM, and stays near
-87 °C. In the network view, look at the slot-gap resistors on the middle cards.
+near 70 % duty. Dies, top to bottom, at full board power: 91.4, 93.1, 93.1 and 88.7 °C. The middle two
+are the hot ones. This is the stacked shroud-off soak (hottest 93 °C). The bottom card's fan sees about
+40 mm of PSU-shroud clearance and stays near 89 °C. In the network view, look at the slot-gap resistors
+on the middle cards.
 
 ### Gaps plus a vertical card (anchor A)
 
 One empty slot between the three horizontal cards, fourth card in vertical slot v2, shroud still off.
 
-Say: the empty slot is an open mouth with the brackets off. Hottest die 86.6 °C, all four within 0.1 °C,
-about 26 CFM each. Nothing throttles. This is the measured anchor. Spacing did almost all of the work.
+Say: the empty slot is an open mouth with the brackets off. Hottest die 88.9 °C, all four within 0.1 °C,
+about 29 CFM each. This is the spaced shroud-off soak (measured 89 °C). Spacing is a few degrees once
+the inlet is not treated as a sharp orifice.
 
 ### Rear shroud, 2× NF-A14 industrialPPC-3000
 
 Same layout, shroud on.
 
 Say: one plenum over every bracket, two industrial fans pulling on it. Interior gaps are their own orifices
-into that plenum, in parallel with the GPU mouths. Hottest die 84.5 °C. Mean blower flow rises from 25.8
-to 26.0 CFM, and about 46 CFM bypasses the fins through the two gaps. The case sits a few pascals below
-room pressure here, so without the shroud some exhaust plume comes back in through the open slot mouths; the plenum stops that.
-At positive case pressure nothing comes back in, shroud or not. The datasheet static pressure is 10.52 mmH₂O and the web page says
-6.58; the model uses the datasheet and the Monte Carlo spans both.
+into that plenum, in parallel with the GPU mouths. Hottest die 79.0 °C. About 58 CFM bypasses the fins
+through the two gaps and cools the skins. That is the spaced shroud-on soak. The datasheet static pressure
+is 10.52 mmH₂O and the web page says 6.58; the model uses the datasheet and the Monte Carlo spans both.
 
 ### Positive pressure, taped
 
 Every case fan and the radiator flipped to intake, seals at level 4–5, shroud on.
 
-Say: seal levels now run 1 = fully open to 5 = sealed; tape is 4–5. Case pressure goes to about +18 Pa,
-which cuts recirculation, but the radiator now heats the intake with the CPU. Hottest die 85.5 °C, a bit
-worse than 84.2. Positive pressure is not free.
+Say: seal levels now run 1 = fully open to 5 = sealed; tape is 4–5. Case pressure goes positive,
+which cuts recirculation, but the radiator now heats the intake with the CPU. Hottest die 78.8 °C,
+within a degree of 79.0. Positive pressure is not where the 10 °C came from.
 
 ### Custom Accelerated fan curve
 
 Normal fan directions, shroud on, GPU fans on Custom Accelerated: off at 25 °C, 100 % at 70 °C.
 
-Say: affinity laws, flow with RPM and pressure with RPM squared. Hottest die 75.4 °C, about 37 CFM. One
-card in open air on the same curve is 73.4 °C against 82.8 °C stock. This is a software change; do it after
+Say: affinity laws, flow with RPM and pressure with RPM squared. Hottest die 73.5 °C, about 42 CFM. One
+card in open air on the same curve is 78.6 °C against 88.7 °C stock. This is a software change; do it after
 the cards are spaced, or you will not know which change you measured.
 
 ### Same slots, flow-through cards

@@ -51,9 +51,10 @@ steps:
     Interior gaps between the cards are their own orifices into that plenum, in parallel
     with the GPU exhaust openings. The top of the top card and the bottom of the bottom
     card are not inlets.
-  - Hottest die 84.5 °C. Mean blower flow rises from 25.8 to 26.0 CFM. About 46 CFM
-    bypasses through the two gaps and cools the skins; it does not go through the fins.
-    The plenum stops plume re-ingestion through the open slot mouths.
+  - Hottest die 79.0 °C (middle card 72.9 °C). About 58 CFM bypasses through the two
+    gaps and cools the skins, including one face of the vertical card. It does not go
+    through the fins. Calibrated to the 2026-09-30 spaced soak, 79 °C with the shroud
+    and 89 °C without.
 - id: high-pressure
   title: Positive pressure, interfaces taped
   layout: gap1_vertical
@@ -64,8 +65,9 @@ steps:
   advance_s: 20
   talking_points:
   - Every case fan and the radiator flip to intake. Seals go to level 4–5 (tape).
-  - Case pressure goes to about +18 Pa, which cuts recirculation, but the radiator now
-    heats the intake with the CPU. Hottest die 85.5 °C, slightly worse than 84.2.
+  - Case pressure goes positive, which cuts recirculation, but the radiator now
+    heats the intake with the CPU. Hottest die 78.8 °C, within a degree of the
+    standard shroud-on layout at 79.0 °C.
 - id: aggressive-curve
   title: Custom Accelerated GPU fan curve
   layout: gap1_vertical
@@ -77,8 +79,8 @@ steps:
   talking_points:
   - Custom Accelerated is off at 25 °C and ramps linearly to 100 % at 70 °C, instead
     of capping near 70 % duty.
-  - 'Affinity laws: flow scales with RPM, pressure with RPM squared. Hottest die 75.4 °C,
-    about 37 CFM. One card in open air: 73.4 °C on this curve against 82.8 °C stock.'
+  - 'Affinity laws: flow scales with RPM, pressure with RPM squared. Hottest die 73.5 °C,
+    about 42 CFM. One card in open air: 78.6 °C on this curve against 88.7 °C stock.'
 - id: flow-through
   title: Same slots, 4× RTX PRO 6000 Workstation (600 W flow-through)
   layout: gap1_vertical

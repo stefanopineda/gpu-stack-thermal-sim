@@ -5,6 +5,48 @@ and per-card-type parameters, no per-cell offsets. The numbers live in `gpusim/c
 that NVIDIA, ELSA or a review publishes stays in `presets/cards/`. Inlet orientation is a card-preset
 field and is not refit per sweep cell.
 
+## Meshify soaks, 2026-09-30
+
+Stefano ran four 5-minute full-load soaks on the Meshify 2 XL with 4× RTX PRO 6000 Max-Q. These are
+measured hottest-die targets, not literature assumptions. No per-build temperature offset was added.
+Mike Bradley's stack was not refit; `stack_cd` is unchanged. Slot pitch, card thickness, fan curves and
+the taped-crack height are unchanged.
+
+The previous stacked "89.5 °C" was not a fin-path temperature. It was the solver folding every card that
+would have exceeded the old 90 °C cutoff back onto that cutoff. The two stacked soaks differ (93 °C
+without the shroud, 91 °C with it), so they are full-board-power equilibria. The Max-Q cutoff is now
+96 °C, above that band, so a low-90s solution is reported instead of being replaced. Power still folds
+back above 96 °C. The throttle flag stays at 88 °C.
+
+| Soak | Measured hottest | Previous model | After this fit |
+|---|---:|---:|---:|
+| Spaced, shroud off | 89 | 86.2 | **88.9** |
+| Spaced, shroud on | 79 | 84.5 | **79.0** |
+| Stacked and taped, shroud off | 93 | 89.5 (clamp; unthrottled 108) | **93.1** |
+| Stacked and taped, shroud on | 91 | 89.5 (clamp; unthrottled 104) | **91.1** |
+
+Shroud benefit is 9.9 °C spaced and 2.0 °C stacked. Averages of the four dies (a check, not a fit
+target): stacked shroud off 91.6 (measured 90.3), stacked shroud on 89.6 (measured 85.5), spaced
+shroud off 88.9 (measured 87.3), spaced shroud on 77.5 (measured 76.8).
+
+| Coefficient | Old | New | What it is |
+|---|---:|---:|---|
+| `nu_C` | 0.100 | **0.082** | Fin-channel Nusselt prefactor. The in-card fin path was a little too effective on the three runs the shroud barely helped. Global, so open air and other cards move with it. |
+| `inlet_cd` | 0.62 (hard-coded sharp edge) | **2.0** | Blower inlet orifice referenced to the slot-map slit. Cd above 1 means the eye draws from a wider approach than the projected rectangle (card ends and the open side of the slot). This is what brought the full-power stack down from ~108 °C to ~93 °C. Not a change to pitch, thickness, or crack height. Flow-through axial inlets stay at 0.62; Cd 2.0 on that face inverted the spacing trend. |
+| `shroud_gap_cd` | 0.62 (also used for the crack) | **0.95** | Open-gap mouth only. Rounded entry, lower orifice resistance, more bypass when the shroud is pulling (about 46 CFM → 58 CFM). |
+| `open_gap_nu_C` | — (open gaps used `skin_nu_C` 0.10) | **1.15** | Nusselt prefactor on an open shroud-pull wall only. The open gap was thermally too resistive to explain a 10 °C shroud benefit. At the solved gap speed this is on the order of 60 W/m²K, forced convection, not a free-convection default. A vertical card with no mouth is washed by one face of that same stream. |
+| `shroud_crack_cd` | 0.62 (shared) | **0.62** | Tape crack only. Not refit. |
+| `shroud_crack_mm` | 0.6 | **0.6** | Not refit. |
+| `skin_nu_C` | 0.10 | **0.10** | Tape-crack convection only. Not refit. |
+| Max-Q `cutoff_c` | 90 | **96** | Lets the 91–93 °C full-power equilibria stand. Not a die-temperature offset. |
+
+`nu_m` stays 0.60. Because `nu_C` is global, one Max-Q in open air at 300 W moves from 82.8 °C to
+**88.7 °C**, and Custom Accelerated in open air from 73.4 °C to **78.6 °C**. Flow-through open-air
+checks stay inside their ±5 °C review bands. Anchor C (not refit; flow-through
+inlets stay at Cd 0.62) is top 80.0 / 71.1 °C against his 79 / 69.
+
+Tables below that quote 86.2 °C, 84.5 °C or a 108 °C unthrottled stack are the pre-soak model.
+
 ## Rev 4 against rev 3
 
 No global knob and no Max-Q number was retuned for rev 4. The small moves come from the seal re-map

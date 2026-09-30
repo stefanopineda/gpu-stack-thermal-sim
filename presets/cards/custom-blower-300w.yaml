@@ -19,7 +19,7 @@ inlet_split:
   assumption: Template copies the Max-Q assumption. Fan face points at the floor;
     0.25 of the eye is a backplate-side/end opening. Not a measured inlet.
 throttle_c: 88
-cutoff_c: 90
+cutoff_c: 96
 fan_curves:
   _approximate: true
   _assumption: 'stock: duty rises with die temperature but caps at 70% from 88 °C
