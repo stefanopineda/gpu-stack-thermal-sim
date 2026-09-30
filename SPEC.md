@@ -498,8 +498,9 @@ buoyancy is a small optional bias.
 
 `gpusim/worth.py`, `POST /api/worth`, `gpusim worth`, and the Worth it? panel. From the build as it stands,
 each applicable single change is built as a variant: all cards on Custom Accelerated; power limits at 80 % of
-the current limit (or TBP); rear shroud on (or off, if already on: the row then reports what the shroud is
-worth); sealed leakage levels (never lowering a seal already tighter); every case exhaust flipped to intake
+each card's stock TBP, and only while that card is still above the cap (a limit already at or below 80 % of
+stock is omitted — that lever is already used); rear shroud on (or off, if already on: the row then reports
+what the shroud is worth); sealed leakage levels (never lowering a seal already tighter); every case exhaust flipped to intake
 (radiator unchanged); every empty or plugged non-side mount in the active pattern filled with the fan model
 already used at that size (front and bottom intake, top and rear exhaust); and, when horizontal cards touch,
 the gap1 layout (the top card moves to a free vertical position when the slots run out). Effort tags: free

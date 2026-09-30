@@ -156,11 +156,16 @@ def _fan_curve(build: BuildCfg) -> Candidate | None:
 
 
 def _power_cap(build: BuildCfg, lib: Library) -> Candidate | None:
+    """80 % of each card's stock TBP, only while the build is still above that.
+
+    The cap is the rated board power, not the limit already dialed in. A card
+    at or below 80 % of stock has used this lever; a further cut is not "80 %".
+    """
     out = build.model_copy(deep=True)
     changed = False
     for gpu in out.gpus:
         card = lib.cards[gpu.card]
-        target = round(0.8 * min(gpu.power_limit_w, card.tbp_w))
+        target = round(0.8 * card.tbp_w)
         if target < gpu.power_limit_w - 1:
             gpu.power_limit_w = float(target)
             changed = True
