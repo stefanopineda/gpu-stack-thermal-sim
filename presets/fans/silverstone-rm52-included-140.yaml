@@ -1,0 +1,42 @@
+_approximate: true
+_assumption: 'The RM52 ships with one 140 mm black fan on the rear I/O (SilverStone
+  product page) and does not name the model or publish a P–Q curve. Intercepts are
+  the SST-AP140i, a documented SilverStone 140 mm fan: 1500 RPM, 64.34 CFM, 1.55 mmH2O,
+  30.1 dBA, 1.44 W, 25 mm thick. Shape is the generic quadratic P = Pmax (1-(Q/Qmax)^2)
+  because the AP140i page publishes only those two intercepts. This is not an identification
+  of the included fan as an AP140i.'
+_source: https://www.silverstonetek.com/en/product/info/fans/AirPenetrator140i/
+id: silverstone-rm52-included-140
+name: RM52 included 140 mm (assumed, AP140i curve)
+size_mm: 140
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 1500
+airflow_m3h: 109.31
+airflow_cfm: 64.34
+static_pressure_mmh2o: 1.55
+noise_dba: 30.1
+power_w: 1.44
+approximate: true
+notes: 'Stand-in for the unnamed 140 mm fan included with the SilverStone RM52.
+  Donor curve is the SST-AP140i (3-pin, 1500 RPM). Duty in the model scales that
+  rating; the real included fan''s speed control is not published.'
+pq_points_m3h_mmh2o:
+- - 0.0
+  - 1.55
+- - 13.6643
+  - 1.5258
+- - 27.3286
+  - 1.4531
+- - 40.9929
+  - 1.332
+- - 54.6572
+  - 1.1625
+- - 68.3215
+  - 0.9445
+- - 81.9858
+  - 0.6781
+- - 95.6501
+  - 0.3633
+- - 109.3144
+  - 0.0

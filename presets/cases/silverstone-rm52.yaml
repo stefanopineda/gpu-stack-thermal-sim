@@ -1,0 +1,228 @@
+_approximate: true
+_assumption: 'Side-view coordinates are a schematic for the solver and the UI, not a
+  factory drawing. The chassis is modelled stood up (the manual''s vertical placement,
+  feet included). SilverStone publishes the rack orientation as 440 mm (W) × 220 mm (H)
+  × 605 mm (D) including the rear fan cage. Stood up, the published width becomes the
+  height and the published height becomes the width, so slots stack the way the other
+  cases do. External volume is unchanged.'
+_source: https://www.silverstonetek.com/en/product/info/computer-chassis/rm52/
+id: silverstone-rm52
+name: SilverStone RM52
+width_mm:
+  value: 220
+  approximate: true
+  assumption: 'Upright width. The product sheet''s rack height is 220 mm. Stood up,
+    that dimension is the width (motherboard on the side). Not a separate measurement.'
+height_mm:
+  value: 440
+  approximate: true
+  assumption: 'Upright height. The product sheet''s rack width is 440 mm. Stood up,
+    that dimension is the height the eight slots stack in. Not a separate measurement.'
+depth_mm:
+  value: 605
+  approximate: false
+  source: https://www.silverstonetek.com/en/product/info/computer-chassis/rm52/
+external_volume_l:
+  value: 58.56
+  approximate: false
+  source: https://www.silverstonetek.com/en/product/info/computer-chassis/rm52/
+internal_volume_l:
+  value: 54.21
+  approximate: true
+  assumption: 'SilverStone does not publish internal free-air volume. 54.21 L is the
+    published external volume excluding the rear fan cage (440 × 220 × 560 mm).'
+motherboards:
+- SSI-EEB
+- SSI-CEB
+- E-ATX
+- XL-ATX
+- ATX
+- mATX
+- Mini-ITX
+horizontal_slots:
+  value: 8
+  approximate: false
+  source: https://www.silverstonetek.com/en/product/info/computer-chassis/rm52/
+vertical_slots:
+  value: 0
+  approximate: false
+  source: https://www.silverstonetek.com/en/product/info/computer-chassis/rm52/
+slot_pitch_mm:
+  value: 20.32
+  approximate: false
+  source: PCI Express Card Electromechanical Specification, slot pitch 0.800 in (20.32
+    mm)
+top_slot_y_mm:
+  value: 230
+  approximate: true
+  assumption: 'Schematic slot-1 height in the upright frame. The viewer places slot
+    1 one cooler-clearance (185 mm) under the board top; on a 440 mm upright height
+    that is 230 mm. SilverStone does not publish slot-1 coordinates.'
+vertical_positions: []
+airflow_layout: direct_front_to_gpu
+psu_shroud: false
+psu_location: front
+side_panel: steel
+filters: []
+front_mesh: false
+gpu_max_length_mm:
+  value: 512
+  approximate: false
+  source: https://www.silverstonetek.com/en/product/info/computer-chassis/rm52/
+cpu_cooler_max_mm:
+  value: 192
+  approximate: false
+  source: https://www.silverstonetek.com/en/product/info/computer-chassis/rm52/
+fan_support:
+  front: 6×120
+  rear: 1×140 or 1×120, plus 2×80 in the rear fan cage
+radiator_support:
+  front: 2×360 (length limit 407 mm) or 120 mm × 4
+  rear: 1×120
+mounts:
+- _approximate: true
+  _assumption: 'Front bracket, one column of three 120 mm positions. The cooling-system
+    line is 120 mm × 6. A 220 mm upright width holds one 120 mm fan; three stack in
+    the 440 mm upright height (360 mm). The second three are the internal bracket.
+    Y/Z are a centred schematic, not a measured hole pattern. No front fans are included.'
+  id: front-1
+  panel: front
+  size_mm: 120
+  x_mm: 0
+  y_mm: 100
+  z_mm: 110
+  pattern: 6x120
+- _approximate: true
+  _assumption: 'Front bracket, middle 120 mm. See front-1.'
+  id: front-2
+  panel: front
+  size_mm: 120
+  x_mm: 0
+  y_mm: 220
+  z_mm: 110
+  pattern: 6x120
+- _approximate: true
+  _assumption: 'Front bracket, upper 120 mm. See front-1.'
+  id: front-3
+  panel: front
+  size_mm: 120
+  x_mm: 0
+  y_mm: 340
+  z_mm: 110
+  pattern: 6x120
+- _approximate: true
+  _assumption: 'Internal radiator bracket, the other three of the published 6×120.
+    The manual has a removable internal bracket behind the front bracket (positions
+    A and B) and does not publish the setback. 130 mm is a schematic gap in front
+    of a 267 mm card in a 605 mm depth. Same Y/Z as the front column.'
+  id: front-4
+  panel: front
+  size_mm: 120
+  x_mm: 130
+  y_mm: 100
+  z_mm: 110
+  pattern: 6x120
+- _approximate: true
+  _assumption: 'Internal bracket, middle 120 mm. See front-4.'
+  id: front-5
+  panel: front
+  size_mm: 120
+  x_mm: 130
+  y_mm: 220
+  z_mm: 110
+  pattern: 6x120
+- _approximate: true
+  _assumption: 'Internal bracket, upper 120 mm. See front-4.'
+  id: front-6
+  panel: front
+  size_mm: 120
+  x_mm: 130
+  y_mm: 340
+  z_mm: 110
+  pattern: 6x120
+- _approximate: true
+  _assumption: 'Rear I/O mount for the included 140 mm fan. The spec allows 120 mm
+    or 140 mm here, and includes the 140 mm. x = 560 mm is the published depth
+    excluding the rear fan cage (the I/O panel). Y is a schematic above the slot
+    stack; Z is centred. Direction is not printed; the build treats it as exhaust.'
+  id: rear-140
+  panel: rear
+  size_mm: 140
+  x_mm: 560
+  y_mm: 360
+  z_mm: 110
+  pattern: 1x140
+- _approximate: true
+  _assumption: 'Same rear I/O opening with a 120 mm fan or the published rear 120 mm
+    radiator position. Not the included fan. Same station as rear-140, schematic Y/Z.'
+  id: rear-120
+  panel: rear
+  size_mm: 120
+  x_mm: 560
+  y_mm: 360
+  z_mm: 110
+  pattern: 1x120
+- _approximate: true
+  _assumption: 'One of the two included 80 mm fans in the external rear fan cage.
+    x = 605 mm is the published depth including the cage. Side-by-side rather than
+    stacked is not stated; Z is a schematic pair across the 220 mm upright width.
+    Y is a schematic below the 140 mm I/O fan. Direction is not printed.'
+  id: rear-80-1
+  panel: rear
+  size_mm: 80
+  x_mm: 605
+  y_mm: 120
+  z_mm: 55
+- _approximate: true
+  _assumption: 'The other included 80 mm cage fan. See rear-80-1.'
+  id: rear-80-2
+  panel: rear
+  size_mm: 80
+  x_mm: 605
+  y_mm: 120
+  z_mm: 165
+leak_areas_m2:
+  _approximate: true
+  _assumption: 'SilverStone does not publish grille free area. Front is the vented
+    intake face of a steel 5U; top, bottom and side are closed steel; seams are
+    small. Estimates, not measurements.'
+  front: 0.018
+  top: 0.002
+  bottom: 0.002
+  side: 0.004
+  seams: 0.006
+rear_slot_area_m2:
+  value: 0.00145
+  approximate: true
+  assumption: 'Same schematic rear slot-mouth area as the other case presets. Not
+    measured on the RM52.'
+clearance_above_top_mm:
+  value: 40
+  approximate: true
+  assumption: 'Open gap above the top card toward the CPU cooler. Not published.
+    The upright frame has more roof clearance than this; 40 mm is the air the top
+    blower actually sees beside the cooler.'
+psu_shroud_clearance_mm:
+  value: 36
+  approximate: true
+  assumption: 'No PSU shroud is published. Floor gap under the lowest card when the
+    shroud flag is off. Not a measured RM52 dimension.'
+vertical_inlet_gap_mm:
+  value: 28
+  approximate: true
+  assumption: 'No vertical GPU mount is published (vertical_slots is 0). Placeholder
+    kept so the case model stays complete.'
+dimension_note: 'SST-RM52, 5U rackmount (not 4U). Product page and product sheet:
+  incl. rear fan cage 440 mm (W) × 220 mm (H) × 605 mm (D), 58.56 L; excl. cage
+  440 × 220 × 560 mm, 54.21 L. Eight PCI slots. GPU length 512 mm with no front fans
+  or radiators and the internal radiator bracket removed, or 365 mm with dual radiators
+  at 53 mm combined thickness each. Card width 160 mm with the retainer, 198 mm without
+  (manual also draws 165 mm and 186 mm with the clamps). CPU cooler 181 mm with the
+  retainer, 192 mm without. Cooling system: front 120 mm × 6; rear I/O 120 mm × 1 or
+  140 mm × 1 with one 140 mm fan included; rear fan cage 80 mm × 2 with two 80 mm fans
+  included. Radiators: front 120 mm × 4 / 360 mm × 2, rear 120 mm × 1. Manual radiator
+  length limit 407 mm. No top, bottom, or side fan mounts are listed. Steel. Motherboards
+  through SSI-EEB. Upright or horizontal placement; this preset is the upright frame.'
+notes: 'Included fans are only the rear 140 mm and the two rear-cage 80 mm fans.
+  Front 120 mm positions ship empty. Fan model numbers are not on the product page
+  or the manual; the curves are labelled assumed stand-ins.'

@@ -1,0 +1,43 @@
+_approximate: true
+_assumption: 'The RM52 ships with two 80 mm black fans in the rear fan cage (SilverStone
+  product page) and does not name the model or publish a P–Q curve. The manual limits
+  those cage fans to 38 mm thick and does not give the included thickness. Intercepts
+  are the SST-FN81, a documented SilverStone 80 mm × 25 mm fan: 2050 RPM, 0.72 m³/min,
+  1.6 mmH2O, 23 dBA, 1.08 W. The same page also prints 23.53 CFM next to 0.72 m³/min;
+  0.72 m³/min is 25.4 CFM, which is the figure used here. Shape is the generic quadratic
+  P = Pmax (1-(Q/Qmax)^2). This is not an identification of the included fans as FN81s.'
+_source: https://www.silverstonetek.com/en/product/info/fans/FN81/
+id: silverstone-rm52-included-80
+name: RM52 included 80 mm (assumed, FN81 curve)
+size_mm: 80
+thickness_mm: 25
+rpm_min: 0
+rpm_max: 2050
+airflow_m3h: 43.2
+airflow_cfm: 25.43
+static_pressure_mmh2o: 1.6
+noise_dba: 23
+power_w: 1.08
+approximate: true
+notes: 'Stand-in for each unnamed 80 mm fan included in the RM52 rear fan cage.
+  Donor curve is the SST-FN81. Thickness 25 mm is the FN81; the cage allows up to
+  38 mm and the included thickness is not published. Duty scales the 2050 RPM rating.'
+pq_points_m3h_mmh2o:
+- - 0.0
+  - 1.6
+- - 5.4
+  - 1.575
+- - 10.8
+  - 1.5
+- - 16.2
+  - 1.375
+- - 21.6
+  - 1.2
+- - 27.0
+  - 0.975
+- - 32.4
+  - 0.7
+- - 37.8
+  - 0.375
+- - 43.2
+  - 0.0
