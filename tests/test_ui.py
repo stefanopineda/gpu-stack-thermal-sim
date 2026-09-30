@@ -61,6 +61,20 @@ def test_phone_ui_keeps_desktop_split():
     assert 'data-mtab="split"' in html and 'data-net="split"' in html
 
 
+def test_phone_selects_wrap_full_option():
+    """Under 800px the chosen option is a wrapping label, not an ellipsis."""
+    client = TestClient(app)
+    css = client.get("/static/style.css").text
+    js = client.get("/static/app.js").text
+    phone = css.split("@media (max-width: 800px)", 1)[1].split("@media (min-width: 801px)", 1)[0]
+    assert ".select-face .select-value" in phone
+    assert "overflow-wrap: break-word" in phone
+    assert "text-overflow: clip" in phone
+    assert "ellipsis" not in phone
+    assert "@media (min-width: 801px)" in css and ".select-face { display: contents; }" in css
+    assert "fitPhoneSelects" in js and "function isNarrow()" in js
+
+
 def test_visualizer_modules_and_rev4_payload():
     client = TestClient(app)
     for name in ("app.js", "scene.js", "network.js", "tips.js", "style.css", "vendor/three.module.js"):
