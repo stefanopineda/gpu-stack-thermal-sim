@@ -38,6 +38,29 @@ def test_visualizer_smoke():
         assert payload["solution"]["cards"]
 
 
+def test_phone_ui_keeps_desktop_split():
+    """iPhone-width fixes stay in the static UI; the desktop Split control stays."""
+    client = TestClient(app)
+    css = client.get("/static/style.css").text
+    js = client.get("/static/scene.js").text
+    app_js = client.get("/static/app.js").text
+    html = client.get("/").text
+    assert 'touch-action: none' in css
+    assert ".view3d" in css and "#scene" in css
+    assert "passive: false" in js and "preventDefault" in js and "setPointerCapture" in js
+    assert 'pointerType === "touch"' in js and "ResizeObserver" in js and "relayout(" in js
+    assert "if (!w || !h) return" in js
+    assert "aspectChanged" in js
+    assert "body.mtab-pc .view3d { height: 100%; min-height: 0; }" in css
+    assert "body.mtab-customize .readout { display: none !important; }" in css
+    assert "grid-template-rows: minmax(0, 1fr)" in css
+    assert "grid-template-columns: minmax(0, 1fr) !important" in css
+    assert '[data-mtab="split"] { display: none; }' in css
+    assert "repeat(4, minmax(0, 1fr))" in css
+    assert 'tab === "split"' in app_js and 'mode === "split"' in app_js
+    assert 'data-mtab="split"' in html and 'data-net="split"' in html
+
+
 def test_visualizer_modules_and_rev4_payload():
     client = TestClient(app)
     for name in ("app.js", "scene.js", "network.js", "tips.js", "style.css", "vendor/three.module.js"):
