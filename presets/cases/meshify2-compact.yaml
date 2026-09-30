@@ -1,0 +1,240 @@
+_approximate: true
+_assumption: Side-view coordinates and uncited areas are a schematic for the solver
+  and the UI, not a factory drawing.
+_source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+id: meshify2-compact
+name: Fractal Design Meshify 2 Compact
+width_mm:
+  value: 210
+  approximate: false
+  source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+height_mm:
+  value: 475
+  approximate: false
+  source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+depth_mm:
+  value: 424
+  approximate: false
+  source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+internal_volume_l:
+  value: 29
+  approximate: true
+  assumption: 'Fractal does not publish an internal free-air volume. 29 L is the
+    exterior box minus the feet, the panel thickness and the PSU basement. The
+    cited exterior is 424 × 210 × 475 mm (42.3 L). Not a measurement.'
+motherboards:
+- ATX
+- mATX
+- Mini-ITX
+horizontal_slots:
+  value: 7
+  approximate: false
+  source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+vertical_slots:
+  value: 0
+  approximate: false
+  source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+slot_pitch_mm:
+  value: 20.32
+  approximate: false
+  source: PCI Express Card Electromechanical Specification, slot pitch 0.800 in (20.32
+    mm)
+top_slot_y_mm:
+  value: 287.44
+  approximate: true
+  assumption: 'Slot 1 height in this case. An ATX board is 12.000 in (304.8 mm)
+    along the connector edge and 9.600 in (243.84 mm) deep (ATX Specification 2.2
+    §3.1). The view places the top edge of that board 25 mm under the case top.
+    Seven slot centers sit on a 20.32 mm pitch with the lowest center one pitch
+    above the bottom edge of the board, which is the cut that leaves microATX
+    (9.6 in along the connector edge, four slots) sharing the same top slot.
+    450 - (304.8 - 7×20.32) = 287.44 mm. Figure 3 of the spec is a drawing and
+    does not publish a machine-readable pin-1 coordinate. This is that stack,
+    not a measured Meshify hole position.'
+vertical_positions: []
+airflow_layout: direct_front_to_gpu
+psu_shroud: true
+psu_location: bottom
+side_panel: tempered_glass
+filters:
+- front
+- top
+- bottom
+front_mesh: true
+gpu_max_length_mm:
+  value: 341
+  approximate: false
+  source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+cpu_cooler_max_mm:
+  value: 169
+  approximate: false
+  source: https://assets.fractal-design.com/files/uxzbxy2o/production/957ad6ea3e40c76bf4dbae6baf505bad55f3984d.pdf
+fan_support:
+  front: 3×120 or 2×140
+  top: 2×120/140
+  rear: 1×120
+  bottom: 1×120
+radiator_support:
+  front: up to 360/280
+  top: up to 240
+  rear: '120'
+  bottom: '120'
+mounts:
+- _approximate: true
+  _assumption: 'Lower of the two stock 140 mm front intakes. The manual''s fan map
+    stacks 2×140 on the front (or 3×120). The pair sits in the main chamber above
+    the PSU shroud, 5 mm between the frames, centered across the 210 mm width.
+    The lower fan feeds the GPU row from in front of the cards. Y/Z are a
+    schematic, not a measured hole pattern. x under 80 mm stays on the front skin.'
+  id: front-1
+  panel: front
+  size_mm: 140
+  x_mm: 0
+  y_mm: 190
+  z_mm: 105
+  pattern: 2x140
+- _approximate: true
+  _assumption: 'Upper of the two stock 140 mm front intakes, one fan above front-1.
+    It feeds the CPU area. See front-1.'
+  id: front-2
+  panel: front
+  size_mm: 140
+  x_mm: 0
+  y_mm: 335
+  z_mm: 105
+  pattern: 2x140
+- _approximate: true
+  _assumption: 'Front bracket with 3×120 instead of the stock 2×140. Centers are
+    120 mm apart so the frames meet, still above the PSU shroud and inside the
+    475 mm case. Schematic Y/Z. Not the fans the non-RGB case ships with.'
+  id: front-120-1
+  panel: front
+  size_mm: 120
+  x_mm: 0
+  y_mm: 155
+  z_mm: 105
+  pattern: 3x120
+- _approximate: true
+  _assumption: 'Middle 120 mm on the front bracket. See front-120-1.'
+  id: front-120-2
+  panel: front
+  size_mm: 120
+  x_mm: 0
+  y_mm: 275
+  z_mm: 105
+  pattern: 3x120
+- _approximate: true
+  _assumption: 'Upper 120 mm on the front bracket. See front-120-1.'
+  id: front-120-3
+  panel: front
+  size_mm: 120
+  x_mm: 0
+  y_mm: 395
+  z_mm: 105
+  pattern: 3x120
+- _approximate: true
+  _assumption: 'Rear 120 mm mount, the stock Dynamic X2 GP-12 position. The manual
+    draws one 120 mm fan at the top of the rear panel. Center 400 mm puts the
+    120 mm disk on 340–460 mm, above slot 1 at 287 mm, so the rotor is clear of
+    the GPU row. Z is the case center. x is the rear skin.'
+  id: rear-1
+  panel: rear
+  size_mm: 120
+  x_mm: 424
+  y_mm: 400
+  z_mm: 105
+  pattern: 1x120
+- _approximate: true
+  _assumption: 'Top bracket, front of the two 140 mm positions. The sheet allows
+    2×120 or 2×140 and ships the top empty. The pair is biased toward the rear
+    of the 424 mm depth so it clears the angled front. Schematic, not a hole chart.'
+  id: top-1
+  panel: top
+  size_mm: 140
+  x_mm: 160
+  y_mm: 475
+  z_mm: 105
+  pattern: 2x140
+- _approximate: true
+  _assumption: 'Top bracket, rear 140 mm. See top-1.'
+  id: top-2
+  panel: top
+  size_mm: 140
+  x_mm: 310
+  y_mm: 475
+  z_mm: 105
+  pattern: 2x140
+- _approximate: true
+  _assumption: 'Top bracket with 2×120 instead of 2×140. Same rear bias. Schematic.'
+  id: top-120-1
+  panel: top
+  size_mm: 120
+  x_mm: 175
+  y_mm: 475
+  z_mm: 105
+  pattern: 2x120
+- _approximate: true
+  _assumption: 'Top bracket, rear 120 mm. See top-120-1.'
+  id: top-120-2
+  panel: top
+  size_mm: 120
+  x_mm: 305
+  y_mm: 475
+  z_mm: 105
+  pattern: 2x120
+- _approximate: true
+  _assumption: 'The single bottom 120 mm mount. The sheet says it requires the HDD
+    cage removed, so the stock preset leaves it empty. It sits in the front of
+    the basement, where that cage is. Schematic X/Z.'
+  id: bottom-1
+  panel: bottom
+  size_mm: 120
+  x_mm: 160
+  y_mm: 0
+  z_mm: 105
+  pattern: 1x120
+leak_areas_m2:
+  _approximate: true
+  _assumption: 'Panel leakage scaled down from the Meshify 2 XL mesh-front estimate
+    for this smaller mesh front, mesh top and glass side. Not measured on the Compact.'
+  front: 0.012
+  top: 0.008
+  bottom: 0.005
+  side: 0.028
+  seams: 0.008
+rear_slot_area_m2:
+  value: 0.0013
+  approximate: true
+  assumption: 'Same order of schematic rear slot-mouth area as the other mid-towers.
+    Not measured on the Compact.'
+clearance_above_top_mm:
+  value: 40
+  approximate: true
+  assumption: 'Open gap above the top card toward the CPU cooler. The case has more
+    roof height than this; 40 mm is the air the top blower sees beside the cooler.
+    Not a published Compact dimension.'
+psu_shroud_clearance_mm:
+  value: 40
+  approximate: true
+  assumption: 'Fractal does not publish the gap from the lowest slot to the PSU
+    shroud. 40 mm is a schematic floor clearance, the same allowance as the Meshify
+    2 XL preset. The lowest card''s fan faces this distance; it is not a bypass branch.'
+vertical_inlet_gap_mm:
+  value: 28
+  approximate: true
+  assumption: 'No vertical GPU mount is published (vertical_slots is 0). Placeholder
+    kept so the case model stays complete.'
+dimension_note: 'Standard (non-RGB) Meshify 2 Compact. Exterior follows the Meshify
+  2 XL convention: Fractal''s headline "Case dimensions (LxWxH)", which includes
+  feet, not the without-feet line. The sheet lists 424 × 210 × 475 mm with feet
+  and 412 × 210 × 455 mm without feet, protrusions and screws. Stored as depth ×
+  width × height, so 424 × 210 × 475. Seven bridgeless slots. Motherboards ATX /
+  mATX / Mini-ITX. GPU length 341 mm with the front fans installed, 360 mm without
+  them. CPU cooler 169 mm. Stock fans are only 2× Dynamic X2 GP-14 front intake
+  and 1× Dynamic X2 GP-12 rear exhaust. Front also takes 3×120. Top takes 2×120
+  or 2×140 and ships empty. Bottom takes 1×120 only with the HDD cage removed.
+  The RGB SKU''s four Aspect 12 fans are a different case and are not used here.
+  Dust filters on top, front and bottom. Mesh front. Tempered glass or steel side;
+  the preset uses glass. PSU shroud is full length.'
+notes: 'Non-RGB Meshify 2 Compact. Stock fan map is the two front 140 mm intakes
+  and the rear 120 mm exhaust. Top and bottom ship empty.'

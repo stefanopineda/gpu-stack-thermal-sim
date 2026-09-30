@@ -47,6 +47,7 @@ def _case_public(case) -> dict:
         "vertical_slots": case.vertical_slots,
         "slot_pitch_mm": case.slot_pitch_mm,
         "top_slot_y_mm": case.top_slot_y_mm,
+        "cpu_cooler_max_mm": case.cpu_cooler_max_mm,
         "vertical_positions": [v.model_dump() for v in case.vertical_positions],
         "mounts": [m.model_dump() for m in case.mounts],
         "motherboards": case.motherboards,
