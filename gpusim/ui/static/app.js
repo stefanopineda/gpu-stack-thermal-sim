@@ -221,6 +221,15 @@ function showLoadError(text) {
 
 const STOCK_FANS = {
   "silverstone-rm52": {
+    // Chosen default, not a fan the RM52 includes. The case ships the six 120 mm
+    // mounts empty. NF-P12 redux-1700 is the highest-airflow 120 mm in the library
+    // with a published P–Q table.
+    "front-1": { fan: "noctua-nf-p12-redux-1700", state: "fan", direction: "intake" },
+    "front-2": { fan: "noctua-nf-p12-redux-1700", state: "fan", direction: "intake" },
+    "front-3": { fan: "noctua-nf-p12-redux-1700", state: "fan", direction: "intake" },
+    "front-4": { fan: "noctua-nf-p12-redux-1700", state: "fan", direction: "intake" },
+    "front-5": { fan: "noctua-nf-p12-redux-1700", state: "fan", direction: "intake" },
+    "front-6": { fan: "noctua-nf-p12-redux-1700", state: "fan", direction: "intake" },
     "rear-140": { fan: "silverstone-rm52-included-140", state: "fan", direction: "exhaust" },
     "rear-80-1": { fan: "silverstone-rm52-included-80", state: "fan", direction: "exhaust" },
     "rear-80-2": { fan: "silverstone-rm52-included-80", state: "fan", direction: "exhaust" },
@@ -244,7 +253,7 @@ function scratch(caseId) {
         panel: m.panel,
         size_mm: m.size_mm,
         fan: preset?.fan || null,
-        state: preset?.state || (caseId === "silverstone-rm52" && m.panel === "front" ? "empty" : "blanked"),
+        state: preset?.state || "blanked",
         direction: preset?.direction || "intake",
         duty: 1,
       };

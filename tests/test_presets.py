@@ -124,7 +124,10 @@ def test_rm52_preloads_included_fans_and_solves_four_maxq():
     assert ("rear-80-1", "silverstone-rm52-included-80", "exhaust", "fan") in fans
     assert ("rear-80-2", "silverstone-rm52-included-80", "exhaust", "fan") in fans
     front = [m for m in build.mounts if m.panel == "front"]
-    assert len(front) == 6 and all(m.fan is None and m.state == "empty" for m in front)
+    assert len(front) == 6
+    assert all(m.fan == "noctua-nf-p12-redux-1700" and m.state == "fan" and m.direction == "intake" for m in front)
+    assert lib.fans["noctua-nf-p12-redux-1700"].approximate is False
+    assert lib.fans["noctua-nf-p12-redux-1700"].airflow_cfm == 70.75
     sol = solve(build, lib, do_throttle=False, outer=8)
     assert sol.converged
     assert len(sol.cards) == 4
