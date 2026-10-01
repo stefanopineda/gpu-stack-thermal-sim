@@ -145,4 +145,4 @@ Pages is public.
 - Pushing to `main` runs the tests and republishes [gpuism.com](https://gpuism.com)
   (`.github/workflows/ci.yml` → `stefanopineda/gpuism` on GitHub Pages).
 
-MIT licensed ([LICENSE](LICENSE)).
+MIT licensed ([LICENSE](LICENSE)). Pull requests: [CONTRIBUTING.md](CONTRIBUTING.md).
